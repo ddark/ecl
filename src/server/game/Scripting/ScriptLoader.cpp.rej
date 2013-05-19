@@ -1,0 +1,27 @@
+***************
+*** 1368,1373 ****
+  {
+  #ifdef SCRIPTS
+      /* This is where custom scripts should be added. */
+  
+  #endif
+  }
+--- 1380,1397 ----
+  {
+  #ifdef SCRIPTS
+      /* This is where custom scripts should be added. */
++     //Bots
++     AddSC_druid_bot();
++     AddSC_hunter_bot();
++     AddSC_mage_bot();
++     AddSC_paladin_bot();
++     AddSC_priest_bot();
++     AddSC_rogue_bot();
++     AddSC_shaman_bot();
++     AddSC_warlock_bot();
++     AddSC_warrior_bot();
++     AddSC_script_bot_giver();
++     AddSC_script_bot_commands();
+  
+  #endif
+  }

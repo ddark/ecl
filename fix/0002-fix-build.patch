@@ -1,0 +1,126 @@
+From fd33516bb2afc741ad936c74402b6384eee02b7f Mon Sep 17 00:00:00 2001
+From: krishna laptop kantor <krenz_37@yahoo.com>
+Date: Mon, 17 Sep 2012 21:26:02 +0700
+Subject: [PATCH] fix build
+
+---
+ src/server/game/Handlers/ChatHandler.cpp | 96 ++++++++++++++++----------------
+ 1 file changed, 48 insertions(+), 48 deletions(-)
+
+diff --git a/src/server/game/Handlers/ChatHandler.cpp b/src/server/game/Handlers/ChatHandler.cpp
+index dfa9f35..f4ff5f4 100755
+--- a/src/server/game/Handlers/ChatHandler.cpp
++++ b/src/server/game/Handlers/ChatHandler.cpp
+@@ -285,6 +285,54 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
+         return;
+     }
+ 
++    std::string to, channel, msg;
++    bool ignoreChecks = false;
++    switch (type)
++    {
++        case CHAT_MSG_SAY:
++        case CHAT_MSG_EMOTE:
++        case CHAT_MSG_YELL:
++        case CHAT_MSG_PARTY:
++        case CHAT_MSG_PARTY_LEADER:
++        case CHAT_MSG_GUILD:
++        case CHAT_MSG_OFFICER:
++        case CHAT_MSG_RAID:
++        case CHAT_MSG_RAID_LEADER:
++        case CHAT_MSG_RAID_WARNING:
++        case CHAT_MSG_BATTLEGROUND:
++        case CHAT_MSG_BATTLEGROUND_LEADER:
++            recv_data >> msg;
++            break;
++        case CHAT_MSG_WHISPER:
++            recv_data >> to;
++            recv_data >> msg;
++            break;
++        case CHAT_MSG_CHANNEL:
++            recv_data >> channel;
++            recv_data >> msg;
++            break;
++        case CHAT_MSG_AFK:
++        case CHAT_MSG_DND:
++            recv_data >> msg;
++            ignoreChecks = true;
++            break;
++    }
++
++    if (!ignoreChecks)
++    {
++        if (msg.empty())
++            return;
++
++        if (ChatHandler(this).ParseCommands(msg.c_str()) > 0)
++            return;
++
++        if (!processChatmessageFurtherAfterSecurityChecks(msg, lang))
++            return;
++
++        if (msg.empty())
++            return;
++    }
++
+ 	bool kickPlayer = false, punishPlayer = false, duplicatedMessage = false;
+ 	uint32 muteTime = 0, freezeTime = 0, banTimeDays = 0, stunTime = 0, punishment = 0;
+     char* message = strdup(msg.c_str());
+@@ -373,54 +421,6 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
+ 
+     msg = convertedMsg;
+ 
+-    std::string to, channel, msg;
+-    bool ignoreChecks = false;
+-    switch (type)
+-    {
+-        case CHAT_MSG_SAY:
+-        case CHAT_MSG_EMOTE:
+-        case CHAT_MSG_YELL:
+-        case CHAT_MSG_PARTY:
+-        case CHAT_MSG_PARTY_LEADER:
+-        case CHAT_MSG_GUILD:
+-        case CHAT_MSG_OFFICER:
+-        case CHAT_MSG_RAID:
+-        case CHAT_MSG_RAID_LEADER:
+-        case CHAT_MSG_RAID_WARNING:
+-        case CHAT_MSG_BATTLEGROUND:
+-        case CHAT_MSG_BATTLEGROUND_LEADER:
+-            recv_data >> msg;
+-            break;
+-        case CHAT_MSG_WHISPER:
+-            recv_data >> to;
+-            recv_data >> msg;
+-            break;
+-        case CHAT_MSG_CHANNEL:
+-            recv_data >> channel;
+-            recv_data >> msg;
+-            break;
+-        case CHAT_MSG_AFK:
+-        case CHAT_MSG_DND:
+-            recv_data >> msg;
+-            ignoreChecks = true;
+-            break;
+-    }
+-
+-    if (!ignoreChecks)
+-    {
+-        if (msg.empty())
+-            return;
+-
+-        if (ChatHandler(this).ParseCommands(msg.c_str()) > 0)
+-            return;
+-
+-        if (!processChatmessageFurtherAfterSecurityChecks(msg, lang))
+-            return;
+-
+-        if (msg.empty())
+-            return;
+-    }
+-
+     switch (type)
+     {
+         case CHAT_MSG_SAY:
+-- 
+1.8.0.msysgit.0
+

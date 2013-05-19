@@ -1,0 +1,25 @@
+From 99fc5e63e809240ea99b1d69828b55e12c5332d5 Mon Sep 17 00:00:00 2001
+From: LordPsyan <realmsofwarcraft@gmail.com>
+Date: Tue, 4 Sep 2012 19:53:54 -0500
+Subject: [PATCH] 2012_09_04-garments-of-the-light
+
+---
+ src/game/Creature.cpp |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
+
+diff --git a/src/game/Creature.cpp b/src/game/Creature.cpp
+index ca4c414..3a7f385 100644
+--- a/src/game/Creature.cpp
++++ b/src/game/Creature.cpp
+@@ -390,6 +390,8 @@ bool Creature::UpdateEntry(uint32 Entry, Team team, const CreatureData* data /*=
+         else
+             SetPvP(false);
+     }
++    if (GetCreatureInfo()->unit_flags & UNIT_FLAG_PVP || GetCreatureInfo()->unit_flags & UNIT_FLAG_PVP_ATTACKABLE)
++    SetPvP(true);
+ 
+     for (int i = 0; i < CREATURE_MAX_SPELLS; ++i)
+         m_spells[i] = GetCreatureInfo()->spells[i];
+-- 
+1.7.2.5
+

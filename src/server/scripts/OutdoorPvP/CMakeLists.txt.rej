@@ -1,0 +1,17 @@
+***************
+*** 24,29 ****
+    OutdoorPvP/OutdoorPvPZM.h
+    OutdoorPvP/OutdoorPvPNA.h
+    OutdoorPvP/OutdoorPvPGH.h
+  )
+  
+  message("  -> Prepared: Outdoor PVP Zones")
+--- 24,31 ----
+    OutdoorPvP/OutdoorPvPZM.h
+    OutdoorPvP/OutdoorPvPNA.h
+    OutdoorPvP/OutdoorPvPGH.h
++   OutdoorPvP/OutdoorPvPCA.cpp
++   OutdoorPvP/OutdoorPvPCA.h
+  )
+  
+  message("  -> Prepared: Outdoor PVP Zones")

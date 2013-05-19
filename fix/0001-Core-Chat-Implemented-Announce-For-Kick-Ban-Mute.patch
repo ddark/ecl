@@ -1,0 +1,146 @@
+From 471def8ed71afd73afd868c6ac406fec9e2a890b Mon Sep 17 00:00:00 2001
+From: Aios <aioslike@gmail.com>
+Date: Mon, 6 Aug 2012 01:51:39 +0200
+Subject: [PATCH] [Core/Chat] Implemented Announce For Kick,Ban & Mute
+
+---
+ src/server/scripts/Commands/cs_ban.cpp  |   18 ++++++++++++
+ src/server/scripts/Commands/cs_misc.cpp |   47 +++++++++++++++++++++++--------
+ 2 files changed, 54 insertions(+), 11 deletions(-)
+
+diff --git a/src/server/scripts/Commands/cs_ban.cpp b/src/server/scripts/Commands/cs_ban.cpp
+index b84a7e5..0e240dc 100644
+--- a/src/server/scripts/Commands/cs_ban.cpp
++++ b/src/server/scripts/Commands/cs_ban.cpp
+@@ -150,6 +150,7 @@ public:
+             return false;
+ 
+         std::string nameOrIP = cnameOrIP;
++        std::string announce;
+ 
+         char* durationStr = strtok(NULL, " ");
+         if (!durationStr || !atoi(durationStr))
+@@ -209,6 +210,23 @@ public:
+                 handler->SetSentErrorMessage(true);
+                 return false;
+         }
++	
++        if (mode == BAN_CHARACTER)
++            announce = "|CFF00FF00[Бан-Анонс] Персонаж '";
++        else if (mode == BAN_IP)
++            announce = "|CFF00FF00[Бан-Анонс] Ip-Адрес '";
++        else
++            announce = "|CFF00FF00[Бан-Анонс] Аккаунт '";
++
++            announce += nameOrIP.c_str();
++            announce += "' был забанен на ";
++            announce += durationStr;
++            announce += " Представителем Администрарии '";
++            announce += handler->GetSession()->GetPlayerName();
++            announce += "'. Причина: ";
++            announce += reasonStr;
++            announce += "|r";
++            handler->SendSysMessage(announce.c_str());
+ 
+         return true;
+     }
+diff --git a/src/server/scripts/Commands/cs_misc.cpp b/src/server/scripts/Commands/cs_misc.cpp
+index 5de57de..ef40136 100644
+--- a/src/server/scripts/Commands/cs_misc.cpp
++++ b/src/server/scripts/Commands/cs_misc.cpp
+@@ -921,9 +921,10 @@ public:
+     {
+         Player* target = NULL;
+         std::string playerName;
++        std::string announce;
+         if (!handler->extractPlayerTarget((char*)args, &target, NULL, &playerName))
+             return false;
+-
++
+         if (handler->GetSession() && target == handler->GetSession()->GetPlayer())
+         {
+             handler->SendSysMessage(LANG_COMMAND_KICKSELF);
+@@ -935,13 +936,22 @@ public:
+         if (handler->HasLowerSecurity(target, 0))
+             return false;
+ 
+-        if (sWorld->getBoolConfig(CONFIG_SHOW_KICK_IN_WORLD))
+-            sWorld->SendWorldText(LANG_COMMAND_KICKMESSAGE, playerName.c_str());
+-        else
++        if (sWorld->getBoolConfig(CONFIG_SHOW_KICK_IN_WORLD))
++        {
++            //sWorld->SendWorldText(LANG_COMMAND_KICKMESSAGE, playerName.c_str());
++            announce = "|CFF00FF00[Кик-Анонс] Персонаж '";
++            announce += target->GetName();
++            announce += "' был выкинут с сервера Представителем Администрации '";
++            announce += handler->GetSession()->GetPlayerName();
++            announce += "'.|r";
++            handler->SendSysMessage(announce.c_str());
++        }
++        else
+             handler->PSendSysMessage(LANG_COMMAND_KICKMESSAGE, playerName.c_str());
+ 
+         target->GetSession()->KickPlayer();
+ 
++      
+         return true;
+     }
+ 
+@@ -1834,15 +1844,19 @@ public:
+     {
+         char* nameStr;
+         char* delayStr;
++        std::string announce;
+         handler->extractOptFirstArg((char*)args, &nameStr, &delayStr);
+         if (!delayStr)
+             return false;
+ 
+         char const* muteReason = strtok(NULL, "\r");
+-        std::string muteReasonStr = "No reason";
+-        if (muteReason != NULL)
+-            muteReasonStr = muteReason;
+-
++        if (muteReason == NULL)
++        {
++           handler->PSendSysMessage("Введите причину мута!");
++           handler->SetSentErrorMessage(true);
++           return false;
++        }
++
+         Player* target;
+         uint64 targetGuid;
+         std::string targetName;
+@@ -1870,7 +1884,7 @@ public:
+             int64 muteTime = time(NULL) + notSpeakTime * MINUTE;
+             target->GetSession()->m_muteTime = muteTime;
+             stmt->setInt64(0, muteTime);
+-            ChatHandler(target).PSendSysMessage(LANG_YOUR_CHAT_DISABLED, notSpeakTime, muteReasonStr.c_str());
++            ChatHandler(target).PSendSysMessage(LANG_YOUR_CHAT_DISABLED, notSpeakTime, muteReason);
+         }
+         else
+         {
+@@ -1883,8 +1897,19 @@ public:
+         LoginDatabase.Execute(stmt);
+         std::string nameLink = handler->playerLink(targetName);
+ 
+-        handler->PSendSysMessage(target ? LANG_YOU_DISABLE_CHAT : LANG_COMMAND_DISABLE_CHAT_DELAYED, nameLink.c_str(), notSpeakTime, muteReasonStr.c_str());
+-
++        handler->PSendSysMessage(target ? LANG_YOU_DISABLE_CHAT : LANG_COMMAND_DISABLE_CHAT_DELAYED, nameLink.c_str(), notSpeakTime, muteReason);
++
++        announce = "|CFF00FF00[Мут-Анонс] Персонаж '";
++        announce += nameStr;
++        announce += "' получил молчание на ";
++        announce += delayStr;
++        announce += " от Представителя Администрации '";
++        announce += handler->GetSession()->GetPlayerName();
++        announce += "'. Причина: ";
++        announce += muteReason;
++        announce += "|r";
++        handler->SendSysMessage(announce.c_str());
++
+         return true;
+     }
+ 
+-- 
+1.7.10.msysgit.1
+

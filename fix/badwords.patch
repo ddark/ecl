@@ -1,0 +1,484 @@
+ src/server/game/Entities/Player/Player.cpp |   22 +++
+ src/server/game/Entities/Player/Player.h   |   13 ++
+ src/server/game/Globals/ObjectMgr.cpp      |   28 ++++
+ src/server/game/Globals/ObjectMgr.h        |    7 +
+ src/server/game/Handlers/ChatHandler.cpp   |  216 +++++++++++++++++++++++++++-
+ src/server/game/Scripting/ScriptLoader.cpp |    4 +
+ src/server/game/World/World.cpp            |    3 +
+ src/server/scripts/Commands/cs_reload.cpp  |   13 ++
+ src/server/scripts/Custom/CMakeLists.txt   |    1 +
+ 9 files changed, 302 insertions(+), 5 deletions(-)
+
+diff --git a/src/server/game/Entities/Player/Player.cpp b/src/server/game/Entities/Player/Player.cpp
+index 33a138a..6c070cf 100755
+--- a/src/server/game/Entities/Player/Player.cpp
++++ b/src/server/game/Entities/Player/Player.cpp
+@@ -1679,6 +1679,28 @@ void Player::Update(uint32 p_time)
+         }
+     }
+ 
++    if (freezeTimer > 0)
++    {
++        if (p_time >= freezeTimer)
++        {
++            if (HasAura(9454))
++                RemoveAurasDueToSpell(9454);
++        }
++        else
++            freezeTimer -= p_time;
++    }
++
++    if (stunTimer > 0)
++    {
++        if (p_time >= stunTimer)
++        {
++            if (HasAura(31539))
++                RemoveAurasDueToSpell(31539);
++        }
++        else
++            stunTimer -= p_time;
++    }
++
+     if (m_weaponChangeTimer > 0)
+     {
+         if (p_time >= m_weaponChangeTimer)
+diff --git a/src/server/game/Entities/Player/Player.h b/src/server/game/Entities/Player/Player.h
+index b0cbb5c..1a377c3 100755
+--- a/src/server/game/Entities/Player/Player.h
++++ b/src/server/game/Entities/Player/Player.h
+@@ -2265,6 +2265,15 @@ class Player : public Unit, public GridObject<Player>
+         void ChangeSpeakTime(int utime);
+ 
+         /*********************************************************/
++        /***                 CHAT FILTER SYSTEM                ***/
++        /*********************************************************/
++
++        void SetLoggedOutWhilePunished(bool _true) { loggedOutWhilePunished = _true; }
++        bool LoggedOutWhilePunished() { return loggedOutWhilePunished; }
++        void SetFreezeStunTimer(bool freeze, uint32 _timer) { freeze ? freezeTimer = _timer : stunTimer = _timer; }
++        uint32 GetFreezeStunTimer(bool freeze) { return freeze ? freezeTimer : stunTimer; }
++
++        /*********************************************************/
+         /***                 VARIOUS SYSTEMS                   ***/
+         /*********************************************************/
+         void UpdateFallInformationIfNeed(MovementInfo const& minfo, uint16 opcode);
+@@ -2732,6 +2741,10 @@ class Player : public Unit, public GridObject<Player>
+         uint32 m_zoneUpdateTimer;
+         uint32 m_areaUpdateId;
+ 
++        uint32 freezeTimer;
++        uint32 stunTimer;
++        bool loggedOutWhilePunished;
++
+         uint32 m_deathTimer;
+         time_t m_deathExpireTime;
+ 
+diff --git a/src/server/game/Globals/ObjectMgr.cpp b/src/server/game/Globals/ObjectMgr.cpp
+index eedf84a..becd413 100755
+--- a/src/server/game/Globals/ObjectMgr.cpp
++++ b/src/server/game/Globals/ObjectMgr.cpp
+@@ -7039,6 +7039,34 @@ void ObjectMgr::LoadQuestPOI()
+     sLog->outString();
+ }
+ 
++void ObjectMgr::LoadChatFilter()
++{
++    uint32 oldMSTime = getMSTime();
++
++    _chatFilterStore.clear();
++
++    QueryResult result = CharacterDatabase.Query("SELECT word, punishment FROM chat_filter");
++
++    if (!result)
++    {
++        sLog->outInfo(LOG_FILTER_CHATSYS, ">> Loaded 0 ChatFilter words. DB table `chat_filter` is empty.");
++        return;
++    }
++
++    uint32 count = 0;
++
++    do
++    {
++        _chatFilterStore.push_back(std::make_pair((*result)[0].GetString(), (*result)[1].GetUInt32()));
++        count++;
++    }
++    while (result->NextRow());
++
++    sLog->outInfo(LOG_FILTER_CHATSYS, ">> Loaded %u chat filter words in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
++}
++
+ void ObjectMgr::LoadNPCSpellClickSpells()
+ {
+     uint32 oldMSTime = getMSTime();
+diff --git a/src/server/game/Globals/ObjectMgr.h b/src/server/game/Globals/ObjectMgr.h
+index fcc0315..7322f54 100755
+--- a/src/server/game/Globals/ObjectMgr.h
++++ b/src/server/game/Globals/ObjectMgr.h
+@@ -608,6 +608,8 @@ class ObjectMgr
+ 
+         typedef std::vector<std::string> ScriptNameContainer;
+ 
++        typedef std::vector<std::pair<std::string, uint32> > ChatFilterContainer;
++
+         typedef std::map<uint32, uint32> CharacterConversionMap;
+ 
+         Player* GetPlayerByLowGUID(uint32 lowguid) const;
+@@ -901,6 +903,9 @@ class ObjectMgr
+ 
+         void LoadNPCSpellClickSpells();
+ 
++        void LoadChatFilter();
++        ChatFilterContainer& GetCensoredWords() { return _chatFilterStore; }
++
+         void LoadGameTele();
+ 
+         void LoadGossipMenu();
+@@ -1205,6 +1210,8 @@ class ObjectMgr
+ 
+         SpellClickInfoContainer _spellClickInfoStore;
+ 
++        ChatFilterContainer _chatFilterStore;
++
+         SpellScriptsContainer _spellScriptsStore;
+ 
+         VehicleAccessoryContainer _vehicleTemplateAccessoryStore;
+diff --git a/src/server/game/Handlers/ChatHandler.cpp b/src/server/game/Handlers/ChatHandler.cpp
+index 966eae5..30572a9 100755
+--- a/src/server/game/Handlers/ChatHandler.cpp
++++ b/src/server/game/Handlers/ChatHandler.cpp
+@@ -63,6 +63,96 @@ bool WorldSession::processChatmessageFurtherAfterSecurityChecks(std::string& msg
+     return true;
+ }
+ 
++enum ChatFilterPunishments
++{
++    CHAT_FILTER_PUNISHMENT_MUTE_10_SEC          = 1,
++    CHAT_FILTER_PUNISHMENT_MUTE_30_SEC          = 2,
++    CHAT_FILTER_PUNISHMENT_MUTE_1_MIN           = 4,
++    CHAT_FILTER_PUNISHMENT_MUTE_2_MIN           = 8,
++    CHAT_FILTER_PUNISHMENT_MUTE_5_MIN           = 16,
++    CHAT_FILTER_PUNISHMENT_MUTE_10_MIN          = 32,
++    CHAT_FILTER_PUNISHMENT_MUTE_20_MIN          = 64,
++    CHAT_FILTER_PUNISHMENT_MUTE_30_MIN          = 128,
++    CHAT_FILTER_PUNISHMENT_MUTE_1_HOUR          = 256,
++    CHAT_FILTER_PUNISHMENT_FREEZE_5_MIN         = 512,
++    CHAT_FILTER_PUNISHMENT_FREEZE_10_MIN        = 1024,
++    CHAT_FILTER_PUNISHMENT_KICK_PLAYER          = 2048,
++    CHAT_FILTER_PUNISHMENT_BAN_PLAYER_1_DAYS    = 4096,
++    CHAT_FILTER_PUNISHMENT_BAN_PLAYER_2_DAYS    = 8192,
++    CHAT_FILTER_PUNISHMENT_BAN_PLAYER_5_DAYS    = 16384,
++    CHAT_FILTER_PUNISHMENT_BAN_PLAYER_7_DAYS    = 32768,
++    CHAT_FILTER_PUNISHMENT_STUN_5_MIN           = 65536,
++    CHAT_FILTER_PUNISHMENT_STUN_10_MIN          = 131072,
++
++    SPELL_FREEZE                                = 9454,
++    SPELL_STUN                                  = 31539,
++    SPELL_STUN_SELF_ONE_SEC                     = 65256,
++    SPELL_STUN_SELF_VISUAL                      = 18970,
++
++    MAX_ALLOWED_STORED_MESSAGES_IN_CHANNELS     = 10,
++};
++
++std::vector<std::pair<uint64 /*guid*/, std::string /*message*/> > messagesInChannel;
++
++class kick_player_delay_event : public BasicEvent
++{
++    public:
++        kick_player_delay_event(Player* player) : _player(player) { }
++
++        bool Execute(uint64 /*time*/, uint32 /*diff*/)
++        {
++            if (_player && _player->GetSession())
++                _player->GetSession()->KickPlayer();
++            return true;
++        }
++
++    private:
++        Player* _player;
++};
++
++void PunishPlayerForBadWord(Player* _sender, uint32 _muteTime = 0, uint32 _freezeTime = 0, uint16 _banTimeDays = 0, uint32 _stunTime = 0, bool _kickPlayer = false)
++{
++    if (!_sender)
++        return;
++
++    if (_muteTime != 0)
++    {
++        _sender->CastSpell(_sender, SPELL_STUN_SELF_VISUAL, false);
++        _sender->CastSpell(_sender, SPELL_STUN_SELF_ONE_SEC, false);
++        _sender->GetSession()->m_muteTime = time(NULL) + (_muteTime / 1000);
++        _sender->GetSession()->SendNotification("Your chat has been disabled for %u minutes and %u seconds because you've used bad words.", (_muteTime / 60000), ((_muteTime % 60000) / 1000));
++    }
++
++    if (_freezeTime != 0)
++    {
++        _sender->CastSpell(_sender, SPELL_FREEZE, false);
++        _sender->GetSession()->SendNotification("You have been frozen for %u minutes and %u seconds for using bad words.", (_freezeTime / 60000), ((_freezeTime % 60000) / 1000));
++        _sender->SetFreezeStunTimer(true, _freezeTime);
++    }
++
++    if (_kickPlayer)
++    {
++        _sender->GetSession()->SendNotification("You will be kicked in 3 seconds for using bad words.");
++        _sender->m_Events.AddEvent(new kick_player_delay_event(_sender), _sender->m_Events.CalculateTime(3000));
++    }
++
++    if (_banTimeDays != 0)
++    {
++        std::stringstream _duration, _banReason;
++        uint64 _banTimeSecs = _banTimeDays * DAY;
++        _duration << _banTimeSecs << "s";
++        _banReason << "Chat Filter System ban. Duration: " << _banTimeDays << (_banTimeDays == 1 ? " day." : " days.");
++        sWorld->BanCharacter(_sender->GetName(), _duration.str(), _banReason.str(), "Chat Filter System");
++    }
++
++    if (_stunTime != 0)
++    {
++        _sender->CastSpell(_sender, SPELL_STUN, false);
++        _sender->GetSession()->SendNotification("You have been stunned for %u minutes and %u seconds for using bad words.", (_stunTime / 60000), ((_stunTime % 60000) / 1000));
++        _sender->SetFreezeStunTimer(false, _stunTime);
++    }
++}
++
+ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
+ {
+     uint32 type;
+@@ -236,6 +326,94 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
+             return;
+     }
+ 
++    bool kickPlayer = false, punishPlayer = false, duplicatedMessage = false;
++    uint32 muteTime = 0, freezeTime = 0, banTimeDays = 0, stunTime = 0, punishment = 0;
++    char* message = strdup(msg.c_str());
++    char* words = strtok(message, " ,.-()&^%$#@!{}'<>/?|\\=+-_1234567890");
++    std::string convertedMsg = msg;
++    ObjectMgr::ChatFilterContainer const& censoredWords = sObjectMgr->GetCensoredWords();
++
++    while (words != NULL && !censoredWords.empty())
++    {
++        for (ObjectMgr::ChatFilterContainer::const_iterator itr = censoredWords.begin(); itr != censoredWords.end(); ++itr)
++        {
++            if (!stricmp(itr->first.c_str(), words))
++            {
++                //! Convert everything into lower case
++                for (uint16 i = 0; i < convertedMsg.size(); ++i)
++                    convertedMsg[i] = tolower(convertedMsg[i]);
++
++                size_t bannedWord = convertedMsg.find(itr->first);
++
++                while (bannedWord != std::string::npos)
++                {
++                    convertedMsg.replace(bannedWord, itr->first.length(), itr->first.length(), '*');
++                    bannedWord = convertedMsg.find(itr->first, bannedWord + 1);
++                    punishment = itr->second;
++                    punishPlayer = true;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_MUTE_10_SEC)
++                        muteTime += 10000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_MUTE_30_SEC)
++                        muteTime += 30000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_MUTE_1_MIN)
++                        muteTime += 60000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_MUTE_2_MIN)
++                        muteTime += 120000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_MUTE_5_MIN)
++                        muteTime += 300000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_MUTE_10_MIN)
++                        muteTime += 600000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_MUTE_20_MIN)
++                        muteTime += 1200000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_MUTE_30_MIN)
++                        muteTime += 1800000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_MUTE_1_HOUR)
++                        muteTime += 3600000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_FREEZE_5_MIN)
++                        freezeTime += 300000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_FREEZE_10_MIN)
++                        freezeTime += 600000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_STUN_5_MIN)
++                        stunTime += 300000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_STUN_10_MIN)
++                        stunTime += 600000;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_KICK_PLAYER)
++                        kickPlayer = true;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_BAN_PLAYER_1_DAYS)
++                        banTimeDays += 1;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_BAN_PLAYER_2_DAYS)
++                        banTimeDays += 2;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_BAN_PLAYER_5_DAYS)
++                        banTimeDays += 5;
++
++                    if (punishment & CHAT_FILTER_PUNISHMENT_BAN_PLAYER_7_DAYS)
++                        banTimeDays += 7;
++                }
++            }
++        }
++
++        words = strtok(NULL, " ,.-()&^%$#@!{}'<>/?|\\=+-_1234567890");
++    }
++
++    msg = convertedMsg;
++
+     switch (type)
+     {
+         case CHAT_MSG_SAY:
+@@ -428,15 +606,37 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
+ 
+             if (ChannelMgr* cMgr = channelMgr(_player->GetTeam()))
+             {
+-
+                 if (Channel* chn = cMgr->GetChannel(channel, _player))
+                 {
+-                    sScriptMgr->OnPlayerChat(_player, type, lang, msg, chn);
+-
+-                    chn->Say(_player->GetGUID(), msg.c_str(), lang);
++                    for (std::vector<std::pair<uint64, std::string> >::const_iterator itr = messagesInChannel.begin(); itr != messagesInChannel.end(); ++itr)
++                    {
++                        if (itr->first == sender->GetGUID() && itr->second == msg)
++                        {
++                            sender->GetSession()->SendNotification("Your message won't be displayed because it's not allowed to flood the channels like that.");
++                            duplicatedMessage = true;
++                            break; //! Stop looping through elements if we found a 'target' in the vector.
++                        }
++                    }
++
++                    if (!duplicatedMessage)
++                    {
++                        sScriptMgr->OnPlayerChat(_player, type, lang, msg, chn);
++                        chn->Say(_player->GetGUID(), msg.c_str(), lang);
++                        messagesInChannel.push_back(std::make_pair(sender->GetGUID(), msg));
++
++                        //! It's pointless to check for this if the message is never sent to the
++                        //! actual channel (so out of the brackets from this if-check), because
++                        //! in that case the vector's size wouldn't change anyway.
++                        //! Here we nuke out the 'oldest' element from vector messagesInChannel
++                        //! if the size of it equals to or is bigger than the max. allowed messages
++                        //! to check against.
++                        if (messagesInChannel.size() >= MAX_ALLOWED_STORED_MESSAGES_IN_CHANNELS)
++                            messagesInChannel.erase(messagesInChannel.begin());
++                    }
+                 }
+             }
+-        } break;
++        }
++        break;
+         case CHAT_MSG_AFK:
+         {
+             if ((msg.empty() || !_player->isAFK()) && !_player->isInCombat())
+@@ -477,6 +677,12 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
+             sLog->outError("CHAT: unknown message type %u, lang: %u", type, lang);
+             break;
+     }
++
++    //! No need to reset variable punishment because they automatically do that every chatmessage
++    if (punishPlayer && !duplicatedMessage)
++        PunishPlayerForBadWord(sender, muteTime, freezeTime, banTimeDays, stunTime, kickPlayer);
++
++    free(message); //! Prevents memoryleaks
+ }
+ 
+ void WorldSession::HandleEmoteOpcode(WorldPacket & recv_data)
+diff --git a/src/server/game/Scripting/ScriptLoader.cpp b/src/server/game/Scripting/ScriptLoader.cpp
+index 2a62576..14e12c7 100755
+--- a/src/server/game/Scripting/ScriptLoader.cpp
++++ b/src/server/game/Scripting/ScriptLoader.cpp
+@@ -601,6 +601,9 @@ void AddSC_outdoorpvp_zm();
+ // player
+ void AddSC_chat_log();
+ 
++// Chat Filter
++void AddSC_chat_filter_playerscript();
++
+ #endif
+ 
+ void AddScripts()
+@@ -690,6 +693,7 @@ void AddWorldScripts()
+     AddSC_npc_taxi();
+     AddSC_achievement_scripts();
+     AddSC_chat_log();
++    AddSC_chat_filter_playerscript();
+ #endif
+ }
+ 
+diff --git a/src/server/game/World/World.cpp b/src/server/game/World/World.cpp
+index 3aee1dc..5774d0b 100755
+--- a/src/server/game/World/World.cpp
++++ b/src/server/game/World/World.cpp
+@@ -1441,6 +1441,9 @@ void World::SetInitialWorldSettings()
+     sLog->outString("Loading UNIT_NPC_FLAG_SPELLCLICK Data..."); // must be after LoadQuests
+     sObjectMgr->LoadNPCSpellClickSpells();
+ 
++    sLog->outString("Loading Chat Filter Words...");
++    sObjectMgr->LoadChatFilter();
++
+     sLog->outString("Loading Vehicle Template Accessories...");
+     sObjectMgr->LoadVehicleTemplateAccessories();                // must be after LoadCreatureTemplates() and LoadNPCSpellClickSpells()
+ 
+diff --git a/src/server/scripts/Commands/cs_reload.cpp b/src/server/scripts/Commands/cs_reload.cpp
+index 1c119fd..b933742 100644
+--- a/src/server/scripts/Commands/cs_reload.cpp
++++ b/src/server/scripts/Commands/cs_reload.cpp
+@@ -158,6 +158,7 @@ public:
+             { "waypoint_data",                SEC_ADMINISTRATOR, true,  &HandleReloadWpCommand,                         "", NULL },
+             { "vehicle_accessory",            SEC_ADMINISTRATOR, true,  &HandleReloadVehicleAccessoryCommand,           "", NULL },
+             { "vehicle_template_accessory",   SEC_ADMINISTRATOR, true,  &HandleReloadVehicleTemplateAccessoryCommand,   "", NULL },
++            { "chat_filter",                  SEC_ADMINISTRATOR, true,  &HandleReloadLoadChatFilterCommand,             "", NULL },
+             { NULL,                           0,                 false, NULL,                                           "", NULL }
+         };
+         static ChatCommand commandTable[] =
+@@ -200,7 +201,11 @@ public:
+         HandleReloadVehicleAccessoryCommand(handler, "");
+         HandleReloadVehicleTemplateAccessoryCommand(handler, "");
+ 
++        HandleReloadLoadChatFilterCommand(handler, "");
++
+         HandleReloadAutobroadcastCommand(handler, "");
++
++        HandleReloadLoadChatFilterCommand(handler, "");
+         return true;
+     }
+ 
+@@ -1305,6 +1310,14 @@ public:
+         handler->SendGlobalGMSysMessage("Vehicle template accessories reloaded.");
+         return true;
+     }
++
++    static bool HandleReloadLoadChatFilterCommand(ChatHandler* handler, char const* /*args*/)
++    {
++        sLog->outInfo(LOG_FILTER_CHATSYS, "Reloading chat_filter table...");
++        sObjectMgr->LoadChatFilter();
++        handler->SendGlobalGMSysMessage("Chat Filter words reloaded.");
++        return true;
++    }
+ };
+ 
+ void AddSC_reload_commandscript()
+diff --git a/src/server/scripts/Custom/CMakeLists.txt b/src/server/scripts/Custom/CMakeLists.txt
+index 62abde2..5c27c68 100644
+--- a/src/server/scripts/Custom/CMakeLists.txt
++++ b/src/server/scripts/Custom/CMakeLists.txt
+@@ -10,6 +10,7 @@
+ 
+ set(scripts_STAT_SRCS
+   ${scripts_STAT_SRCS}
++  Custom/chat_filter_playerscript.cpp
+ )
+ 
+ message("  -> Prepared: Custom")
+w

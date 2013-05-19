@@ -1,0 +1,13 @@
+diff --git a/src/server/scripts/Spells/spell_warrior.cpp b/src/server/scripts/Spells/spell_warrior.cpp
+index 66e4411..3e4c043 100644
+--- a/src/server/scripts/Spells/spell_warrior.cpp
++++ b/src/server/scripts/Spells/spell_warrior.cpp
+@@ -365,7 +365,7 @@ class spell_warr_concussion_blow : public SpellScriptLoader
+ 
+             void HandleDummy(SpellEffIndex /* effIndex */)
+             {
+-                SetHitDamage(GetHitDamage() + CalculatePctF(GetHitDamage(),GetCaster()->GetTotalAttackPowerValue(BASE_ATTACK)));
++                SetHitDamage(CalculatePctN(GetCaster()->GetTotalAttackPowerValue(BASE_ATTACK), GetEffectValue()));
+             }
+ 
+             void Register()

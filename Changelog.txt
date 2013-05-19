@@ -1,0 +1,33 @@
+############################################################################################                                          #
+#                                      Changelog                                           #
+#                                                                                          #
+############################################################################################
+
+
+[1] --> Improved Mirror Images AI by A-Metaphysical-Drama. (TEST)
+[2] --> Fix - Vehicle Immunities. (By Demonid)
+[3] Fix Bonus 4P T10 Warrior. (TEST By Ranou)
+[4] Core/Hunter: calculate chimera shot serpent damage with skilled
+[5] --> npc_enchant (By Inolan)
+[6] --> Fix Ebon Gargoyle - Target + Follow. (By Moco23)
+[7] --> Implement Fast Arena Start. (Thx Demonid)
+[8] --> Fix Sylvanas Music Box.
+[9] --> Fix SpellFamily for Redemption (Paladin) so it scales with haste rating. (Thx  mweinelt)
+[10] --> Update PathPoint in Blade's Edge Arena, Dalaran Sewers and Eye of the Storm. (Thx Quentis)
+[11] --> Update Target Movement Generator. (Thx Quentis)
+
+############################################################################################
+#                                                                                          #
+# Thanks to:                                                                               #
+#                                                                                          #
+#            https://github.com/diton                                                      #
+#            https://github.com/gc                                                         #
+#            https://github.com/tibbi                                                      #
+#            https://github.com/locksmith                                                  #
+#            https://github.com/Thainification                                             #
+#            https://github.com/fiveofeight                                                #
+#            https://github.com/Demonid                                                    #
+#            https://github.com/codels                                                     #
+#            https://github.com/garyfisher                                                 #
+#                                                                                          #
+############################################################################################

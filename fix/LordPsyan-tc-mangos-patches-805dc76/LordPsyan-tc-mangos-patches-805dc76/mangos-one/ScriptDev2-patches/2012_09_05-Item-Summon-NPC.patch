@@ -1,0 +1,84 @@
+From 1ee0f27989c7bf6b6251e748b2d51b0027d10314 Mon Sep 17 00:00:00 2001
+From: LordPsyan <realmsofwarcraft@gmail.com>
+Date: Wed, 5 Sep 2012 07:50:05 -0500
+Subject: [PATCH] 2012_09_05-Item-Summon-NPC
+
+---
+ scripts/custom/summon.cpp |   44 ++++++++++++++++++++++++++++++++++++++++++++
+ system/ScriptLoader.cpp   |    2 ++
+ 2 files changed, 46 insertions(+), 0 deletions(-)
+ create mode 100644 scripts/custom/summon.cpp
+
+diff --git a/scripts/custom/summon.cpp b/scripts/custom/summon.cpp
+new file mode 100644
+index 0000000..17f9708
+--- /dev/null
++++ b/scripts/custom/summon.cpp
+@@ -0,0 +1,44 @@
++#include "precompiled.h"
++
++bool ItemUse_item_icerune(Player* pPlayer, Item* pItem, SpellCastTargets const& /*targets*/)
++                {
++   uint32 sSpell = 18282; //Icerune Visual Spell when used
++   if (pPlayer->isInCombat())
++   {
++        pPlayer->GetSession()->SendNotification("You are in combat.");
++   }
++  
++   else if (pPlayer->isMoving())
++   {
++        pPlayer->GetSession()->SendNotification("You can not do that while moving.");
++   }
++  /*
++   else if (pPlayer->GetClosestCreatureWithEntry(pPlayer, 100000, 40) || pPlayer->GetClosestCreatureWithEntry(pPlayer, 100000, 8))
++   {
++        pPlayer->GetSession()->SendNotification("Flaming Legion Vortex can not be summoned right now. Another Vortex is nearby.");
++   }*/
++  
++   else
++   {
++        float x, y, z, o = pPlayer->GetOrientation();
++  
++        if (o >= 3.141592)
++         o = o - 3.141592;
++        else
++         o = o + 3.141592;
++        Creature* pCreature = pPlayer->SummonCreature(100000,pPlayer->GetPositionX() ,pPlayer->GetPositionY(), pPlayer->GetPositionZ()+2, 0,TEMPSUMMON_TIMED_DESPAWN,120000);
++        pCreature->CastSpell(pCreature, 40162, true);
++        return false;
++   }
++  return false;
++                }
++
++void AddSC_summon()
++{
++    Script* pNewScript;
++
++    pNewScript = new Script;
++    pNewScript->Name = "summon";
++    pNewScript->pItemUse = &ItemUse_item_icerune;
++    pNewScript->RegisterSelf();
++}
+diff --git a/system/ScriptLoader.cpp b/system/ScriptLoader.cpp
+index 58b3c7c..9b22d69 100644
+--- a/system/ScriptLoader.cpp
++++ b/system/ScriptLoader.cpp
+@@ -8,6 +8,7 @@
+ extern void AddSC_battleground();
+ 
+ // custom
++extern void AddSC_summon();
+ 
+ // examples
+ extern void AddSC_example_creature();
+@@ -339,6 +340,7 @@ void AddScripts()
+     AddSC_battleground();
+ 
+     // custom
++    AddSC_summon();
+ 
+     // examples
+     AddSC_example_creature();
+-- 
+1.7.2.5
+

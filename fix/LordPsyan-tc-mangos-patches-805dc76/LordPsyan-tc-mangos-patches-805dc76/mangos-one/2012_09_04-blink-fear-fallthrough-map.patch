@@ -1,0 +1,231 @@
+From 0a349ac66ca9b884160a064bd2cedd9618391f49 Mon Sep 17 00:00:00 2001
+From: LordPsyan <realmsofwarcraft@gmail.com>
+Date: Tue, 4 Sep 2012 19:49:40 -0500
+Subject: [PATCH] New patch to fix falling through the map from blink or fear. Should fix charge and other movement related spells as well
+
+---
+ src/game/ConfusedMovementGenerator.cpp |    5 ++-
+ src/game/FleeingMovementGenerator.cpp  |   12 +++-----
+ src/game/Object.cpp                    |   47 ++++++++++++++++++++++++++++++++
+ src/game/Object.h                      |    7 ++++-
+ src/game/Spell.cpp                     |   13 ---------
+ src/game/SpellEffects.cpp              |   40 +++++++++++++-------------
+ 6 files changed, 81 insertions(+), 43 deletions(-)
+
+diff --git a/src/game/ConfusedMovementGenerator.cpp b/src/game/ConfusedMovementGenerator.cpp
+index c268cf9..df8e56a 100644
+--- a/src/game/ConfusedMovementGenerator.cpp
++++ b/src/game/ConfusedMovementGenerator.cpp
+@@ -77,11 +77,12 @@ bool ConfusedMovementGenerator<T>::Update(T& unit, const uint32& diff)
+             float y = i_y + 10.0f * (rand_norm_f() - 0.5f);
+             float z = i_z;
+ 
+-            unit.UpdateAllowedPositionZ(x, y, z);
++            WorldLocation destLoc;
++            unit.GetFirstCollisionPosition(destLoc, 10.0f*(rand_norm_f() - 0.5f), unit.GetOrientation());
+ 
+             PathFinder path(&unit);
+             path.setPathLengthLimit(30.0f);
+-            path.calculate(x, y, z);
++            path.calculate(destLoc.coord_x, destLoc.coord_y, (destLoc.coord_z + unit.GetObjectScale()));
+             if (path.getPathType() & PATHFIND_NOPATH)
+             {
+                 i_nextMoveTime.Reset(urand(800, 1000));
+diff --git a/src/game/FleeingMovementGenerator.cpp b/src/game/FleeingMovementGenerator.cpp
+index 23d08f2..fb2f1f0 100644
+--- a/src/game/FleeingMovementGenerator.cpp
++++ b/src/game/FleeingMovementGenerator.cpp
+@@ -98,14 +98,12 @@ bool FleeingMovementGenerator<T>::_getPoint(T& owner, float& x, float& y, float&
+         angle = frand(0, 2 * M_PI_F);
+     }
+ 
+-    float curr_x, curr_y, curr_z;
+-    owner.GetPosition(curr_x, curr_y, curr_z);
++    WorldLocation destLoc;
++    owner.GetFirstCollisionPosition(destLoc, dist, angle);
+ 
+-    x = curr_x + dist * cos(angle);
+-    y = curr_y + dist * sin(angle);
+-    z = curr_z;
+-
+-    owner.UpdateAllowedPositionZ(x, y, z);
++    x = destLoc.coord_x;
++    y = destLoc.coord_y;
++    z = destLoc.coord_z + owner.GetObjectScale();
+ 
+     return true;
+ }
+diff --git a/src/game/Object.cpp b/src/game/Object.cpp
+index d2d8085..22fda67 100644
+--- a/src/game/Object.cpp
++++ b/src/game/Object.cpp
+@@ -1286,6 +1286,53 @@ void WorldObject::UpdateAllowedPositionZ(float x, float y, float& z) const
+     }
+ }
+ 
++void WorldObject::MovePositionToFirstCollision(WorldLocation &pos, float dist, float angle)
++{
++    angle += m_position.o;
++    float destX, destY, destZ, ground, floor;
++ 
++    destX = pos.coord_x + dist * cos(angle);
++    destY = pos.coord_y + dist * sin(angle);
++    ground = GetMap()->GetTerrain()->GetHeight(destX, destY, MAX_HEIGHT, true);
++    floor = GetMap()->GetTerrain()->GetHeight(destX, destY, pos.coord_z, true);
++    destZ = fabs(ground - pos.coord_z) <= fabs(floor - pos.coord_z) ? ground : floor;
++
++    bool colPoint = GetMap()->GetObjectHitPos(pos.coord_x,pos.coord_y,pos.coord_z+0.5f,destX,destY,destZ+0.5f,destX,destY,destZ,-0.5f);
++
++    if (colPoint)
++    {
++        destX -= CONTACT_DISTANCE * cos(angle);
++        destY -= CONTACT_DISTANCE * sin(angle);
++        dist = sqrt((pos.coord_x - destX)*(pos.coord_x - destX) + (pos.coord_y - destY)*(pos.coord_y - destY));
++    }
++
++    float step = dist/10.0f;
++
++    for (int i = 0; i < 10; i++)
++    {
++        if (fabs(pos.coord_z - destZ) > ATTACK_DISTANCE)
++        {
++            destX -= step * cos(angle);
++            destY -= step * sin(angle);
++            ground = GetMap()->GetTerrain()->GetHeight(destX, destY, MAX_HEIGHT, true);
++            floor = GetMap()->GetTerrain()->GetHeight(destX, destY, pos.coord_z, true);
++            destZ = fabs(ground - pos.coord_z) <= fabs(floor - pos.coord_z) ? ground : floor;
++        }
++        else
++        {
++            pos.coord_x = destX;
++            pos.coord_y = destY;
++            pos.coord_z = destZ;
++            break;
++        }
++    }
++
++    MaNGOS::NormalizeMapCoord(pos.coord_x);
++    MaNGOS::NormalizeMapCoord(pos.coord_y);
++    UpdateGroundPositionZ(pos.coord_x, pos.coord_y, pos.coord_z);
++    pos.orientation = m_position.o;
++}
++
+ bool WorldObject::IsPositionValid() const
+ {
+     return MaNGOS::IsValidMapCoord(m_position.x, m_position.y, m_position.z, m_position.o);
+diff --git a/src/game/Object.h b/src/game/Object.h
+index ee3a194..d5fdcaa 100644
+--- a/src/game/Object.h
++++ b/src/game/Object.h
+@@ -464,7 +464,12 @@ class MANGOS_DLL_SPEC WorldObject : public Object
+         bool IsPositionValid() const;
+         void UpdateGroundPositionZ(float x, float y, float& z) const;
+         void UpdateAllowedPositionZ(float x, float y, float& z) const;
+-
++        void MovePositionToFirstCollision(WorldLocation &pos, float dist, float angle);
++        void GetFirstCollisionPosition(WorldLocation &pos, float dist, float angle)
++        {
++            GetPosition(pos);
++            MovePositionToFirstCollision(pos, dist, angle);
++        }
+         void GetRandomPoint(float x, float y, float z, float distance, float& rand_x, float& rand_y, float& rand_z) const;
+ 
+         uint32 GetMapId() const { return m_mapId; }
+diff --git a/src/game/Spell.cpp b/src/game/Spell.cpp
+index b61e6af..07ed91c 100644
+--- a/src/game/Spell.cpp
++++ b/src/game/Spell.cpp
+@@ -4955,19 +4955,6 @@ SpellCastResult Spell::CheckCast(bool strict)
+             case SPELL_EFFECT_LEAP:
+             case SPELL_EFFECT_TELEPORT_UNITS_FACE_CASTER:
+             {
+-                float dis = GetSpellRadius(sSpellRadiusStore.LookupEntry(m_spellInfo->EffectRadiusIndex[i]));
+-                float fx = m_caster->GetPositionX() + dis * cos(m_caster->GetOrientation());
+-                float fy = m_caster->GetPositionY() + dis * sin(m_caster->GetOrientation());
+-                // teleport a bit above terrain level to avoid falling below it
+-                float fz = m_caster->GetTerrain()->GetHeight(fx, fy, m_caster->GetPositionZ(), true);
+-                if (fz <= INVALID_HEIGHT)                   // note: this also will prevent use effect in instances without vmaps height enabled
+-                    return SPELL_FAILED_TRY_AGAIN;
+-
+-                float caster_pos_z = m_caster->GetPositionZ();
+-                // Control the caster to not climb or drop when +-fz > 8
+-                if (!(fz <= caster_pos_z + 8 && fz >= caster_pos_z - 8))
+-                    return SPELL_FAILED_TRY_AGAIN;
+-
+                 // not allow use this effect at battleground until battleground start
+                 if (m_caster->GetTypeId() == TYPEID_PLAYER)
+                     if (BattleGround const* bg = ((Player*)m_caster)->GetBattleGround())
+diff --git a/src/game/SpellEffects.cpp b/src/game/SpellEffects.cpp
+index 1b7c9db..8aec4ce 100644
+--- a/src/game/SpellEffects.cpp
++++ b/src/game/SpellEffects.cpp
+@@ -2344,12 +2344,15 @@ void Spell::EffectTeleportUnits(SpellEffectIndex eff_idx)
+             else if (unitTarget->GetTypeId() == TYPEID_PLAYER)
+                 pTarget = unitTarget->GetMap()->GetUnit(((Player*)unitTarget)->GetSelectionGuid());
+ 
+-            // Init dest coordinates
+-            float x = m_targets.m_destX;
+-            float y = m_targets.m_destY;
+-            float z = m_targets.m_destZ;
++            WorldLocation destLoc;
++            destLoc.coord_x = m_targets.m_destX;
++            destLoc.coord_y = m_targets.m_destY;
++            destLoc.coord_z = m_targets.m_destZ;
++
+             float orientation = pTarget ? pTarget->GetOrientation() : unitTarget->GetOrientation();
+-            unitTarget->NearTeleportTo(x, y, z, orientation, unitTarget == m_caster);
++            unitTarget->MovePositionToFirstCollision(destLoc, unitTarget->GetObjectScale(), orientation);
++
++            unitTarget->NearTeleportTo(destLoc.coord_x, destLoc.coord_y, (destLoc.coord_z + unitTarget->GetObjectScale()),orientation,unitTarget==m_caster);
+             return;
+         }
+         default:
+@@ -5905,18 +5908,12 @@ void Spell::EffectLeapForward(SpellEffectIndex eff_idx)
+ 
+     if (m_spellInfo->rangeIndex == 1)                       // self range
+     {
+-        float dis = GetSpellRadius(sSpellRadiusStore.LookupEntry(m_spellInfo->EffectRadiusIndex[eff_idx]));
+-
+-        // before caster
+-        float fx, fy, fz;
+-        unitTarget->GetClosePoint(fx, fy, fz, unitTarget->GetObjectBoundingRadius(), dis);
+-        float ox, oy, oz;
+-        unitTarget->GetPosition(ox, oy, oz);
+-
+-        if (unitTarget->GetMap()->GetObjectHitPos(ox, oy, oz + 0.5f, fx, fy, oz + 0.5f, fx, fy, fz, -0.5f))
+-            unitTarget->UpdateAllowedPositionZ(fx, fy, fz);
+-
+-        unitTarget->NearTeleportTo(fx, fy, fz, unitTarget->GetOrientation(), unitTarget == m_caster);
++        float spellDist = GetSpellRadius(sSpellRadiusStore.LookupEntry(m_spellInfo->EffectRadiusIndex[eff_idx]));
++ 
++        WorldLocation destLoc;    
++        unitTarget->GetFirstCollisionPosition(destLoc, spellDist, 0.0f);
++ 
++        unitTarget->NearTeleportTo(destLoc.coord_x, destLoc.coord_y, (destLoc.coord_z + unitTarget->GetObjectScale()), unitTarget->GetOrientation(), unitTarget == m_caster);
+     }
+ }
+ 
+@@ -6027,14 +6024,17 @@ void Spell::EffectCharge(SpellEffectIndex /*eff_idx*/)
+ 
+     // TODO: research more ContactPoint/attack distance.
+     //3.666666 instead of ATTACK_DISTANCE(5.0f) in below seem to give more accurate result.
+-    float x, y, z;
+-    unitTarget->GetContactPoint(m_caster, x, y, z, 3.666666f);
++    float angle = unitTarget->GetAngle(m_caster) - unitTarget->GetOrientation();
++
++    WorldLocation pos;
++    unitTarget->GetContactPoint(m_caster, pos.coord_x, pos.coord_y, pos.coord_z);
++    unitTarget->GetFirstCollisionPosition(pos, unitTarget->GetObjectScale(), angle);
+ 
+     if (unitTarget->GetTypeId() != TYPEID_PLAYER)
+         ((Creature*)unitTarget)->StopMoving();
+ 
+     // Only send MOVEMENTFLAG_WALK_MODE, client has strange issues with other move flags
+-    m_caster->MonsterMoveWithSpeed(x, y, z, 24.f, true, true);
++    m_caster->MonsterMoveWithSpeed(pos.coord_x, pos.coord_y, (pos.coord_z + unitTarget->GetObjectScale()), 24.f, true, true);
+ 
+     // not all charge effects used in negative spells
+     if (unitTarget != m_caster && !IsPositiveSpell(m_spellInfo->Id))
+-- 
+1.7.2.5
+

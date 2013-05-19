@@ -1,0 +1,103 @@
+AccountHistory
+        - logging in DB action characters (login/logout/create/delete)
+        - logging ip
+        - logging account
+        - logging realm
+
+AuctionHouseBot
+        - simple version AuctionHouseBot
+
+AutoLearn
+        - learning spell when levelup
+        - learning spell when skillup
+
+BattlegroundHistory
+        - logging in DB statistics battleground
+        - announce winner/looser guild
+
+DynamicInsctane (in development)
+        - instance create with dynamic level npcs
+
+DynamicRate
+        - dynamic rate xp for account
+        - dynamic rate xp for characters
+
+ExternalMail (Unknown author)
+        - Send mails from DB
+
+FriendChat
+        - whisper only to friends
+
+HonorRank
+        - get title for hk
+
+KillBoss
+        - logging in DB kill boss
+        - announce guild kill
+
+MultiKill
+        - double kill, multikill, ...
+        - first blood
+        - killing spree
+        - reward honor/gold/buff/kill credit(for quests)
+
+SpecialCode
+        - Send items to input code (box code)
+
+Kernel
+        - Additional of functions scripts
+
+P.S. Sorry for my english
+
+Для русскоязычного населения =)
+
+AccountHistory
+        - логирование действий с персонажем (вход/выход/создание/удаление)
+        - логирование IP-адреса
+        - логирование учетной записи
+        - логирование номера мира
+
+AuctionHouseBot
+        - Упрощенная версия имеющегося аукцион бота, поддерживает определенный список вещей
+
+AutoLearn
+        - обучение заклинаний при получении уровня
+        - обучение заклинаний при прокачке навыков
+
+BattlegroundHistory
+        - Логирование статистики поля боя
+        - Оповещение проигравшей/выигравшей гильдии
+
+DynamicInsctane (в разработке)
+        - подземелье с динамическим уровнем существ (подстраивается под игрока)
+
+DynamicRate
+        - динамические рейты опыта для учетной записи
+        - динамические рейты опыта для персонажей
+
+ExternalMail (Автор незивестен)
+        - Отправка почты через базу данных
+
+FriendChat
+        - шепот только для друзей
+
+HonorRank
+        - звания за почетные победы
+
+KillBoss
+        - логирование убийств боссов
+        - оповещение убийств боссов гильдиями
+
+MultiKill
+        - двойные убийства
+        - первая кровь
+        - череда убийств
+        - вознаграждения честь/золото/бафф/убийство существа(для заданий)
+
+SpecialCode
+        - Отсылает предметы за ввод кода в игре, можно раздавать рекламные предметы (box code)
+
+Kernel
+        - Дополнительные функции для скриптов
+
+P.S. Извините за мой английский, исправления писать лично =)

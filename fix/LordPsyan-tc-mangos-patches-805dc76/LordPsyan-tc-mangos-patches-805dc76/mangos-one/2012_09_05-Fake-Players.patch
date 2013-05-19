@@ -1,0 +1,287 @@
+From 84fc1671e976b91a47bf7cab634570cd83e38303 Mon Sep 17 00:00:00 2001
+From: LordPsyan <realmsofwarcraft@gmail.com>
+Date: Wed, 5 Sep 2012 07:04:01 -0500
+Subject: [PATCH] 2012_09_05-Fake-Players
+
+---
+ FAKE.PLAYERS.README                          |   32 ++++++++++++
+ sql/Fake_Players/characters_fake_players.sql |   67 ++++++++++++++++++++++++++
+ src/game/ChatHandler.cpp                     |    9 ++++
+ src/game/Language.h                          |    3 +
+ src/game/MiscHandler.cpp                     |   33 +++++++++++++
+ src/game/Player.cpp                          |    4 ++
+ src/game/World.cpp                           |    1 +
+ src/game/World.h                             |    1 +
+ src/mangosd/mangosd.conf.dist.in             |   10 ++++-
+ 9 files changed, 159 insertions(+), 1 deletions(-)
+ create mode 100644 FAKE.PLAYERS.README
+ create mode 100644 sql/Fake_Players/characters_fake_players.sql
+
+diff --git a/FAKE.PLAYERS.README b/FAKE.PLAYERS.README
+new file mode 100644
+index 0000000..d07ebf7
+--- /dev/null
++++ b/FAKE.PLAYERS.README
+@@ -0,0 +1,32 @@
++Original Script by: ain't got a clue.
++Rewritten and made better by: LordPsyan
++
++Fake players does exactly what the name suggests.. creates fake players for your realm.
++
++When a player clicks the "who" list, it will grab all players that are online, and then fill
++the rest with fake players from the `characters_fake` table until it shows 49. Any time a
++player logs in, it will remove a fake player, and replace it with the real online player. If
++a player logs out, it will remove that player from the list, and replace it with a fake one.
++
++This is a good thing for low population realms. It makes the realm look more populated.
++
++Currently, if you try to whisper a "fake" player, a message will appear saying they do not wish
++to be disturbed. This message currently comes up in red at top center of screen. 
++
++TODO:
++
++1. Fix location of message.
++2. Fix bug that posts the "do not disturb" message if you try to whisper someone who is offline.
++3. Set config option to have the Do Not Disturb Message on or off. 
++4. Set config file with custom Do Not Disturb message.
++5. GM command instead of config file option, to turn on or off the fake players.
++
++INSTALL:
++
++1). apply the patch to the core.
++
++2). Run the sql file (comes with 49 fake players, so you don't have to make your own) in your
++characters database.
++
++3). Set the config option to 1 or 0 to turn it on or off. You can modify the config file while
++server is running, and do .reload config to turn the fake players on or off.
+diff --git a/sql/Fake_Players/characters_fake_players.sql b/sql/Fake_Players/characters_fake_players.sql
+new file mode 100644
+index 0000000..cbca6b1
+--- /dev/null
++++ b/sql/Fake_Players/characters_fake_players.sql
+@@ -0,0 +1,67 @@
++-- Create Table for Fake Players
++DROP TABLE IF EXISTS `characters_fake`;
++CREATE TABLE `characters_fake` (
++  `guid` int(11) unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
++  `name` varchar(12) NOT NULL DEFAULT '',
++  `race` tinyint(3) unsigned NOT NULL DEFAULT '0',
++  `class` tinyint(3) unsigned NOT NULL DEFAULT '0',
++  `gender` tinyint(3) unsigned NOT NULL DEFAULT '0',
++  `level` tinyint(3) unsigned NOT NULL DEFAULT '0',
++  `zone` int(11) unsigned NOT NULL DEFAULT '0',
++  `online` tinyint(3) unsigned NOT NULL DEFAULT '0',
++  PRIMARY KEY (`guid`),
++  KEY `idx_name` (`name`)
++) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Player System';
++
++-- Fake Players Info. This puts fake characters into the "who" list.
++INSERT INTO `characters_fake` values
++(1,"LordPsyan",'1','1','0','65','408','2'),
++(2,"Psyanide",'2','2','0','35','268','2'),
++(3,"Surion",'3','2','0','70','0','2'),
++(4,"Stacy",'4','5','1','21','1','2'),
++(5,"Cindy",'5','8','1','24','268','2'),
++(6,"Peaches",'7','4','1','40','408','2'),
++(7,"Kitty",'8','1','1','9','267','2'),
++(8,"Realmsofwarcraft",'1','10','0','95','876','2'),
++(9,"Lithordean",'10','3','0','18','876','2'),
++(10,"Lithathrad",'11','5','0','69','3483','2'),
++('1101','Wewa','4','11','5','24','1'),
++('1102','Humantank','1','1','5','33','2'),
++('1103','Peekey','11','2','5','40','2'),
++('1104','Kavar','11','3','99','2','2'),
++('1107','Flaorish','6','11','46','40','2'),
++('1108','Missdozer','6','11','40','42','1'),
++('1109','Synyster','4','11','62','42','2'),
++('1111','Shanksaber','5','9','12','30','2'),
++('1113','Mysticjibbs','8','7','12','27','2'),
++('1114','Bigman','6','3','5','42','2'),
++('1119','Prueba','10','3','5','27','2'),
++('1120','Presizion','10','8','7','12','2'),
++('1121','Udeadd','11','5','5','28','1'),
++('1122','Link','11','1','5','3','2'),
++('1123','Flashman','10','4','5','31','2'),
++('1124','Engaged','4','1','5','45','2'),
++('1125','Anivia','10','8','80','32','1'),
++('1126','Thorailo','3','3','5','24','2'),
++('1127','Zarayeda','10','4','5','23','1'),
++('1128','Silver','11','1','5','45','1'),
++('1129','Unchained','1','2','5','2','2'),
++('1131','Steelhammer','3','2','5','28','2'),
++('1134','Acmilana','5','4','6','31','1'),
++('1135','Yasko','10','9','5','20','2'),
++('1136','Bloodeye','10','2','88','6','2'),
++('1137','Skyfate','6','3','5','22','2'),
++('1139','Mitch','5','4','15','40','2'),
++('1140','Zara','10','2','22','36','1'),
++('1142','Pewewpew','2','3','40','8','2'),
++('1147','Piotrekpl','5','8','6','30','2'),
++('1152','Adarana','4','3','99','26','1'),
++('1153','Warswiz','7','8','86','39','2'),
++('1154','Boladox','4','4','5','16','2'),
++('1155','Kigan','1','2','86','15','2'),
++('1156','Imnew','11','3','5','25','1'),
++('1161','Hush','10','2','5','32','2'),
++('1162','Nekata','11','1','14','31','1'),
++('1165','Acmilania','1','4','20','9','1'),
++('1166','Orlai','4','3','5','3','1');
++
+diff --git a/src/game/ChatHandler.cpp b/src/game/ChatHandler.cpp
+index 529e062..e355047 100644
+--- a/src/game/ChatHandler.cpp
++++ b/src/game/ChatHandler.cpp
+@@ -210,8 +210,17 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
+             uint32 pSecurity = player ? player->GetSession()->GetSecurity() : SEC_PLAYER;
+             if (!player || (tSecurity == SEC_PLAYER && pSecurity > SEC_PLAYER && !player->isAcceptWhispers()))
+             {
++                // If Fake WHO List system on then show player DND
++                if (sWorld.getConfig(CONFIG_BOOL_FAKE_WHO_LIST))
++                {
++                    SendNotification(LANG_NOT_WHISPER);
++                    return;
++                }
++                else
++                {
+                 SendPlayerNotFoundNotice(to);
+                 return;
++                }
+             }
+ 
+             if (!sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHAT) && tSecurity == SEC_PLAYER && pSecurity == SEC_PLAYER)
+diff --git a/src/game/Language.h b/src/game/Language.h
+index a99a4e2..4c63723 100644
+--- a/src/game/Language.h
++++ b/src/game/Language.h
+@@ -1019,6 +1019,9 @@ enum MangosStrings
+     // Use for custom patches             11000-11999
+ 
+     // NOT RESERVED IDS                   12000-1999999999
++	// Fake Players
++    LANG_NOT_WHISPER                    = 12001,
++
+     // `db_script_string` table index     2000000000-2000009999 (MIN_DB_SCRIPT_STRING_ID-MAX_DB_SCRIPT_STRING_ID)
+     // For other tables maybe             2000010000-2147483647 (max index)
+ };
+diff --git a/src/game/MiscHandler.cpp b/src/game/MiscHandler.cpp
+index 0479741..63dede7 100644
+--- a/src/game/MiscHandler.cpp
++++ b/src/game/MiscHandler.cpp
+@@ -252,6 +252,39 @@ void WorldSession::HandleWhoOpcode(WorldPacket& recv_data)
+             break;
+     }
+ 
++    if (sWorld.getConfig(CONFIG_BOOL_FAKE_WHO_LIST) && clientcount < 49)
++    {
++        // Fake players on WHO LIST                            0,   1,    2,   3,    4,   5     6
++        QueryResult *result = CharacterDatabase.Query("SELECT guid,name,race,class,level,zone,gender FROM characters_fake WHERE online > 1");
++        if (result)
++        {
++            do
++            {
++                Field *fields = result->Fetch();
++
++                std::string pname = fields[1].GetCppString();    // player name
++                std::string gname;                                // guild name
++                uint32 lvl = fields[4].GetUInt32();                // player level
++                uint32 class_ = fields[3].GetUInt32();            // player class
++                uint32 race = fields[2].GetUInt32();            // player race
++                uint32 pzoneid = fields[5].GetUInt32();            // player zone id
++                uint8 gender = fields[6].GetUInt8();            // player gender
++
++                data << pname;                              // player name
++                data << gname;                              // guild name
++                data << uint32(lvl);                        // player level
++                data << uint32(class_);                     // player class
++                data << uint32(race);                       // player race
++                data << uint8(gender);                      // player gender
++                data << uint32(pzoneid);                    // player zone id
++
++                if ((++clientcount) == 49)
++                    break;
++            } while (result->NextRow());
++        }
++        delete result;
++    }
++
+     uint32 count = m.size();
+     data.put(0, clientcount);                               // insert right count, listed count
+     data.put(4, count > 50 ? count : clientcount);          // insert right count, online count
+diff --git a/src/game/Player.cpp b/src/game/Player.cpp
+index bb43f87..30553c1 100644
+--- a/src/game/Player.cpp
++++ b/src/game/Player.cpp
+@@ -1274,6 +1274,10 @@ void Player::Update(uint32 update_diff, uint32 p_time)
+             // m_nextSave reseted in SaveToDB call
+             SaveToDB();
+             DETAIL_LOG("Player '%s' (GUID: %u) saved", GetName(), GetGUIDLow());
++            // If Fake WHO List system on then change player position with every SavePlayer Interval (usually 15min)
++            if (sWorld.getConfig(CONFIG_BOOL_FAKE_WHO_LIST))
++                CharacterDatabase.PExecute("UPDATE characters SET zone = (FLOOR(50 * RAND()) + 1) WHERE online>1");
++                CharacterDatabase.PExecute("UPDATE characters SET level=level+1 WHERE online>1 AND level<5");
+         }
+         else
+             m_nextSave -= update_diff;
+diff --git a/src/game/World.cpp b/src/game/World.cpp
+index fed0a17..60da992 100644
+--- a/src/game/World.cpp
++++ b/src/game/World.cpp
+@@ -537,6 +537,7 @@ void World::LoadConfigSettings(bool reload)
+     setConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_MAIL,    "AllowTwoSide.Interaction.Mail", false);
+     setConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_WHO_LIST,            "AllowTwoSide.WhoList", false);
+     setConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_ADD_FRIEND,          "AllowTwoSide.AddFriend", false);
++    setConfig(CONFIG_BOOL_FAKE_WHO_LIST,                      "Fake.WHO.List", false);
+ 
+     setConfig(CONFIG_UINT32_STRICT_PLAYER_NAMES,  "StrictPlayerNames",  0);
+     setConfig(CONFIG_UINT32_STRICT_CHARTER_NAMES, "StrictCharterNames", 0);
+diff --git a/src/game/World.h b/src/game/World.h
+index d3a0499..5a6bcb1 100644
+--- a/src/game/World.h
++++ b/src/game/World.h
+@@ -279,6 +279,7 @@ enum eConfigBoolValues
+     CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_MAIL,
+     CONFIG_BOOL_ALLOW_TWO_SIDE_WHO_LIST,
+     CONFIG_BOOL_ALLOW_TWO_SIDE_ADD_FRIEND,
++    CONFIG_BOOL_FAKE_WHO_LIST,
+     CONFIG_BOOL_INSTANCE_IGNORE_LEVEL,
+     CONFIG_BOOL_INSTANCE_IGNORE_RAID,
+     CONFIG_BOOL_CAST_UNSTUCK,
+diff --git a/src/mangosd/mangosd.conf.dist.in b/src/mangosd/mangosd.conf.dist.in
+index 05733ca..ff51cb0 100644
+--- a/src/mangosd/mangosd.conf.dist.in
++++ b/src/mangosd/mangosd.conf.dist.in
+@@ -208,7 +208,7 @@ MaxOverspeedPings = 2
+ GridUnload = 1
+ GridCleanUpDelay = 300000
+ MapUpdateInterval = 100
+-ChangeWeatherInterval = 600000
++ChangeWeatherInterval = 5400000# 90 minutes
+ PlayerSave.Interval = 900000
+ PlayerSave.Stats.MinLevel = 0
+ PlayerSave.Stats.SaveOnlyOnLogout = 1
+@@ -815,6 +815,13 @@ Motd = "Welcome to the Massive Network Game Object Server."
+ #        Default: 1 (allow)
+ #                 0 (not allow)
+ #
++#    Fake.WHO.List
++#        Add fake players to fill in WHO LIST (who is online list, "O" button) if there is less then
++#        49 real players online (need to set online=2 in character database in order to work)
++#        Default: 0 (disabled)
++#                 1 (enabled)
++#
++#
+ ###################################################################################################################
+ 
+ AllowTwoSide.Accounts = 0
+@@ -827,6 +834,7 @@ AllowTwoSide.Interaction.Mail = 0
+ AllowTwoSide.WhoList = 0
+ AllowTwoSide.AddFriend = 0
+ TalentsInspecting = 1
++Fake.Who.List = 0
+ 
+ ###################################################################################################################
+ # CREATURE AND GAMEOBJECT SETTINGS
+-- 
+1.7.2.5
+
