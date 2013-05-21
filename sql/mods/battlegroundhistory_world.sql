@@ -1,0 +1,4 @@
+REPLACE INTO `trinity_string` (`entry`, `content_default`, `content_loc1`, `content_loc2`, `content_loc3`, `content_loc4`, `content_loc5`, `content_loc6`, `content_loc7`, `content_loc8`) VALUES
+(11100, 'Win guild \'%s\' max damage \'%s\'  max heal \'%s\' (need corrected text)', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Гильдия \'%s\', выйграла сражение на поле боя, больше всех на поле боя нанёс урон \'%s\', а вылечил \'%s\''),
+(11101, 'Lose guild \'%s\' max damage \'%s\'  max heal \'%s\' (need corrected text)', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Гильдия \'%s\', проиграла сражение на поле боя, больше всех на поле боя нанёс урон \'%s\', а вылечил \'%s\''),
+(11102, 'Win guild \'%s\' and lose guild \'%s\' max damage \'%s\'  max heal \'%s\' (need corrected text)', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Гильдия \'%s\', выйграла сражение на поле боя против гильдии \'%s\', больше всех на поле боя нанёс урон \'%s\', а вылечил \'%s\'');
