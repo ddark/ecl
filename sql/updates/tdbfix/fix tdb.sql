@@ -1,0 +1,9 @@
+UPDATE `quest_template` SET `NextQuestId`=24682 WHERE `Id` = 24511;
+UPDATE `quest_template` SET `NextQuestId`=24507 WHERE `Id` = 24682;
+UPDATE `quest_template` SET `NextQuestId`=24712 WHERE `Id` = 24507;
+UPDATE `quest_template` SET `NextQuestId`=24713 WHERE `Id` = 24712;
+UPDATE `quest_template` SET `NextQuestId`=24499 WHERE `Id` = 24510;
+UPDATE `quest_template` SET `NextQuestId`=24683 WHERE `Id` = 24499;
+UPDATE `quest_template` SET `NextQuestId`=24498 WHERE `Id` = 24683;
+UPDATE `quest_template` SET `NextQuestId`=24710 WHERE `Id` = 24498;
+UPDATE `quest_template` SET `NextQuestId`=24711 WHERE `Id` = 24710;
