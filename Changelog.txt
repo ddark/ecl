@@ -15,7 +15,7 @@
 [9] --> Fix SpellFamily for Redemption (Paladin) so it scales with haste rating. (Thx  mweinelt)
 [10] --> Update PathPoint in Blade's Edge Arena, Dalaran Sewers and Eye of the Storm. (Thx Quentis)
 [11] --> Update Target Movement Generator. (Thx Quentis)
-
+http://modcraft.superparanoid.de/viewtopic.php?f=26&t=5125&p=26988&hilit=achievement#p26988
 ############################################################################################
 #                                                                                          #
 # Thanks to:                                                                               #

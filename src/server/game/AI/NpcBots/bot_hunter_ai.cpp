@@ -90,7 +90,7 @@ public:
 
             if (IAmDead()) return;
 
-            if (!me->isInCombat())
+            if (!me->IsInCombat())
                 DoNonCombatActions(diff);
 
             //if (pet && pet != NULL && pet->isDead())
@@ -124,13 +124,13 @@ public:
             }
 
             opponent = SelectTarget(SELECT_TARGET_TOPAGGRO, 0);
-            if (!opponent && !me->getVictim())
+            if (!opponent && !me->GetVictim())
             {
                 me->CombatStop();
                 //ResetOrGetNextTarget();
 
                 //to reduce the number of crashes, remove pet whenever we are not in combat
-                //if (pet != NULL && pet->isAlive())
+                //if (pet != NULL && pet->IsAlive())
                 //{
                 //    me->SetBotsPetDied();
                 //    pet = NULL;
@@ -141,12 +141,12 @@ public:
             //if (pet == NULL)
             //    CreatePet();
 
-            //if (pet && pet->isAlive() &&
-            //    !pet->isInCombat() &&
-            //    me->getVictim())
+            //if (pet && pet->IsAlive() &&
+            //    !pet->IsInCombat() &&
+            //    me->GetVictim())
             //{
-            //    pet->Attack (me->getVictim(), true);
-            //    pet->GetMotionMaster()->MoveChase(me->getVictim(), 1, 0);
+            //    pet->Attack (me->GetVictim(), true);
+            //    pet->GetMotionMaster()->MoveChase(me->GetVictim(), 1, 0);
             //}
         }
 
@@ -226,7 +226,7 @@ public:
             if (!b_attackers.empty())
             {
             for(AttackerSet::iterator iter = b_attackers.begin(); iter != b_attackers.end(); ++iter)
-                if (*iter && (*iter)->getVictim()->GetGUID() == me->GetGUID() && 
+                if (*iter && (*iter)->GetVictim()->GetGUID() == me->GetGUID() && 
                     me->GetDistance(*iter) < 10 && 
                     Feign_Death_Timer <= diff && GC_Timer <= diff)
                 {

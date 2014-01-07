@@ -57,7 +57,7 @@ enum Events
     EVENT_KIRTONOS_TRANSFORM          = 14
 };
 
-enum eMisc
+enum Misc
 {
     WEAPON_KIRTONOS_STAFF             = 11365,
     POINT_KIRTONOS_LAND               = 13,
@@ -78,12 +78,12 @@ class boss_kirtonos_the_herald : public CreatureScript
         {
             boss_kirtonos_the_heraldAI(Creature* creature) : BossAI(creature, DATA_KIRTONOS) { }
 
-            void Reset()
+            void Reset() OVERRIDE
             {
                 _Reset();
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) OVERRIDE
             {
                 events.ScheduleEvent(EVENT_SWOOP, urand(8000, 8000));
                 events.ScheduleEvent(EVENT_WING_FLAP, urand(15000, 15000));
@@ -96,7 +96,7 @@ class boss_kirtonos_the_herald : public CreatureScript
                 _EnterCombat();
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) OVERRIDE
             {
                 if (GameObject* gate = me->GetMap()->GetGameObject(instance->GetData64(GO_GATE_KIRTONOS)))
                     gate->SetGoState(GO_STATE_ACTIVE);
@@ -108,7 +108,7 @@ class boss_kirtonos_the_herald : public CreatureScript
                 _JustDied();
             }
 
-            void EnterEvadeMode()
+            void EnterEvadeMode() OVERRIDE
             {
                 if (GameObject* gate = me->GetMap()->GetGameObject(instance->GetData64(GO_GATE_KIRTONOS)))
                     gate->SetGoState(GO_STATE_ACTIVE);
@@ -120,7 +120,7 @@ class boss_kirtonos_the_herald : public CreatureScript
                 me->DespawnOrUnsummon(5000);
             }
 
-            void IsSummonedBy(Unit* /*summoner*/)
+            void IsSummonedBy(Unit* /*summoner*/) OVERRIDE
             {
                 events.ScheduleEvent(INTRO_1, 500);
                 me->SetDisableGravity(true);
@@ -129,12 +129,12 @@ class boss_kirtonos_the_herald : public CreatureScript
                 Talk(EMOTE_SUMMONED);
             }
 
-            void JustSummoned(Creature* summon)
+            void JustSummoned(Creature* summon) OVERRIDE
             {
                 BossAI::JustSummoned(summon);
             }
 
-            void MovementInform(uint32 type, uint32 id)
+            void MovementInform(uint32 type, uint32 id) OVERRIDE
             {
                 if (type == WAYPOINT_MOTION_TYPE && id == POINT_KIRTONOS_LAND)
                 {
@@ -142,53 +142,55 @@ class boss_kirtonos_the_herald : public CreatureScript
                 }
             }
 
-            void UpdateAI(uint32 diff)
+            void UpdateAI(uint32 diff) OVERRIDE
             {
                 events.Update(diff);
 
-                while (uint32 eventId = events.ExecuteEvent() && !UpdateVictim())
-                {
-                    switch (eventId)
-                    {
-                        case INTRO_1:
-                            me->GetMotionMaster()->MovePath(KIRTONOS_PATH, false);
-                            break;
-                        case INTRO_2:
-                            me->GetMotionMaster()->MovePoint(0, PosMove[0]);
-                            events.ScheduleEvent(INTRO_3, 1000);
-                            break;
-                        case INTRO_3:
-                            if (GameObject* gate = me->GetMap()->GetGameObject(instance->GetData64(GO_GATE_KIRTONOS)))
-                                gate->SetGoState(GO_STATE_READY);
-                            me->SetFacingTo(0.01745329f);
-                            events.ScheduleEvent(INTRO_4, 3000);
-                            break;
-                        case INTRO_4:
-                            if (GameObject* brazier = me->GetMap()->GetGameObject(instance->GetData64(GO_BRAZIER_OF_THE_HERALD)))
-                                brazier->SetGoState(GO_STATE_READY);
-                            me->SetWalk(true);
-                            me->SetDisableGravity(false);
-                            DoCast(me, SPELL_KIRTONOS_TRANSFORM);
-                            me->SetCanFly(false);
-                            events.ScheduleEvent(INTRO_5, 1000);
-                            break;
-                        case INTRO_5:
-                            me->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
-                            me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(WEAPON_KIRTONOS_STAFF));
-                            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
-                            me->SetReactState(REACT_AGGRESSIVE);
-                            events.ScheduleEvent(INTRO_6, 5000);
-                            break;
-                        case INTRO_6:
-                            me->GetMotionMaster()->MovePoint(0, PosMove[1]);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
                 if (!UpdateVictim())
+                {
+                    while (uint32 eventId = events.ExecuteEvent())
+                    {
+                        switch (eventId)
+                        {
+                            case INTRO_1:
+                                me->GetMotionMaster()->MovePath(KIRTONOS_PATH, false);
+                                break;
+                            case INTRO_2:
+                                me->GetMotionMaster()->MovePoint(0, PosMove[0]);
+                                events.ScheduleEvent(INTRO_3, 1000);
+                                break;
+                            case INTRO_3:
+                                if (GameObject* gate = me->GetMap()->GetGameObject(instance->GetData64(GO_GATE_KIRTONOS)))
+                                    gate->SetGoState(GO_STATE_READY);
+                                me->SetFacingTo(0.01745329f);
+                                events.ScheduleEvent(INTRO_4, 3000);
+                                break;
+                            case INTRO_4:
+                                if (GameObject* brazier = me->GetMap()->GetGameObject(instance->GetData64(GO_BRAZIER_OF_THE_HERALD)))
+                                    brazier->SetGoState(GO_STATE_READY);
+                                me->SetWalk(true);
+                                me->SetDisableGravity(false);
+                                DoCast(me, SPELL_KIRTONOS_TRANSFORM);
+                                me->SetCanFly(false);
+                                events.ScheduleEvent(INTRO_5, 1000);
+                                break;
+                            case INTRO_5:
+                                me->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
+                                me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(WEAPON_KIRTONOS_STAFF));
+                                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                                me->SetReactState(REACT_AGGRESSIVE);
+                                events.ScheduleEvent(INTRO_6, 5000);
+                                break;
+                            case INTRO_6:
+                                me->GetMotionMaster()->MovePoint(0, PosMove[1]);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+
                     return;
+                }
 
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
@@ -249,7 +251,7 @@ class boss_kirtonos_the_herald : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
             return new boss_kirtonos_the_heraldAI(creature);
         }
@@ -275,7 +277,7 @@ class go_brazier_of_the_herald : public GameObjectScript
     public:
         go_brazier_of_the_herald() : GameObjectScript("go_brazier_of_the_herald") { }
 
-        bool OnGossipHello(Player* player, GameObject* go)
+        bool OnGossipHello(Player* player, GameObject* go) OVERRIDE
         {
             go->UseDoorOrButton();
             go->PlayDirectSound(SOUND_SCREECH, 0);

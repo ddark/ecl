@@ -70,9 +70,9 @@ class npc_arete : public CreatureScript
 public:
     npc_arete() : CreatureScript("npc_arete") { }
 
-    bool OnGossipHello(Player* player, Creature* creature)
+    bool OnGossipHello(Player* player, Creature* creature) OVERRIDE
     {
-        if (creature->isQuestGiver())
+        if (creature->IsQuestGiver())
             player->PrepareQuestMenu(creature->GetGUID());
 
         if (player->GetQuestStatus(QUEST_THE_STORY_THUS_FAR) == QUEST_STATUS_INCOMPLETE)
@@ -86,7 +86,7 @@ public:
         return true;
     }
 
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) OVERRIDE
     {
         player->PlayerTalkClass->ClearMenus();
         switch (action)
@@ -292,13 +292,13 @@ public:
                 return;
 
             // charge after moving away from the victim
-            if (me->isInCombat() && me->getVictim() && bCharge)
+            if (me->IsInCombat() && me->GetVictim() && bCharge)
             {
                 me->GetMotionMaster()->Clear();
                 // but only after rangecheck
-                if (me->GetDistance(me->getVictim()) > 5.0f && me->GetDistance(me->getVictim()) <= 30.0f)
+                if (me->GetDistance(me->GetVictim()) > 5.0f && me->GetDistance(me->GetVictim()) <= 30.0f)
                     DoCastVictim(SPELL_CHARGE_COMBAT);
-                me->GetMotionMaster()->MoveChase(me->getVictim());
+                me->GetMotionMaster()->MoveChase(me->GetVictim());
                 uiChargeTimer = 7000;
                 bCharge = false;
             }
@@ -336,12 +336,12 @@ public:
             if (uiChargeTimer <= uiDiff && !bCharge)
             {
                 // directly charge if range is ok
-                if (me->GetDistance(me->getVictim()) > 5.0f && me->GetDistance(me->getVictim()) <= 30.0f)
+                if (me->GetDistance(me->GetVictim()) > 5.0f && me->GetDistance(me->GetVictim()) <= 30.0f)
                     DoCastVictim(SPELL_CHARGE_COMBAT);
                 else
                 {
                     // move away for charge...
-                    float angle = me->GetAngle(me->getVictim());
+                    float angle = me->GetAngle(me->GetVictim());
                     float x = me->GetPositionX() + 20.0f * cos(angle);
                     float y = me->GetPositionY() + 20.0f * sin(angle);
                     me->GetMotionMaster()->MovePoint(0, x, y, me->GetPositionZ());
@@ -359,7 +359,7 @@ public:
                 uiShieldBreakerTimer = 10000;
             } else uiShieldBreakerTimer -= uiDiff;
 
-            if (me->IsWithinMeleeRange(me->getVictim()))
+            if (me->IsWithinMeleeRange(me->GetVictim()))
             {
                 if (uiThrustTimer <= uiDiff)
                 {
@@ -771,13 +771,13 @@ public:
                 return;
 
             // charge after moving away from the victim
-            if (me->isInCombat() && me->getVictim() && bCharge)
+            if (me->IsInCombat() && me->GetVictim() && bCharge)
             {
                 me->GetMotionMaster()->Clear();
                 // but only after rangecheck
-                if (me->GetDistance(me->getVictim()) > 5.0f && me->GetDistance(me->getVictim()) <= 30.0f)
+                if (me->GetDistance(me->GetVictim()) > 5.0f && me->GetDistance(me->GetVictim()) <= 30.0f)
                     DoCastVictim(SPELL_CHARGE_COMBAT);
-                me->GetMotionMaster()->MoveChase(me->getVictim());
+                me->GetMotionMaster()->MoveChase(me->GetVictim());
                 uiChargeTimer = GetCustomType() == TYPE_CHAMPION ? 6500 : 7500;
                 bCharge = false;
             }
@@ -932,7 +932,7 @@ public:
 
             if (Player* challengee = ObjectAccessor::GetPlayer(*me, challengeeGUID))
             {
-                if (!challengee->GetVehicle() && me->isInCombat())
+                if (!challengee->GetVehicle() && me->IsInCombat())
                 {
                     me->DeleteThreatList();
                     me->CombatStop(false);
@@ -960,7 +960,7 @@ public:
             if (uiChargeTimer <= uiDiff && !bCharge)
             {
                 // directly charge if range is ok
-                if (me->GetDistance(me->getVictim()) > 10.0f && me->GetDistance(me->getVictim()) <= 25.0f)
+                if (me->GetDistance(me->GetVictim()) > 10.0f && me->GetDistance(me->GetVictim()) <= 25.0f)
                 {
                     DoCastVictim(SPELL_CHARGE_COMBAT);
                     uiChargeTimer = GetCustomType() == TYPE_CHAMPION ? 6500 : 7500;
@@ -968,7 +968,7 @@ public:
                 else
                 {
                     // move away for charge...
-                    float angle = me->GetAngle(me->getVictim());
+                    float angle = me->GetAngle(me->GetVictim());
                     float x = me->GetPositionX() + 20.0f * cos(angle);
                     float y = me->GetPositionY() + 20.0f * sin(angle);
                     me->GetMotionMaster()->MovePoint(0, x, y, me->GetPositionZ());
@@ -982,7 +982,7 @@ public:
                 uiShieldBreakerTimer = GetCustomType() == TYPE_CHAMPION ? 9000 : 10000;
             } else uiShieldBreakerTimer -= uiDiff;
 
-            if (me->IsWithinMeleeRange(me->getVictim()))
+            if (me->IsWithinMeleeRange(me->GetVictim()))
             {
                 if (uiThrustTimer <= uiDiff)
                 {
@@ -1028,13 +1028,13 @@ public:
         uint32 uiChargeTimer;
         uint32 uiShieldBreakerTimer;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             uiChargeTimer = 7000;
             uiShieldBreakerTimer = 10000;
         }
 
-        void MovementInform(uint32 uiType, uint32 /*uiId*/)
+        void MovementInform(uint32 uiType, uint32 /*uiId*/) OVERRIDE
         {
             if (uiType != POINT_MOTION_TYPE)
                 return;
@@ -1042,7 +1042,7 @@ public:
             me->setFaction(14);
         }
 
-        void DamageTaken(Unit* pDoneBy, uint32& uiDamage)
+        void DamageTaken(Unit* pDoneBy, uint32& uiDamage) OVERRIDE
         {
             if (uiDamage > me->GetHealth() && pDoneBy->GetTypeId() == TYPEID_PLAYER)
             {
@@ -1055,7 +1055,7 @@ public:
             }
         }
 
-        void UpdateAI(uint32 uiDiff)
+        void UpdateAI(uint32 uiDiff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -1449,13 +1449,13 @@ public:
                 return;
 
             // charge after moving away from the victim
-            if (me->isInCombat() && me->getVictim() && bCharge)
+            if (me->IsInCombat() && me->GetVictim() && bCharge)
             {
                 me->GetMotionMaster()->Clear();
                 // but only after rangecheck
-                if (me->GetDistance(me->getVictim()) > 10.0f && me->GetDistance(me->getVictim()) <= 25.0f)
+                if (me->GetDistance(me->GetVictim()) > 10.0f && me->GetDistance(me->GetVictim()) <= 25.0f)
                     DoCastVictim(SPELL_CHARGE_COMBAT);
-                me->GetMotionMaster()->MoveChase(me->getVictim());
+                me->GetMotionMaster()->MoveChase(me->GetVictim());
                 events.ScheduleEvent(EVENT_CHARGE, 10000);
                 bCharge = false;
             }
@@ -1489,7 +1489,7 @@ public:
                 case EVENT_BONEGUARD_CHARGE:
                     if (UpdateVictim())
                     {
-                        if (me->GetDistance(me->getVictim()) > 10.0f && me->GetDistance(me->getVictim()) <= 25.0f)
+                        if (me->GetDistance(me->GetVictim()) > 10.0f && me->GetDistance(me->GetVictim()) <= 25.0f)
                         {
                             DoCastVictim(SPELL_CHARGE_COMBAT);
                             events.ScheduleEvent(EVENT_BONEGUARD_CHARGE, 10000);
@@ -1497,7 +1497,7 @@ public:
                         else
                         {
                             // move away for charge...
-                            float angle = me->GetAngle(me->getVictim());
+                            float angle = me->GetAngle(me->GetVictim());
                             float x = me->GetPositionX() + 20.0f * cos(angle);
                             float y = me->GetPositionY() + 20.0f * sin(angle);
                             me->GetMotionMaster()->MovePoint(0, x, y, me->GetPositionZ());
@@ -1987,7 +1987,7 @@ class npc_frostbrood_skytalon : public CreatureScript
                 if (id == POINT_GRAB_DECOY)
                     if (TempSummon* summon = me->ToTempSummon())
                         if (Unit* summoner = summon->GetSummoner())
-                            DoCast(summoner, SPELL_GRAB); 
+                            DoCast(summoner, SPELL_GRAB);
             }
 
             void UpdateAI(uint32 diff)
@@ -2028,6 +2028,199 @@ class npc_frostbrood_skytalon : public CreatureScript
         }
 };
 
+
+/*######
+## The Flesh Giant Champion - Id: 13235
+######*/
+enum FleshGiant
+{
+    QUEST_FLESH_GIANT_CHAMPION = 13235,
+
+    NPC_MORBIDUS = 30698,
+    NPC_LICH_KING = 31301,
+    NPC_OLAKIN = 31428,
+    NPC_DHAKAR = 31306,
+
+    FACTION_HOSTILES = 14,
+    FACTION_BASIC = 2102,
+
+    EVENT_INTRO = 1,
+    EVENT_LK_SAY_1 = 2,
+    EVENT_LK_SAY_2 = 3,
+    EVENT_LK_SAY_3 = 4,
+    EVENT_LK_SAY_4 = 5,
+    EVENT_LK_SAY_5 = 6,
+    EVENT_OUTRO = 7,
+    EVENT_STARTS = 8,
+
+    SPELL_SIMPLE_TELEPORT = 64195,
+
+    SAY_DHAKAR_START = 0,
+    SAY_LK_1 = 0,
+    SAY_LK_2 = 1,
+    SAY_LK_3 = 2,
+    SAY_LK_4 = 3,
+    SAY_LK_5 = 4,
+    SAY_OLAKIN_PAY = 0
+};
+
+class npc_margrave_dhakar : public CreatureScript
+{
+    public:
+        npc_margrave_dhakar() : CreatureScript("npc_margrave_dhakar") { }
+
+        struct npc_margrave_dhakarAI : public ScriptedAI
+        {
+            npc_margrave_dhakarAI(Creature* creature) : ScriptedAI(creature) , _summons(me), _lichKingGuid(0) { }
+
+            void Reset() OVERRIDE
+            {
+                me->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
+                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_NONE);
+
+                _events.Reset();
+                _summons.DespawnAll();
+            }
+
+            void sGossipSelect(Player* player, uint32 sender, uint32 action) OVERRIDE
+            {
+                if (player->GetQuestStatus(QUEST_FLESH_GIANT_CHAMPION) == QUEST_STATUS_INCOMPLETE && !player->IsInCombat())
+                {
+                    if (me->GetCreatureTemplate()->GossipMenuId == sender && !action)
+                    {
+                        _events.ScheduleEvent(EVENT_INTRO, 1000);
+                        me->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
+                    }
+                }
+            }
+
+            void UpdateAI(uint32 diff) OVERRIDE
+            {
+                _events.Update(diff);
+
+                while (uint32 eventId = _events.ExecuteEvent())
+                {
+                    switch (eventId)
+                    {
+                        case EVENT_INTRO:
+                        {
+                            Talk(SAY_DHAKAR_START);
+                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+
+                            if (Creature* morbidus = me->FindNearestCreature(NPC_MORBIDUS, 50.0f, true))
+                            {
+                                if (Creature* lichKing = me->SummonCreature(NPC_LICH_KING, morbidus->GetPositionX() + 10.0f, morbidus->GetPositionY(), morbidus->GetPositionZ()))
+                                {
+                                    _lichKingGuid = lichKing->GetGUID();
+                                    lichKing->SetFacingTo(morbidus->GetOrientation());
+                                    lichKing->CastSpell(lichKing, SPELL_SIMPLE_TELEPORT, true);
+                                }
+                            }
+
+                            _events.ScheduleEvent(EVENT_LK_SAY_1, 5000);
+                            break;
+                        }
+                        case EVENT_LK_SAY_1:
+                        {
+                            if (Creature* lichKing = Unit::GetCreature(*me, _lichKingGuid))
+                                lichKing->AI()->Talk(SAY_LK_1);
+                            _events.ScheduleEvent(EVENT_LK_SAY_2, 5000);
+                            break;
+                        }
+                        case EVENT_LK_SAY_2:
+                        {
+                            if (Creature* lichKing = Unit::GetCreature(*me, _lichKingGuid))
+                                lichKing->AI()->Talk(SAY_LK_2);
+                            _events.ScheduleEvent(EVENT_LK_SAY_3, 5000);
+                            break;
+                        }
+                        case EVENT_LK_SAY_3:
+                        {
+                            if (Creature* lichKing = Unit::GetCreature(*me, _lichKingGuid))
+                                lichKing->AI()->Talk(SAY_LK_3);
+                            _events.ScheduleEvent(EVENT_LK_SAY_4, 5000);
+                            break;
+                        }
+                        case EVENT_LK_SAY_4:
+                        {
+                            if (Creature* lichKing = Unit::GetCreature(*me, _lichKingGuid))
+                                lichKing->AI()->Talk(SAY_LK_4);
+                            _events.ScheduleEvent(EVENT_OUTRO, 12000);
+                            break;
+                        }
+                        case EVENT_LK_SAY_5:
+                        {
+                            if (Creature* lichKing = Unit::GetCreature(*me, _lichKingGuid))
+                                lichKing->AI()->Talk(SAY_LK_5);
+                            _events.ScheduleEvent(EVENT_OUTRO, 8000);
+                            break;
+                        }
+                        case EVENT_OUTRO:
+                        {
+                            if (Creature* olakin = me->FindNearestCreature(NPC_OLAKIN, 50.0f, true))
+                                olakin->AI()->Talk(SAY_OLAKIN_PAY);
+
+                            if (Creature* lichKing = Unit::GetCreature(*me, _lichKingGuid))
+                                lichKing->DespawnOrUnsummon(0);
+
+                            _events.ScheduleEvent(EVENT_STARTS, 5000);
+                            break;
+                        }
+                        case EVENT_STARTS:
+                        {
+                            if (Creature* morbidus = me->FindNearestCreature(NPC_MORBIDUS, 50.0f, true))
+                            {
+                                morbidus->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC | UNIT_FLAG_DISABLE_MOVE);
+                                morbidus->setFaction(FACTION_HOSTILES);
+                            }
+
+                            break;
+                        }
+                    }
+                }
+
+                DoMeleeAttackIfReady();
+            }
+
+        private:
+            EventMap _events;
+            SummonList _summons;
+            uint64 _lichKingGuid;
+    };
+
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    {
+        return new npc_margrave_dhakarAI(creature);
+    }
+};
+
+class npc_morbidus : public CreatureScript
+{
+    public:
+        npc_morbidus() : CreatureScript("npc_morbidus") { }
+
+        struct npc_morbidusAI : public ScriptedAI
+        {
+            npc_morbidusAI(Creature* creature) : ScriptedAI(creature) { }
+
+            void Reset() OVERRIDE
+            {
+                if (Creature* dhakar = me->FindNearestCreature(NPC_DHAKAR, 50.0f, true))
+                    dhakar->AI()->Reset();
+
+                // this will prevent the event to start without morbidus being alive
+                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                me->SetReactState(REACT_PASSIVE);
+                me->setFaction(FACTION_BASIC);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
+        {
+            return new npc_morbidusAI(creature);
+        }
+};
+
 void AddSC_icecrown()
 {
     new npc_arete;
@@ -2043,4 +2236,6 @@ void AddSC_icecrown()
     new spell_gen_trample_scourge;
     new npc_blessed_banner();
     new npc_frostbrood_skytalon();
+	new npc_margrave_dhakar();
+    new npc_morbidus();
 }

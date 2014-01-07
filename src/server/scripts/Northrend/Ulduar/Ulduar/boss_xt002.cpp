@@ -469,7 +469,7 @@ class boss_xt002 : public CreatureScript
                 Unit* heart = me->GetVehicleKit() ? me->GetVehicleKit()->GetPassenger(HEART_VEHICLE_SEAT) : NULL;
                 if (heart)
                 {
-                    heart->ClearUnitState(UNIT_STATE_ONVEHICLE);
+//                    heart->ClearUnitState(UNIT_STATE_ONVEHICLE);
                     heart->CastSpell(heart, SPELL_HEART_OVERLOAD, false);
                     heart->CastSpell(me, SPELL_HEART_LIGHTNING_TETHER, false);
                     heart->CastSpell(heart, SPELL_HEART_HEAL_TO_FULL, true);
@@ -560,14 +560,14 @@ class boss_xt002 : public CreatureScript
  *        XT-002 HEART
  *
  *///----------------------------------------------------
-class mob_xt002_heart : public CreatureScript
+class npc_xt002_heart : public CreatureScript
 {
     public:
-        mob_xt002_heart() : CreatureScript("mob_xt002_heart") {}
+        npc_xt002_heart() : CreatureScript("npc_xt002_heart") {}
 
-        struct mob_xt002_heartAI : public ScriptedAI
+        struct npc_xt002_heartAI : public ScriptedAI
         {
-            mob_xt002_heartAI(Creature* creature) : ScriptedAI(creature)
+            npc_xt002_heartAI(Creature* creature) : ScriptedAI(creature)
             {
                 instance = creature->GetInstanceScript();
                 SetCombatMovement(false);
@@ -597,7 +597,7 @@ class mob_xt002_heart : public CreatureScript
 
         CreatureAI* GetAI(Creature* creature) const
         {
-            return new mob_xt002_heartAI(creature);
+            return new npc_xt002_heartAI(creature);
         }
 };
 
@@ -606,14 +606,14 @@ class mob_xt002_heart : public CreatureScript
  *        XS-013 SCRAPBOT
  *
  *///----------------------------------------------------
-class mob_scrapbot : public CreatureScript
+class npc_scrapbot : public CreatureScript
 {
     public:
-        mob_scrapbot() : CreatureScript("mob_scrapbot") {}
+        npc_scrapbot() : CreatureScript("npc_scrapbot") {}
 
-        struct mob_scrapbotAI : public ScriptedAI
+        struct npc_scrapbotAI : public ScriptedAI
         {
-            mob_scrapbotAI(Creature* creature) : ScriptedAI(creature)
+            npc_scrapbotAI(Creature* creature) : ScriptedAI(creature)
             {
                 instance = me->GetInstanceScript();
             }
@@ -637,7 +637,7 @@ class mob_scrapbot : public CreatureScript
                 {
                     if (Creature* xt002 = ObjectAccessor::GetCreature(*me, instance->GetData64(BOSS_XT002)))
                     {
-                        if (!casted && xt002->isAlive())
+                        if (!casted && xt002->IsAlive())
                             if (me->IsWithinMeleeRange(xt002))
                             {
                                 casted = true;
@@ -665,7 +665,7 @@ class mob_scrapbot : public CreatureScript
 
         CreatureAI* GetAI(Creature* creature) const
         {
-            return new mob_scrapbotAI(creature);
+            return new npc_scrapbotAI(creature);
         }
 };
 
@@ -674,7 +674,7 @@ class mob_scrapbot : public CreatureScript
  *        XM-024 PUMMELLER
  *
  *///----------------------------------------------------
-class mob_pummeller : public CreatureScript
+class npc_pummeller : public CreatureScript
 {
     private:
         enum 
@@ -688,11 +688,11 @@ class mob_pummeller : public CreatureScript
         };
 
     public:
-        mob_pummeller() : CreatureScript("mob_pummeller") {}
+        npc_pummeller() : CreatureScript("npc_pummeller") {}
 
-        struct mob_pummellerAI : public ScriptedAI
+        struct npc_pummellerAI : public ScriptedAI
         {
-            mob_pummellerAI(Creature* creature) : ScriptedAI(creature)
+            npc_pummellerAI(Creature* creature) : ScriptedAI(creature)
             {
                 instance = creature->GetInstanceScript();
             }
@@ -714,7 +714,7 @@ class mob_pummeller : public CreatureScript
                 if (!UpdateVictim())
                     return;
 
-                if (me->IsWithinMeleeRange(me->getVictim()))
+                if (me->IsWithinMeleeRange(me->GetVictim()))
                 {
                     events.Update(diff);
                     while (uint32 eventId = events.ExecuteEvent())
@@ -722,15 +722,15 @@ class mob_pummeller : public CreatureScript
                         switch (eventId)
                         {
                             case EVENT_ARCING_SMASH:
-                                DoCast(me->getVictim(), SPELL_ARCING_SMASH);
+                                DoCastVictim(SPELL_ARCING_SMASH);
                                 events.ScheduleEvent(EVENT_ARCING_SMASH, TIMER_ARCING_SMASH);
                                 return;
                             case EVENT_TRAMPLE:
-                                DoCast(me->getVictim(), SPELL_TRAMPLE);
+                                DoCastVictim(SPELL_TRAMPLE);
                                 events.ScheduleEvent(EVENT_TRAMPLE, TIMER_TRAMPLE);
                                 return;
                             case EVENT_UPPERCUT:
-                                DoCast(me->getVictim(), SPELL_UPPERCUT);
+                                DoCastVictim(SPELL_UPPERCUT);
                                 events.ScheduleEvent(EVENT_UPPERCUT, TIMER_UPPERCUT);
                                 return;
                             default:
@@ -749,7 +749,7 @@ class mob_pummeller : public CreatureScript
 
         CreatureAI* GetAI(Creature* creature) const
         {
-            return new mob_pummellerAI(creature);
+            return new npc_pummellerAI(creature);
         }
 };
 
@@ -779,14 +779,14 @@ class BoomEvent : public BasicEvent
         Creature* _me;
 };
 
-class mob_boombot : public CreatureScript
+class npc_boombot : public CreatureScript
 {
     public:
-        mob_boombot() : CreatureScript("mob_boombot") {}
+        npc_boombot() : CreatureScript("npc_boombot") {}
 
-        struct mob_boombotAI : public ScriptedAI
+        struct npc_boombotAI : public ScriptedAI
         {
-            mob_boombotAI(Creature* creature) : ScriptedAI(creature)
+            npc_boombotAI(Creature* creature) : ScriptedAI(creature)
             {
                 instance = creature->GetInstanceScript();
             }
@@ -849,7 +849,7 @@ class mob_boombot : public CreatureScript
 
         CreatureAI* GetAI(Creature* creature) const
         {
-            return new mob_boombotAI(creature);
+            return new npc_boombotAI(creature);
         }
 };
 
@@ -859,7 +859,7 @@ class mob_boombot : public CreatureScript
  *        LIFE SPARK
  *
  *///----------------------------------------------------
-class mob_life_spark : public CreatureScript
+class npc_life_spark : public CreatureScript
 {
     private:
         enum
@@ -868,11 +868,11 @@ class mob_life_spark : public CreatureScript
         };
 
     public:
-        mob_life_spark() : CreatureScript("mob_life_spark") {}
+        npc_life_spark() : CreatureScript("npc_life_spark") {}
 
-        struct mob_life_sparkAI : public ScriptedAI
+        struct npc_life_sparkAI : public ScriptedAI
         {
-            mob_life_sparkAI(Creature* creature) : ScriptedAI(creature) {}
+            npc_life_sparkAI(Creature* creature) : ScriptedAI(creature) {}
 
             void Reset()
             {
@@ -887,9 +887,9 @@ class mob_life_spark : public CreatureScript
 
                 if (shockTimer <= diff)
                 {
-                    if (me->IsWithinMeleeRange(me->getVictim()))
+                    if (me->IsWithinMeleeRange(me->GetVictim()))
                     {
-                        DoCast(me->getVictim(), SPELL_SHOCK);
+                        DoCastVictim(SPELL_SHOCK);
                         shockTimer = TIMER_SHOCK;
                     }
                 }
@@ -904,18 +904,18 @@ class mob_life_spark : public CreatureScript
 
         CreatureAI* GetAI(Creature* creature) const
         {
-            return new mob_life_sparkAI(creature);
+            return new npc_life_sparkAI(creature);
         }
 };
 
-class mob_void_zone : public CreatureScript
+class npc_void_zone : public CreatureScript
 {
     public:
-        mob_void_zone() : CreatureScript("mob_void_zone") {}
+        npc_void_zone() : CreatureScript("npc_void_zone") {}
 
-        struct mob_void_zoneAI : public ScriptedAI
+        struct npc_void_zoneAI : public ScriptedAI
         {
-            mob_void_zoneAI(Creature* creature) : ScriptedAI(creature)
+            npc_void_zoneAI(Creature* creature) : ScriptedAI(creature)
             {
                 SetCombatMovement(false);
                 me->SetReactState(REACT_PASSIVE);
@@ -944,7 +944,7 @@ class mob_void_zone : public CreatureScript
 
         CreatureAI* GetAI(Creature* creature) const
         {
-            return new mob_void_zoneAI(creature);
+            return new npc_void_zoneAI(creature);
         }
 };
 
@@ -1079,7 +1079,7 @@ class spell_xt002_gravity_bomb_aura_target : public SpellScriptLoader
 
             void FilterTargets(std::list<WorldObject*>& targets)
             {
-                targets.remove_if(BombTargetSelector(GetCaster()->ToCreature(), GetCaster()->getVictim()));
+                targets.remove_if(BombTargetSelector(GetCaster()->ToCreature(), GetCaster()->GetVictim()));
 
                 if (targets.empty())
                     return;
@@ -1286,12 +1286,12 @@ class achievement_nerf_gravity_bombs : public AchievementCriteriaScript
 
 void AddSC_boss_xt002()
 {
-    new mob_xt002_heart();
-    new mob_scrapbot();
-    new mob_pummeller();
-    new mob_boombot();
-    new mob_life_spark();
-    new mob_void_zone();
+    new npc_xt002_heart();
+    new npc_scrapbot();
+    new npc_pummeller();
+    new npc_boombot();
+    new npc_life_spark();
+    new npc_void_zone();
     new boss_xt002();
 
     new spell_xt002_searing_light_spawn_life_spark();

@@ -275,7 +275,7 @@ bool Condition::Meets(ConditionSourceInfo& sourceInfo)
         case CONDITION_ALIVE:
         {
             if (Unit* unit = object->ToUnit())
-                condMeets = unit->isAlive();
+                condMeets = unit->IsAlive();
             break;
         }
         case CONDITION_HP_VAL:
@@ -321,6 +321,12 @@ bool Condition::Meets(ConditionSourceInfo& sourceInfo)
         {
             if (Unit* unit = object->ToUnit())
                 condMeets = unit->HasUnitState(ConditionValue1);
+            break;
+        }
+        case CONDITION_CREATURE_TYPE:
+        {
+            if (Creature* creature = object->ToCreature())
+                condMeets = creature->GetCreatureTemplate()->type == ConditionValue1;
             break;
         }
         default:
@@ -486,6 +492,9 @@ uint32 Condition::GetSearcherTypeMaskForCondition()
             break;
         case CONDITION_UNIT_STATE:
             mask |= GRID_MAP_TYPE_MASK_CREATURE | GRID_MAP_TYPE_MASK_PLAYER;
+            break;
+        case CONDITION_CREATURE_TYPE:
+            mask |= GRID_MAP_TYPE_MASK_CREATURE;
             break;
         default:
             ASSERT(false && "Condition::GetSearcherTypeMaskForCondition - missing condition handling!");
@@ -1119,6 +1128,9 @@ bool ConditionMgr::addToSpellImplicitTargetConditions(Condition* cond)
                 if ((1<<firstEffIndex) & *itr)
                     break;
 
+            if (firstEffIndex >= MAX_SPELL_EFFECTS)
+                return false;
+
             // get shared data
             ConditionList* sharedList = spellInfo->Effects[firstEffIndex].ImplicitTargetConditions;
 
@@ -1138,9 +1150,18 @@ bool ConditionMgr::addToSpellImplicitTargetConditions(Condition* cond)
             {
                 // add new list, create new shared mask
                 sharedList = new ConditionList();
+                bool assigned = false;
                 for (uint8 i = firstEffIndex; i < MAX_SPELL_EFFECTS; ++i)
+                {
                     if ((1<<i) & commonMask)
+                    {
                         spellInfo->Effects[i].ImplicitTargetConditions = sharedList;
+                        assigned = true;
+                    }
+                }
+
+                if (!assigned)
+                    delete sharedList;
             }
             sharedList->push_back(cond);
             break;
@@ -1621,7 +1642,7 @@ bool ConditionMgr::isConditionTypeValid(Condition* cond)
 
             if (cond->ConditionValue2 < 1 || cond->ConditionValue2 > sWorld->GetConfigMaxSkillValue())
             {
-                TC_LOG_ERROR(LOG_FILTER_SQL, "Skill condition specifies invalid skill value (%u), skipped", cond->ConditionValue2);
+                TC_LOG_ERROR(LOG_FILTER_SQL, "Skill condition specifies skill (%u) with invalid value (%u), skipped", cond->ConditionValue1, cond->ConditionValue2);
                 return false;
             }
             if (cond->ConditionValue3)
@@ -1635,7 +1656,8 @@ bool ConditionMgr::isConditionTypeValid(Condition* cond)
         {
             if (!sObjectMgr->GetQuestTemplate(cond->ConditionValue1))
             {
-                TC_LOG_ERROR(LOG_FILTER_SQL, "Quest condition specifies non-existing quest (%u), skipped", cond->ConditionValue1);
+                TC_LOG_ERROR(LOG_FILTER_SQL, "Quest condition (Type: %u) points to non-existing quest (%u) for Source Entry %u. SourceGroup: %u, SourceTypeOrReferenceId: %u",
+                    cond->ConditionType, cond->ConditionValue1, cond->SourceEntry, cond->SourceGroup, cond->SourceType);
                 return false;
             }
 
@@ -1986,9 +2008,15 @@ bool ConditionMgr::isConditionTypeValid(Condition* cond)
             }
             break;
         }
-        case CONDITION_UNUSED_24:
-            TC_LOG_ERROR(LOG_FILTER_SQL, "Found ConditionTypeOrReference = CONDITION_UNUSED_24 in `conditions` table - ignoring");
-            return false;
+        case CONDITION_CREATURE_TYPE:
+        {
+            if (!cond->ConditionValue1 || cond->ConditionValue1 > CREATURE_TYPE_GAS_CLOUD)
+            {
+                TC_LOG_ERROR(LOG_FILTER_SQL, "CreatureType condition has non existing CreatureType in value1 (%u), skipped", cond->ConditionValue1);
+                return false;
+            }
+            break;
+        }
         default:
             break;
     }

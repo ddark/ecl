@@ -29,9 +29,9 @@ class boss_ambassador_flamelash : public CreatureScript
 public:
     boss_ambassador_flamelash() : CreatureScript("boss_ambassador_flamelash") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_ambassador_flamelashAI (creature);
+        return new boss_ambassador_flamelashAI(creature);
     }
 
     struct boss_ambassador_flamelashAI : public ScriptedAI
@@ -41,13 +41,13 @@ public:
         uint32 FireBlast_Timer;
         uint32 Spirit_Timer;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             FireBlast_Timer = 2000;
             Spirit_Timer = 24000;
         }
 
-        void EnterCombat(Unit* /*who*/) {}
+        void EnterCombat(Unit* /*who*/) OVERRIDE {}
 
         void SummonSpirits(Unit* victim)
         {
@@ -55,7 +55,7 @@ public:
                 Spirit->AI()->AttackStart(victim);
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -64,17 +64,17 @@ public:
             //FireBlast_Timer
             if (FireBlast_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_FIREBLAST);
+                DoCastVictim(SPELL_FIREBLAST);
                 FireBlast_Timer = 7000;
             } else FireBlast_Timer -= diff;
 
             //Spirit_Timer
             if (Spirit_Timer <= diff)
             {
-                SummonSpirits(me->getVictim());
-                SummonSpirits(me->getVictim());
-                SummonSpirits(me->getVictim());
-                SummonSpirits(me->getVictim());
+                SummonSpirits(me->GetVictim());
+                SummonSpirits(me->GetVictim());
+                SummonSpirits(me->GetVictim());
+                SummonSpirits(me->GetVictim());
 
                 Spirit_Timer = 30000;
             } else Spirit_Timer -= diff;

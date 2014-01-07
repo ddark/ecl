@@ -1,22 +1,26 @@
 ***************
-*** 1076,1082 ****
+*** 734,740 ****
   
-      // Use for custom patches             11000-11999
-      LANG_AUTO_BROADCAST                 = 11000,
--     LANG_INVALID_REALMID                = 11001
+      LANG_CHANNEL_CITY                   = 819,
+      // Room for in-game strings           820-999 not used
+- 
+      // Level 4 (CLI only commands)
+      LANG_COMMAND_EXIT                   = 1000,
+      LANG_ACCOUNT_DELETED                = 1001,
+--- 734,749 ----
   
-      // NOT RESERVED IDS                   12000-1999999999
-      // `db_script_string` table index     2000000000-2000009999 (MIN_DB_SCRIPT_STRING_ID-MAX_DB_SCRIPT_STRING_ID)
---- 1076,1087 ----
-  
-      // Use for custom patches             11000-11999
-      LANG_AUTO_BROADCAST                 = 11000,
-+     LANG_INVALID_REALMID                = 11001,
-+ 	
-+ 	// Vip Commands
-+  	LANG_PLAYER_NOT_VIP                 = 11007,
-+  	LANG_VIP_COMMAND_DISABLED           = 11008,
-+  	LANG_VIP_ERROR                      = 11009
-  
-      // NOT RESERVED IDS                   12000-1999999999
-      // `db_script_string` table index     2000000000-2000009999 (MIN_DB_SCRIPT_STRING_ID-MAX_DB_SCRIPT_STRING_ID)
+      LANG_CHANNEL_CITY                   = 819,
+      // Room for in-game strings           820-999 not used
++     LANG_SOTA                           = 990,
++     LANG_AV                             = 991,
++     LANG_ARENA_3                        = 992,
++     LANG_ARENA_2                        = 993,
++     LANG_ARENA_1                        = 994,
++     LANG_RANDOM                         = 995,
++     LANG_EOTS                           = 996,
++     LANG_AB                             = 997,
++     LANG_WSG                            = 998,
++     LANG_WG                             = 999,
+      // Level 4 (CLI only commands)
+      LANG_COMMAND_EXIT                   = 1000,
+      LANG_ACCOUNT_DELETED                = 1001,

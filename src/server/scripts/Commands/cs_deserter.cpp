@@ -43,22 +43,22 @@ public:
     * @brief Returns the command structure for the system.
     */
 
-    ChatCommand* GetCommands() const
+    ChatCommand* GetCommands() const OVERRIDE
     {
-        static ChatCommand deserterInstanceCommandTable[] = 
+        static ChatCommand deserterInstanceCommandTable[] =
         {
             { "add",            SEC_ADMINISTRATOR, false, &HandleDeserterInstanceAdd,          "", NULL },
             { "remove",         SEC_ADMINISTRATOR, false, &HandleDeserterInstanceRemove,       "", NULL },
             { NULL,             SEC_PLAYER,        false, NULL,                                "", NULL }
         };
-        static ChatCommand deserterBGCommandTable[] = 
+        static ChatCommand deserterBGCommandTable[] =
         {
             { "add",            SEC_ADMINISTRATOR, false, &HandleDeserterBGAdd,                "", NULL },
             { "remove",         SEC_ADMINISTRATOR, false, &HandleDeserterBGRemove,             "", NULL },
             { NULL,             SEC_PLAYER,        false, NULL,                                "", NULL }
         };
 
-        static ChatCommand deserterCommandTable[] = 
+        static ChatCommand deserterCommandTable[] =
         {
             { "instance",       SEC_ADMINISTRATOR, false, NULL,        "", deserterInstanceCommandTable },
             { "bg",             SEC_ADMINISTRATOR, false, NULL,              "", deserterBGCommandTable },

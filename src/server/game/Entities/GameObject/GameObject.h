@@ -582,7 +582,7 @@ struct GameObjectData
     explicit GameObjectData() : dbData(true) {}
     uint32 id;                                              // entry in gamobject_template
     uint16 mapid;
-    uint16 phaseMask;
+    uint32 phaseMask;
     float posX;
     float posY;
     float posZ;
@@ -622,6 +622,8 @@ class GameObject : public WorldObject, public GridObject<GameObject>
     public:
         explicit GameObject();
         ~GameObject();
+
+        void BuildValuesUpdate(uint8 updatetype, ByteBuffer* data, Player* target) const;
 
         void AddToWorld();
         void RemoveFromWorld();

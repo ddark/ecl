@@ -128,11 +128,11 @@ class bot_ai : public ScriptedAI
         void ReceiveEmote(Player* player, uint32 emote);
         void ApplyPassives(uint8 botOrPetType) const;
 
-    protected:
         static inline bool CCed(Unit* target, bool root = false)
         {
             return target ? target->HasUnitState(UNIT_STATE_CONFUSED | UNIT_STATE_STUNNED | UNIT_STATE_FLEEING | UNIT_STATE_DISTRACTED | UNIT_STATE_CONFUSED_MOVE | UNIT_STATE_FLEEING_MOVE) || (root && target->HasUnitState(UNIT_STATE_ROOT)) : true;
         }
+    protected:
         static uint32 InitSpell(Unit* caster, uint32 spell);
 
         bool HasAuraName(Unit* unit, const std::string spell, uint64 casterGuid = 0, bool exclude = false) const;
@@ -148,7 +148,7 @@ class bot_ai : public ScriptedAI
         virtual void removeFeralForm(bool /*force*/ = false, bool /*init*/ = true, uint32 /*diff*/ = 0) {}
 
         inline bool Feasting() const { return (me->HasAura(EAT) || me->HasAura(DRINK)); }
-        inline bool isMeleeClass(uint8 m_class) const { return (m_class == CLASS_WARRIOR || m_class == CLASS_ROGUE || m_class == CLASS_PALADIN || m_class == CLASS_DEATH_KNIGHT || m_class == BEAR); }
+        static inline bool isMeleeClass(uint8 m_class) { return (m_class == CLASS_WARRIOR || m_class == CLASS_ROGUE || m_class == CLASS_PALADIN || m_class == CLASS_DEATH_KNIGHT || m_class == BEAR); }
         inline bool IsChanneling(Unit* u = NULL) const { if (!u) u = me; return u->GetCurrentSpell(CURRENT_CHANNELED_SPELL); }
         inline bool IsCasting(Unit* u = NULL) const { if (!u) u = me; return (u->HasUnitState(UNIT_STATE_CASTING) || IsChanneling(u) || u->IsNonMeleeSpellCasted(false)); }
 
@@ -257,7 +257,7 @@ class bot_minion_ai : public bot_ai
         void Follow(bool force = false, Position* newpos = NULL)
         {
             if (force || 
-                (me->isAlive() && (!me->isInCombat() || !opponent) && m_botCommandState != COMMAND_STAY))
+                (me->IsAlive() && (!me->IsInCombat() || !opponent) && m_botCommandState != COMMAND_STAY))
                 SetBotCommandState(COMMAND_FOLLOW, force, newpos);
         }
 
@@ -291,6 +291,7 @@ class bot_minion_ai : public bot_ai
 
     private:
         bool CanCureTarget(Unit* target, uint32 cureSpell, uint32 diff) const;
+        void GetBotDispellableAuraList(Unit* target, Unit* caster, uint32 dispelMask, DispelChargesList& dispelList) const;
         void CalculatePos(Position& pos);
         void UpdateMountedState();
         void UpdateStandState() const;

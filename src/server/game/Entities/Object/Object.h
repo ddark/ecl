@@ -134,7 +134,7 @@ class Object
         uint32 GetEntry() const { return GetUInt32Value(OBJECT_FIELD_ENTRY); }
         void SetEntry(uint32 entry) { SetUInt32Value(OBJECT_FIELD_ENTRY, entry); }
 
-        void SetObjectScale(float scale) { SetFloatValue(OBJECT_FIELD_SCALE_X, scale); }
+        virtual void SetObjectScale(float scale) { SetFloatValue(OBJECT_FIELD_SCALE_X, scale); }
 
         TypeID GetTypeId() const { return m_objectTypeId; }
         bool isType(uint16 mask) const { return (mask & m_objectType); }
@@ -236,10 +236,8 @@ class Object
 
         uint32 GetUpdateFieldData(Player const* target, uint32*& flags) const;
 
-        void _SetUpdateBits(UpdateMask* updateMask, Player* target) const;
-        void _SetCreateBits(UpdateMask* updateMask, Player* target) const;
-        void _BuildMovementUpdate(ByteBuffer * data, uint16 flags) const;
-        void _BuildValuesUpdate(uint8 updatetype, ByteBuffer *data, UpdateMask* updateMask, Player* target) const;
+        void BuildMovementUpdate(ByteBuffer* data, uint16 flags) const;
+        virtual void BuildValuesUpdate(uint8 updatetype, ByteBuffer* data, Player* target) const;
 
         uint16 m_objectType;
 
@@ -409,26 +407,54 @@ struct MovementInfo
     uint16 flags2;
     Position pos;
     uint32 time;
+
     // transport
-    uint64 t_guid;
-    Position t_pos;
-    int8 t_seat;
-    uint32 t_time;
-    uint32 t_time2;
+    struct TransportInfo
+    {
+        void Reset()
+        {
+            guid = 0;
+            pos.Relocate(0.0f, 0.0f, 0.0f, 0.0f);
+            seat = -1;
+            time = 0;
+            time2 = 0;
+        }
+
+        uint64 guid;
+        Position pos;
+        int8 seat;
+        uint32 time;
+        uint32 time2;
+    } transport;
+
     // swimming/flying
     float pitch;
+
     // falling
     uint32 fallTime;
-    // jumping
-    float j_zspeed, j_sinAngle, j_cosAngle, j_xyspeed;
+
+        // jumping
+    struct JumpInfo
+    {
+        void Reset()
+        {
+            zspeed = sinAngle = cosAngle = xyspeed = 0.0f;
+        }
+
+        float zspeed, sinAngle, cosAngle, xyspeed;
+
+    } jump;
+
     // spline
     float splineElevation;
 
     MovementInfo() :
-        guid(), flags(), flags2(), pos(), time(), t_guid(), t_pos(),
-        t_seat(-1), t_time(), t_time2(), pitch(), fallTime(),
-        j_zspeed(), j_sinAngle(), j_cosAngle(), j_xyspeed()
-    { }
+        guid(0), flags(0), flags2(0), time(0), pitch(0.0f)
+    {
+        pos.Relocate(0.0f, 0.0f, 0.0f, 0.0f);
+        transport.Reset();
+        jump.Reset();
+    }
 
     uint32 GetMovementFlags() const { return flags; }
     void SetMovementFlags(uint32 flag) { flags = flag; }
@@ -600,7 +626,7 @@ class WorldObject : public Object, public WorldLocation
         float GetGridActivationRange() const;
         float GetVisibilityRange() const;
         float GetSightRange(WorldObject const* target = NULL) const;
-        bool canSeeOrDetect(WorldObject const* obj, bool ignoreStealth = false, bool distanceCheck = false) const;
+        bool CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth = false, bool distanceCheck = false) const;
 
         FlaggedValuesArray32<int32, uint32, StealthType, TOTAL_STEALTH_TYPES> m_stealth;
         FlaggedValuesArray32<int32, uint32, StealthType, TOTAL_STEALTH_TYPES> m_stealthDetect;

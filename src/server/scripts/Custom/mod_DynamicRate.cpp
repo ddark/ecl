@@ -30,17 +30,17 @@ class Mod_DynamicRate_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        DynamicRateEnable = ConfigMgr::GetBoolDefault("DynamicRate.Enable", false);
+        DynamicRateEnable = sConfigMgr->GetBoolDefault("DynamicRate.Enable", false);
 
         if (!DynamicRateEnable)
             return;
 
-        DynamicRateMin          = ConfigMgr::GetFloatDefault("DynamicRate.Min", 0.0f);
-        DynamicRateDefault      = ConfigMgr::GetFloatDefault("DynamicRate.Default", 1.0f);
-        DynamicRateMax          = ConfigMgr::GetFloatDefault("DynamicRate.Max", 100.0f);
-        DynamicRateAccount      = ConfigMgr::GetBoolDefault("DynamicRate.Account", false);
-        DynamicRateCharacter    = ConfigMgr::GetBoolDefault("DynamicRate.Character", false);
-        DynamicRateCooldown     = ConfigMgr::GetIntDefault("DynamicRate.Cooldown", 120);
+        DynamicRateMin          = sConfigMgr->GetFloatDefault("DynamicRate.Min", 0.0f);
+        DynamicRateDefault      = sConfigMgr->GetFloatDefault("DynamicRate.Default", 1.0f);
+        DynamicRateMax          = sConfigMgr->GetFloatDefault("DynamicRate.Max", 100.0f);
+        DynamicRateAccount      = sConfigMgr->GetBoolDefault("DynamicRate.Account", false);
+        DynamicRateCharacter    = sConfigMgr->GetBoolDefault("DynamicRate.Character", false);
+        DynamicRateCooldown     = sConfigMgr->GetIntDefault("DynamicRate.Cooldown", 120);
     }
 };
 

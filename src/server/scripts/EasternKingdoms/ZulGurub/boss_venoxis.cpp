@@ -91,7 +91,7 @@ class boss_venoxis : public CreatureScript
         {
             boss_venoxisAI(Creature* creature) : BossAI(creature, DATA_VENOXIS) {}
 
-            void Reset()
+            void Reset() OVERRIDE
             {
                 _Reset();
                 // remove all spells and auras from previous attempts
@@ -104,14 +104,14 @@ class boss_venoxis : public CreatureScript
                 events.SetPhase(PHASE_ONE);
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) OVERRIDE
             {
                 _JustDied();
                 Talk(SAY_VENOXIS_DEATH);
                 me->RemoveAllAuras();
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) OVERRIDE
             {
                 _EnterCombat();
                 me->SetReactState(REACT_AGGRESSIVE);
@@ -130,7 +130,7 @@ class boss_venoxis : public CreatureScript
                 DoZoneInCombat();
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/)
+            void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/) OVERRIDE
             {
                 // check if venoxis is ready to transform
                 if (!_transformed && !HealthAbovePct(50))
@@ -147,7 +147,7 @@ class boss_venoxis : public CreatureScript
                 }
             }
 
-            void UpdateAI(uint32 diff)
+            void UpdateAI(uint32 diff) OVERRIDE
             {
                 if (!UpdateVictim())
                     return;
@@ -190,7 +190,7 @@ class boss_venoxis : public CreatureScript
 
                             // trigger spellcast only if we have 3 or more targets to affect
                             if (_inMeleeRange >= 3)
-                                DoCast(me->getVictim(), SPELL_HOLY_NOVA);
+                                DoCastVictim(SPELL_HOLY_NOVA);
 
                             events.ScheduleEvent(EVENT_HOLY_NOVA, urand(45000, 75000), 0, PHASE_ONE);
                             break;
@@ -262,7 +262,7 @@ class boss_venoxis : public CreatureScript
             bool _frenzied;
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
             return new boss_venoxisAI(creature);
         }

@@ -78,7 +78,7 @@ class npc_frost_tomb : public CreatureScript
 public:
     npc_frost_tomb() : CreatureScript("npc_frost_tomb") {}
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
         return new npc_frost_tombAI(creature);
     }
@@ -87,16 +87,16 @@ public:
     {
         npc_frost_tombAI(Creature* creature) : ScriptedAI(creature)
         {
-            if (me->isSummon())
+            if (me->IsSummon())
                 if (Unit* summon = me->ToTempSummon()->GetSummoner())
                     DoCast(summon, SPELL_FROST_TOMB, true);
 
             instance = creature->GetInstanceScript();
         }
 
-        void UpdateAI(uint32 /*diff*/) {}
+        void UpdateAI(uint32 /*diff*/) OVERRIDE {}
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (instance)
                 if (Unit* boss = me->GetUnit(*me, instance->GetData64(DATA_PRINCEKELESETH)))
@@ -114,16 +114,16 @@ class boss_keleseth : public CreatureScript
 public:
     boss_keleseth() : CreatureScript("boss_keleseth") {}
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_kelesethAI (creature);
+        return new boss_kelesethAI(creature);
     }
 
     struct boss_kelesethAI : public BossAI
     {
         boss_kelesethAI(Creature* creature) : BossAI(creature, DATA_PRINCEKELESETH_EVENT){}
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             if (instance)
                 instance->SetData(DATA_PRINCEKELESETH_EVENT, NOT_STARTED);
@@ -138,7 +138,7 @@ public:
             onTheRocks = true;
         }
 
-        void EnterCombat(Unit* who)
+        void EnterCombat(Unit* who) OVERRIDE
         {
             me->SetInCombatWithZone();
             if (instance)
@@ -154,7 +154,7 @@ public:
             {
                 for (std::list<Creature*>::iterator itr = runemages.begin(); itr != runemages.end(); ++itr)
                 {
-                    if ((*itr)->isAlive() && (*itr)->IsWithinLOSInMap(me))
+                    if ((*itr)->IsAlive() && (*itr)->IsWithinLOSInMap(me))
                         (*itr)->AI()->AttackStart(who);
                 }
             }
@@ -165,13 +165,13 @@ public:
             {
                 for (std::list<Creature*>::iterator itr = strategists.begin(); itr != strategists.end(); ++itr)
                 {
-                    if ((*itr)->isAlive() && (*itr)->IsWithinLOSInMap(me))
+                    if ((*itr)->IsAlive() && (*itr)->IsWithinLOSInMap(me))
                         (*itr)->AI()->AttackStart(who);
                 }
             }
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (instance)
                 instance->SetData(DATA_PRINCEKELESETH_EVENT, DONE);
@@ -179,13 +179,13 @@ public:
             Talk(SAY_DEATH);
         }
 
-        void SetData(uint32 data, uint32 value)
+        void SetData(uint32 data, uint32 value) OVERRIDE
         {
             if (data == DATA_ON_THE_ROCKS)
                 onTheRocks = value;
         }
 
-        uint32 GetData(uint32 data) const
+        uint32 GetData(uint32 data) const OVERRIDE
         {
             if (data == DATA_ON_THE_ROCKS)
                 return onTheRocks;
@@ -193,7 +193,7 @@ public:
             return 0;
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -249,23 +249,23 @@ class npc_vrykul_skeleton : public CreatureScript
 public:
     npc_vrykul_skeleton() : CreatureScript("npc_vrykul_skeleton") {}
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new npc_vrykul_skeletonAI (creature);
+        return new npc_vrykul_skeletonAI(creature);
     }
 
     struct npc_vrykul_skeletonAI : public ScriptedAI
     {
         npc_vrykul_skeletonAI(Creature* creature) : ScriptedAI(creature) {}
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             events.Reset();
             events.ScheduleEvent(EVENT_DECREPIFY, urand(4, 6)*IN_MILLISECONDS);
 
         }
 
-        void DamageTaken(Unit* /*done_by*/, uint32 &damage)
+        void DamageTaken(Unit* /*done_by*/, uint32 &damage) OVERRIDE
         {
             if (damage >= me->GetHealth())
             {
@@ -288,7 +288,7 @@ public:
             }
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -324,7 +324,7 @@ public:
                         }
                         me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                         me->RemoveFlag(UNIT_FIELD_BYTES_1, UNIT_STAND_STATE_DEAD);
-                        me->GetMotionMaster()->MoveChase(me->getVictim());
+                        me->GetMotionMaster()->MoveChase(me->GetVictim());
                         events.ScheduleEvent(EVENT_DECREPIFY, urand(4, 6)*IN_MILLISECONDS);
                         break;
                 }
@@ -351,17 +351,17 @@ class spell_frost_tomb : public SpellScriptLoader
             {
                 if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_DEATH)
                     if (Unit* caster = GetCaster())
-                        if (caster->ToCreature() && caster->isAlive())
+                        if (caster->ToCreature() && caster->IsAlive())
                             caster->ToCreature()->DespawnOrUnsummon(1000);
             }
 
-            void Register()
+            void Register() OVERRIDE
             {
                  AfterEffectRemove += AuraEffectRemoveFn(spell_frost_tomb_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_MOD_STUN, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const OVERRIDE
         {
             return new spell_frost_tomb_AuraScript();
         }
@@ -373,7 +373,7 @@ class achievement_on_the_rocks : public AchievementCriteriaScript
     public:
         achievement_on_the_rocks() : AchievementCriteriaScript("achievement_on_the_rocks") {}
 
-        bool OnCheck(Player* /*source*/, Unit* target)
+        bool OnCheck(Player* /*source*/, Unit* target) OVERRIDE
         {
             return target && target->IsAIEnabled && target->GetAI()->GetData(DATA_ON_THE_ROCKS);
         }

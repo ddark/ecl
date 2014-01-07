@@ -81,7 +81,7 @@ public:
 
         void StartAttack(Unit* u, bool force = false)
         {
-            if (GetBotCommandState() == (COMMAND_ATTACK) && !force) return;
+            if (GetBotCommandState() == COMMAND_ATTACK && !force) return;
             Aggro(u);
             SetBotCommandState(COMMAND_ATTACK);
             GetInPosition(force, false);
@@ -94,7 +94,7 @@ public:
         void EnterEvadeMode() { }
         void MoveInLineOfSight(Unit*) { }
         void JustDied(Unit*) { comboPoints = 0; tempComboPoints = 0; master->SetNpcBotDied(me->GetGUID()); }
-        void DoNonCombatActions(const uint32 /*diff*/)
+        void DoNonCombatActions(uint32 /*diff*/)
         {}
 
         //This method should be used to emulate energy usage reduction
@@ -188,7 +188,7 @@ public:
                 tempDICE = false;
             }
             if (IAmDead()) return;
-            if (me->getVictim())
+            if (me->GetVictim())
                 DoMeleeAttackIfReady();
             else
                 Evade();
@@ -211,7 +211,7 @@ public:
                 }
             }
 
-            if (!me->isInCombat())
+            if (!me->IsInCombat())
                 DoNonCombatActions(diff);
 
             if (!CheckAttackTarget(CLASS_ROGUE))
@@ -220,9 +220,9 @@ public:
             Attack(diff);
         }
 
-        void Attack(const uint32 diff)
+        void Attack(uint32 diff)
         {
-            opponent = me->getVictim();
+            opponent = me->GetVictim();
             if (opponent)
             {
                 if (!IsCasting())
@@ -266,7 +266,7 @@ public:
             }
             //SHADOWSTEP
             if (SHADOWSTEP && Shadowstep_Timer <= diff && dist < 25 &&
-                (opponent->getVictim() != me || opponent->GetTypeId() == TYPEID_PLAYER) &&
+                (opponent->GetVictim() != me || opponent->GetTypeId() == TYPEID_PLAYER) &&
                 Rand() < 30 && getenergy() >= 10)
             {
                 temptimer = GC_Timer;
@@ -307,7 +307,7 @@ public:
             }
             //KIDNEY SHOT
             if (KIDNEY_SHOT && GC_Timer <= diff && Kidney_Timer <= diff && meleedist <= 5 && comboPoints > 0 &&
-                !CCed(opponent) && getenergy() >= 25 && ((Rand() < 15 + comboPoints*15 && opponent->getVictim() == me && comboPoints > 2) || opponent->IsNonMeleeSpellCasted(false)))
+                !CCed(opponent) && getenergy() >= 25 && ((Rand() < 15 + comboPoints*15 && opponent->GetVictim() == me && comboPoints > 2) || opponent->IsNonMeleeSpellCasted(false)))
             {
                 if (doCast(opponent, KIDNEY_SHOT))
                 {
@@ -714,7 +714,7 @@ public:
             me->SetPower(POWER_ENERGY, me->GetMaxPower(POWER_ENERGY));
         }
 
-        void ReduceCD(const uint32 diff)
+        void ReduceCD(uint32 diff)
         {
             CommonTimers(diff);
             if (Kick_Timer > diff)                  Kick_Timer -= diff;

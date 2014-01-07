@@ -196,7 +196,7 @@ void PurchaseGuildHouse(Player * pPlayer, Creature * pCreature, uint32 &Id)
  
 void TeleportToHouse(Player * pPlayer)
 {
-        if(pPlayer->isInCombat())
+        if(pPlayer->IsInCombat())
                 return;
  
         QueryResult result = WorldDatabase.PQuery("SELECT `x`, `y`, `z`, `map` FROM `guildhouses` WHERE `guildId` = '%u'", pPlayer->GetGuildId());

@@ -71,7 +71,7 @@ public:
         {
             if (GC_Timer > diff || Rand() > 50 || IsCasting() || me->GetDistance(master) > 20 || Feasting())
                 return;
-            if (me->isInCombat())
+            if (me->IsInCombat())
             {
                 if (WINDFURY_TOTEM && !HasAuraName(master, WINDFURY_TOTEM))
                 {
@@ -84,7 +84,7 @@ public:
                         return;
                 }
 
-                if (Unit* u = me->getVictim())
+                if (Unit* u = me->GetVictim())
                 {
                     if (SEARING_TOTEM && Searing_Totem_Timer <= diff)
                     {
@@ -122,8 +122,8 @@ public:
         {
             ReduceCD(diff);
             if (IAmDead()) return;
-            if (!me->getVictim()) Evade();
-            if (me->getVictim())
+            if (!me->GetVictim()) Evade();
+            if (me->GetVictim())
                 DoMeleeAttackIfReady();
             else
                 Evade();
@@ -146,7 +146,7 @@ public:
             BuffAndHealGroup(master, diff);
             CheckTotems(diff);
 
-            if (!me->isInCombat())
+            if (!me->IsInCombat())
                 DoNonCombatActions(diff);
             //buff myself
             if (LIGHTNING_SHIELD && GC_Timer <= diff && !me->HasAura(LIGHTNING_SHIELD))
@@ -165,7 +165,7 @@ public:
 
         void DoNormalAttack(uint32 diff)
         {
-            opponent = me->getVictim();
+            opponent = me->GetVictim();
             if (opponent)
             {
                 if (!IsCasting())
@@ -228,7 +228,7 @@ public:
             if (hp > 95) return false;
             if (!target || target->isDead() || me->GetExactDist(target) > 40)
                 return false;
-            if (Rand() > 50 + 20*target->isInCombat() + 50*master->GetMap()->IsRaid()) return false;
+            if (Rand() > 50 + 20*target->IsInCombat() + 50*master->GetMap()->IsRaid()) return false;
 
             //PLACEHOLDER: Instant spell req. interrupt current spell
 

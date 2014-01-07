@@ -45,7 +45,7 @@ class instance_culling_of_stratholme : public InstanceMapScript
     public:
         instance_culling_of_stratholme() : InstanceMapScript("instance_culling_of_stratholme", 595) { }
 
-        InstanceScript* GetInstanceScript(InstanceMap* map) const
+        InstanceScript* GetInstanceScript(InstanceMap* map) const OVERRIDE
         {
             return new instance_culling_of_stratholme_InstanceMapScript(map);
         }
@@ -68,6 +68,8 @@ class instance_culling_of_stratholme : public InstanceMapScript
                 _genericBunnyGUID = 0;
                 memset(&_encounterState[0], 0, sizeof(uint32) * MAX_ENCOUNTER);
                 _crateCount = 0;
+				_eventTimer = 1500000;
+				_lastTimer = 1500000;
             }
 
             bool IsEncounterInProgress() const
@@ -109,6 +111,8 @@ class instance_culling_of_stratholme : public InstanceMapScript
                         break;
                     case NPC_INFINITE:
                         _infiniteGUID = creature->GetGUID();
+						DoUpdateWorldState(WORLDSTATE_TIME_GUARDIAN_SHOW, 1);
+						DoUpdateWorldState(WORLDSTATE_TIME_GUARDIAN, 25);
                         break;
                     case NPC_GENERIC_BUNNY:
                         _genericBunnyGUID = creature->GetGUID();
@@ -143,7 +147,7 @@ class instance_culling_of_stratholme : public InstanceMapScript
                 }
             }
 
-            void SetData(uint32 type, uint32 data)
+            void SetData(uint32 type, uint32 data) OVERRIDE
             {
                 switch (type)
                 {
@@ -176,6 +180,17 @@ class instance_culling_of_stratholme : public InstanceMapScript
                         break;
                     case DATA_INFINITE_EVENT:
                         _encounterState[4] = data;
+						if (data == DONE)
+						{
+							DoUpdateWorldState(WORLDSTATE_TIME_GUARDIAN_SHOW, 0);
+							DoUpdateWorldState(WORLDSTATE_TIME_GUARDIAN, 0);
+							
+							AchievementEntry const* CoT = sAchievementStore.LookupEntry(ACHIEV_CULLING_OF_TIME);
+							
+							Map::PlayerList const &players = instance->GetPlayers();
+							for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+								itr->GetSource()->CompletedAchievement(CoT);
+						}
                         break;
                     case DATA_CRATE_COUNT:
                         _crateCount = data;
@@ -187,7 +202,7 @@ class instance_culling_of_stratholme : public InstanceMapScript
                             // Summon Chromie and global whisper
                             if (Creature* chromie = instance->SummonCreature(NPC_CHROMIE_2, ChromieSummonPos))
                                 if (!instance->GetPlayers().isEmpty())
-                                    if (Player* player = instance->GetPlayers().getFirst()->getSource())
+                                    if (Player* player = instance->GetPlayers().getFirst()->GetSource())
                                         sCreatureTextMgr->SendChat(chromie, SAY_CRATES_COMPLETED, player->GetGUID(), CHAT_MSG_ADDON, LANG_ADDON, TEXT_RANGE_MAP);
                         }
                         DoUpdateWorldState(WORLDSTATE_CRATES_REVEALED, _crateCount);
@@ -198,7 +213,7 @@ class instance_culling_of_stratholme : public InstanceMapScript
                     SaveToDB();
             }
 
-            uint32 GetData(uint32 type) const
+            uint32 GetData(uint32 type) const OVERRIDE
             {
                 switch (type)
                 {
@@ -218,7 +233,7 @@ class instance_culling_of_stratholme : public InstanceMapScript
                 return 0;
             }
 
-            uint64 GetData64(uint32 identifier) const
+            uint64 GetData64(uint32 identifier) const OVERRIDE
             {
                 switch (identifier)
                 {
@@ -247,6 +262,25 @@ class instance_culling_of_stratholme : public InstanceMapScript
                 }
                 return 0;
             }
+
+			void Update(uint32 diff)
+			{
+				if (_eventTimer < diff)
+				{
+					_encounterState[4] == FAIL;
+					DoUpdateWorldState(WORLDSTATE_TIME_GUARDIAN_SHOW, 0);
+				}
+				else
+					_eventTimer -= diff;
+
+				if (_eventTimer < _lastTimer - 60000)
+				{
+					_lastTimer = _eventTimer;
+					uint32 tMinutes = _eventTimer / 60000;
+					DoUpdateWorldState(WORLDSTATE_TIME_GUARDIAN, tMinutes);
+				}
+				return;
+			}
 
             std::string GetSaveData()
             {
@@ -310,6 +344,8 @@ class instance_culling_of_stratholme : public InstanceMapScript
             uint64 _genericBunnyGUID;
             uint32 _encounterState[MAX_ENCOUNTER];
             uint32 _crateCount;
+			uint32 _eventTimer;
+			uint32 _lastTimer;
         };
 };
 

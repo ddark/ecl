@@ -60,7 +60,7 @@ class npc_greatmother_geyah : public CreatureScript
 public:
     npc_greatmother_geyah() : CreatureScript("npc_greatmother_geyah") { }
 
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) OVERRIDE
     {
         player->PlayerTalkClass->ClearMenus();
         switch (action)
@@ -121,9 +121,9 @@ public:
         return true;
     }
 
-    bool OnGossipHello(Player* player, Creature* creature)
+    bool OnGossipHello(Player* player, Creature* creature) OVERRIDE
     {
-        if (creature->isQuestGiver())
+        if (creature->IsQuestGiver())
             player->PrepareQuestMenu(creature->GetGUID());
 
         if (player->GetQuestStatus(10044) == QUEST_STATUS_INCOMPLETE)
@@ -147,7 +147,7 @@ public:
 ## npc_maghar_captive
 #####*/
 
-enum eMagharCaptive
+enum MagharCaptive
 {
     SAY_MAG_START               = 0,
     SAY_MAG_NO_ESCAPE           = 0,
@@ -178,7 +178,7 @@ class npc_maghar_captive : public CreatureScript
 public:
     npc_maghar_captive() : CreatureScript("npc_maghar_captive") { }
 
-    bool OnQuestAccept(Player* player, Creature* creature, const Quest* quest)
+    bool OnQuestAccept(Player* player, Creature* creature, const Quest* quest) OVERRIDE
     {
         if (quest->GetQuestId() == QUEST_TOTEM_KARDASH_H)
         {
@@ -199,7 +199,7 @@ public:
         return true;
     }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
         return new npc_maghar_captiveAI(creature);
     }
@@ -212,19 +212,19 @@ public:
         uint32 m_uiHealTimer;
         uint32 m_uiFrostShockTimer;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             m_uiChainLightningTimer = 1000;
             m_uiHealTimer = 0;
             m_uiFrostShockTimer = 6000;
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             DoCast(me, SPELL_EARTHBIND_TOTEM, false);
         }
 
-        void WaypointReached(uint32 waypointId)
+        void WaypointReached(uint32 waypointId) OVERRIDE
         {
             switch (waypointId)
             {
@@ -249,12 +249,12 @@ public:
             }
         }
 
-        void JustSummoned(Creature* summoned)
+        void JustSummoned(Creature* summoned) OVERRIDE
         {
             if (summoned->GetEntry() == NPC_MURK_BRUTE)
                 summoned->AI()->Talk(SAY_MAG_NO_ESCAPE);
 
-            if (summoned->isTotem())
+            if (summoned->IsTotem())
                 return;
 
             summoned->SetWalk(false);
@@ -263,7 +263,7 @@ public:
 
         }
 
-        void SpellHitTarget(Unit* /*target*/, const SpellInfo* pSpell)
+        void SpellHitTarget(Unit* /*target*/, const SpellInfo* pSpell) OVERRIDE
         {
             if (pSpell->Id == SPELL_CHAIN_LIGHTNING)
             {
@@ -274,15 +274,15 @@ public:
             }
         }
 
-        void UpdateAI(uint32 uiDiff)
+        void UpdateAI(uint32 uiDiff) OVERRIDE
         {
             npc_escortAI::UpdateAI(uiDiff);
-            if (!me->getVictim())
+            if (!me->GetVictim())
                 return;
 
             if (m_uiChainLightningTimer <= uiDiff)
             {
-                DoCast(me->getVictim(), SPELL_CHAIN_LIGHTNING);
+                DoCastVictim(SPELL_CHAIN_LIGHTNING);
                 m_uiChainLightningTimer = urand(7000, 14000);
             }
             else
@@ -301,7 +301,7 @@ public:
 
             if (m_uiFrostShockTimer <= uiDiff)
             {
-                DoCast(me->getVictim(), SPELL_FROST_SHOCK);
+                DoCastVictim(SPELL_FROST_SHOCK);
                 m_uiFrostShockTimer = urand(7500, 15000);
             }
             else
@@ -321,20 +321,21 @@ class npc_creditmarker_visit_with_ancestors : public CreatureScript
 public:
     npc_creditmarker_visit_with_ancestors() : CreatureScript("npc_creditmarker_visit_with_ancestors") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new npc_creditmarker_visit_with_ancestorsAI (creature);
+        return new npc_creditmarker_visit_with_ancestorsAI(creature);
     }
 
     struct npc_creditmarker_visit_with_ancestorsAI : public ScriptedAI
     {
         npc_creditmarker_visit_with_ancestorsAI(Creature* creature) : ScriptedAI(creature) {}
 
-        void Reset() {}
+        void Reset() OVERRIDE {}
 
-        void EnterCombat(Unit* /*who*/) {}
+        void EnterCombat(Unit* /*who*/) OVERRIDE {}
 
-        void MoveInLineOfSight(Unit* who)
+        void MoveInLineOfSight(Unit* who) OVERRIDE
+
         {
             if (!who)
                 return;
@@ -384,7 +385,7 @@ class go_corkis_prison : public GameObjectScript
 public:
   go_corkis_prison() : GameObjectScript("go_corkis_prison") { }
 
-  bool OnGossipHello(Player* player, GameObject* go)
+  bool OnGossipHello(Player* player, GameObject* go) OVERRIDE
   {
       go->SetGoState(GO_STATE_READY);
       if (go->GetEntry() == GO_CORKIS_PRISON)
@@ -425,7 +426,7 @@ class npc_corki : public CreatureScript
 public:
   npc_corki() : CreatureScript("npc_corki") { }
 
-  CreatureAI* GetAI(Creature* creature) const
+  CreatureAI* GetAI(Creature* creature) const OVERRIDE
   {
       return new npc_corkiAI(creature);
   }
@@ -437,13 +438,13 @@ public:
       uint32 Say_Timer;
       bool ReleasedFromCage;
 
-      void Reset()
+      void Reset() OVERRIDE
       {
           Say_Timer = 5000;
           ReleasedFromCage = false;
       }
 
-      void UpdateAI(uint32 diff)
+      void UpdateAI(uint32 diff) OVERRIDE
       {
           if (ReleasedFromCage)
           {
@@ -457,7 +458,7 @@ public:
           }
       }
 
-      void MovementInform(uint32 type, uint32 id)
+      void MovementInform(uint32 type, uint32 id) OVERRIDE
       {
           if (type == POINT_MOTION_TYPE && id == 1)
           {
@@ -509,7 +510,7 @@ class npc_kurenai_captive : public CreatureScript
 public:
     npc_kurenai_captive() : CreatureScript("npc_kurenai_captive") { }
 
-    bool OnQuestAccept(Player* player, Creature* creature, const Quest* quest)
+    bool OnQuestAccept(Player* player, Creature* creature, const Quest* quest) OVERRIDE
     {
         if (quest->GetQuestId() == QUEST_TOTEM_KARDASH_A)
         {
@@ -527,7 +528,7 @@ public:
         return true;
     }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
         return new npc_kurenai_captiveAI(creature);
     }
@@ -540,19 +541,19 @@ public:
         uint32 HealTimer;
         uint32 FrostShockTimer;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             ChainLightningTimer = 1000;
             HealTimer = 0;
             FrostShockTimer = 6000;
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             DoCast(me, SPELL_KUR_EARTHBIND_TOTEM, false);
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (!HasEscortState(STATE_ESCORT_ESCORTING))
                 return;
@@ -564,7 +565,7 @@ public:
             }
         }
 
-        void WaypointReached(uint32 waypointId)
+        void WaypointReached(uint32 waypointId) OVERRIDE
         {
             switch (waypointId)
             {
@@ -593,13 +594,13 @@ public:
             }
         }
 
-        void JustSummoned(Creature* summoned)
+        void JustSummoned(Creature* summoned) OVERRIDE
         {
             if (summoned->GetEntry() == NPC_KUR_MURK_BRUTE)
                 Talk(SAY_KUR_NO_ESCAPE);
 
             // This function is for when we summoned enemies to fight - so that does NOT mean we should make our totem count in this!
-            if (summoned->isTotem())
+            if (summoned->IsTotem())
                 return;
 
             summoned->SetWalk(false);
@@ -607,7 +608,7 @@ public:
             summoned->AI()->AttackStart(me);
         }
 
-        void SpellHitTarget(Unit* /*target*/, const SpellInfo* spell)
+        void SpellHitTarget(Unit* /*target*/, const SpellInfo* spell) OVERRIDE
         {
             if (spell->Id == SPELL_KUR_CHAIN_LIGHTNING)
             {
@@ -626,7 +627,7 @@ public:
             }
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -636,7 +637,7 @@ public:
 
             if (ChainLightningTimer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_KUR_CHAIN_LIGHTNING);
+                DoCastVictim(SPELL_KUR_CHAIN_LIGHTNING);
                 ChainLightningTimer = urand(7000, 14000);
             } else ChainLightningTimer -= diff;
 
@@ -651,7 +652,7 @@ public:
 
             if (FrostShockTimer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_KUR_FROST_SHOCK);
+                DoCastVictim(SPELL_KUR_FROST_SHOCK);
                 FrostShockTimer = urand(7500, 15000);
             } else FrostShockTimer -= diff;
 
@@ -677,7 +678,7 @@ class go_warmaul_prison : public GameObjectScript
     public:
         go_warmaul_prison() : GameObjectScript("go_warmaul_prison") { }
 
-        bool OnGossipHello(Player* player, GameObject* go)
+        bool OnGossipHello(Player* player, GameObject* go) OVERRIDE
         {
             go->UseDoorOrButton();
             if (player->GetQuestStatus(QUEST_FINDING_THE_SURVIVORS) != QUEST_STATUS_INCOMPLETE)

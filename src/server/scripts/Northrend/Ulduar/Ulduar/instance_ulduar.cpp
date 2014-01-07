@@ -369,7 +369,7 @@ class instance_ulduar : public InstanceMapScript
 
                             for (Map::PlayerList::const_iterator i = playerList.begin(); i != playerList.end(); ++i)
                             {
-                                if (Player* player = i->getSource())
+                                if (Player* player = i->GetSource())
                                 {
                                     // has been rewarded
                                     if (player->IsAtGroupRewardDistance(creature))
@@ -379,7 +379,7 @@ class instance_ulduar : public InstanceMapScript
                                     if (player->GetAreaId() != AREA_FORMATION_GROUNDS)
                                         continue;
 
-                                    if (player->isAlive() || !player->GetCorpse())
+                                    if (player->IsAlive() || !player->GetCorpse())
                                         player->KilledMonsterCredit(NPC_LEVIATHAN, 0);
                                 }
                             }
@@ -966,7 +966,7 @@ class instance_ulduar : public InstanceMapScript
             {
                 // Flame Leviathan's Tower Event triggers
                 Creature* FlameLeviathan = instance->GetCreature(LeviathanGUID);
-                if (FlameLeviathan && FlameLeviathan->isAlive()) // No leviathan, no event triggering ;)
+                if (FlameLeviathan && FlameLeviathan->IsAlive()) // No leviathan, no event triggering ;)
                     switch (eventId)
                     {
                         case EVENT_TOWER_OF_STORM_DESTROYED:

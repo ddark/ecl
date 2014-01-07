@@ -72,19 +72,22 @@ EndScriptData */
 #define ADD_9Z 125.001015f
 #define ADD_9O 0.592007f
 
-#define SPELL_KNOCKAWAY    10101
-#define SPELL_PUMMEL    15615
-#define SPELL_SHOOT    16496
-//#define SPELL_SUMMONCRIMSONRIFLEMAN    17279
+enum Spells
+{
+    SPELL_KNOCKAWAY                 = 10101,
+    SPELL_PUMMEL                    = 15615,
+    SPELL_SHOOT                     = 16496
+    //SPELL_SUMMONCRIMSONRIFLEMAN     = 17279
+};
 
 class boss_cannon_master_willey : public CreatureScript
 {
 public:
     boss_cannon_master_willey() : CreatureScript("boss_cannon_master_willey") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_cannon_master_willeyAI (creature);
+        return new boss_cannon_master_willeyAI(creature);
     }
 
     struct boss_cannon_master_willeyAI : public ScriptedAI
@@ -96,7 +99,7 @@ public:
         uint32 Shoot_Timer;
         uint32 SummonRifleman_Timer;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             Shoot_Timer = 1000;
             Pummel_Timer = 7000;
@@ -104,7 +107,7 @@ public:
             SummonRifleman_Timer = 15000;
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             me->SummonCreature(11054, ADD_1X, ADD_1Y, ADD_1Z, ADD_1O, TEMPSUMMON_TIMED_DESPAWN, 240000);
             me->SummonCreature(11054, ADD_2X, ADD_2Y, ADD_2Z, ADD_2O, TEMPSUMMON_TIMED_DESPAWN, 240000);
@@ -115,11 +118,11 @@ public:
             me->SummonCreature(11054, ADD_9X, ADD_9Y, ADD_9Z, ADD_9O, TEMPSUMMON_TIMED_DESPAWN, 240000);
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -131,7 +134,7 @@ public:
                 //Cast
                 if (rand()%100 < 90) //90% chance to cast
                 {
-                    DoCast(me->getVictim(), SPELL_PUMMEL);
+                    DoCastVictim(SPELL_PUMMEL);
                 }
                 //12 seconds until we should cast this again
                 Pummel_Timer = 12000;
@@ -143,7 +146,7 @@ public:
                 //Cast
                 if (rand()%100 < 80) //80% chance to cast
                 {
-                    DoCast(me->getVictim(), SPELL_KNOCKAWAY);
+                    DoCastVictim(SPELL_KNOCKAWAY);
                 }
                 //14 seconds until we should cast this again
                 KnockAway_Timer = 14000;
@@ -153,7 +156,7 @@ public:
             if (Shoot_Timer <= diff)
             {
                 //Cast
-                DoCast(me->getVictim(), SPELL_SHOOT);
+                DoCastVictim(SPELL_SHOOT);
                 //1 seconds until we should cast this again
                 Shoot_Timer = 1000;
             } else Shoot_Timer -= diff;

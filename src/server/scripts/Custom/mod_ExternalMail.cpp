@@ -19,12 +19,12 @@ class Mod_ExternalMail_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        ExternalMail            = ConfigMgr::GetBoolDefault("ExternalMail", false);
+        ExternalMail            = sConfigMgr->GetBoolDefault("ExternalMail", false);
 
         if (!ExternalMail)
             return;
 
-        ExternalMailInterval    = ConfigMgr::GetIntDefault("ExternalMailInterval", 1);
+        ExternalMailInterval    = sConfigMgr->GetIntDefault("ExternalMailInterval", 1);
 
         extmail_timer.SetInterval(ExternalMailInterval * MINUTE * IN_MILLISECONDS);
         extmail_timer.Reset();

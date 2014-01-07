@@ -178,16 +178,16 @@ class npc_flash_freeze : public CreatureScript
 
             void UpdateAI(uint32 diff)
             {
-                if ((me->getVictim() && me->getVictim()->GetGUID() != targetGUID) || (instance && instance->GetBossState(BOSS_HODIR) != IN_PROGRESS))
+                if ((me->GetVictim() && me->GetVictim()->GetGUID() != targetGUID) || (instance && instance->GetBossState(BOSS_HODIR) != IN_PROGRESS))
                     me->DespawnOrUnsummon();
 
-                if (!UpdateVictim() || me->getVictim()->HasAura(SPELL_BLOCK_OF_ICE) || me->getVictim()->HasAura(SPELL_FLASH_FREEZE_HELPER))
+                if (!UpdateVictim() || me->GetVictim()->HasAura(SPELL_BLOCK_OF_ICE) || me->GetVictim()->HasAura(SPELL_FLASH_FREEZE_HELPER))
                     return;
 
                 if (checkDespawnTimer <= diff)
                 {
                     if (Unit* target = ObjectAccessor::GetUnit(*me, targetGUID))
-                        if (!target->isAlive())
+                        if (!target->IsAlive())
                             me->DisappearAndDie();
                     checkDespawnTimer = 2.5*IN_MILLISECONDS;
                 }
@@ -280,7 +280,7 @@ class npc_ice_block : public CreatureScript
 
                     if (Creature* Hodir = ObjectAccessor::GetCreature(*me, instance ? instance->GetData64(BOSS_HODIR) : 0))
                     {
-                        if (!Hodir->isInCombat())
+                        if (!Hodir->IsInCombat())
                         {
                             Hodir->SetReactState(REACT_AGGRESSIVE);
                             Hodir->AI()->DoZoneInCombat();
@@ -505,7 +505,7 @@ class boss_hodir : public CreatureScript
                 for (std::list<Unit*>::iterator itr = TargetList.begin(); itr != TargetList.end(); ++itr)
                 {
                     Unit* target = *itr;
-                    if (!target || !target->isAlive() || GetClosestCreatureWithEntry(target, NPC_SNOWPACKED_ICICLE, 5.0f))
+                    if (!target || !target->IsAlive() || GetClosestCreatureWithEntry(target, NPC_SNOWPACKED_ICICLE, 5.0f))
                         continue;
 
                     if (target->HasAura(SPELL_FLASH_FREEZE_HELPER) || target->HasAura(SPELL_BLOCK_OF_ICE))
@@ -1026,7 +1026,7 @@ class spell_biting_cold : public SpellScriptLoader
                 for (TargetList::iterator itr = listOfTargets.begin(); itr != listOfTargets.end(); ++itr)
                 {
                     if (itr->first != target->GetGUID())
-                        return;
+                        continue;
 
                     if (itr->second >= 4)
                     {

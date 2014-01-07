@@ -55,9 +55,7 @@ class UpdateMask;
 // NpcBot mod
 struct NpcBotMap;
 #define MAX_NPCBOTS 40
-// Playerbot mod
-class PlayerbotMgr;
-class PlayerbotAI;
+class BotHelper;
 
 typedef std::deque<Mail*> PlayerMails;
 
@@ -249,9 +247,9 @@ struct PlayerClassInfo
 
 struct PlayerLevelInfo
 {
-    PlayerLevelInfo() { for (uint8 i=0; i < MAX_STATS; ++i) stats[i] = 0; }
+    PlayerLevelInfo() { for (uint64 i=0; i < MAX_STATS; ++i) stats[i] = 0; }
 
-    uint8 stats[MAX_STATS];
+    uint64 stats[MAX_STATS];
 };
 
 typedef std::list<uint32> PlayerCreateInfoSpells;
@@ -844,6 +842,13 @@ enum PlayerDelayedOperations
     DELAYED_END
 };
 
+enum AreaCustomFlags
+{
+    AREA_CUSTOM_SANCTUARY,
+    AREA_CUSTOM_FFA,
+    AREA_CUSTOM_PVP
+};
+
 // Player summoning auto-decline time (in secs)
 #define MAX_PLAYER_SUMMON_DELAY                   (2*MINUTE)
 #define MAX_MONEY_AMOUNT                       (0x7FFFFFFF-1)
@@ -1086,7 +1091,7 @@ class Player : public Unit, public GridObject<Player>
     friend void Item::AddToUpdateQueueOf(Player* player);
     friend void Item::RemoveFromUpdateQueueOf(Player* player);
     public:
-        explicit Player (WorldSession* session);
+        explicit Player(WorldSession* session);
         ~Player();
 
         //AnticheatData anticheatData;
@@ -1095,6 +1100,13 @@ class Player : public Unit, public GridObject<Player>
 
         void AddToWorld();
         void RemoveFromWorld();
+
+        void SetObjectScale(float scale)
+        {
+            Unit::SetObjectScale(scale);
+            SetFloatValue(UNIT_FIELD_BOUNDINGRADIUS, scale * DEFAULT_WORLD_OBJECT_SIZE);
+            SetFloatValue(UNIT_FIELD_COMBATREACH, scale * DEFAULT_COMBAT_REACH);
+        }
 
         bool TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options = 0);
         bool TeleportTo(WorldLocation const &loc, uint32 options = 0);
@@ -1149,7 +1161,7 @@ class Player : public Unit, public GridObject<Player>
                                                             // mount_id can be used in scripting calls
         bool isAcceptWhispers() const { return m_ExtraFlags & PLAYER_EXTRA_ACCEPT_WHISPERS; }
         void SetAcceptWhispers(bool on) { if (on) m_ExtraFlags |= PLAYER_EXTRA_ACCEPT_WHISPERS; else m_ExtraFlags &= ~PLAYER_EXTRA_ACCEPT_WHISPERS; }
-        bool isGameMaster() const { return m_ExtraFlags & PLAYER_EXTRA_GM_ON; }
+        bool IsGameMaster() const { return m_ExtraFlags & PLAYER_EXTRA_GM_ON; }
         void SetGameMaster(bool on);
         bool isGMChat() const { return m_ExtraFlags & PLAYER_EXTRA_GM_CHAT; }
         void SetGMChat(bool on) { if (on) m_ExtraFlags |= PLAYER_EXTRA_GM_CHAT; else m_ExtraFlags &= ~PLAYER_EXTRA_GM_CHAT; }
@@ -1200,6 +1212,8 @@ class Player : public Unit, public GridObject<Player>
         Pet* SummonPet(uint32 entry, float x, float y, float z, float ang, PetType petType, uint32 despwtime);
         void RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent = false);
         uint32 GetPhaseMaskForSpawn() const;                // used for proper set phase for DB at GM-mode creature/GO spawn
+
+		void UpdateAreaCustomFlags();
 
         /// Handles said message in regular chat based on declared language and in config pre-defined Range.
         void Say(std::string const& text, const uint32 language);
@@ -1462,7 +1476,7 @@ class Player : public Unit, public GridObject<Player>
         void SendQuestTimerFailed(uint32 quest_id);
         void SendCanTakeQuestResponse(uint32 msg) const;
         void SendQuestConfirmAccept(Quest const* quest, Player* pReceiver);
-        void SendPushToPartyResponse(Player* player, uint32 msg);
+        void SendPushToPartyResponse(Player* player, uint8 msg);
         void SendQuestUpdateAddItem(Quest const* quest, uint32 item_idx, uint16 count);
         void SendQuestUpdateAddCreatureOrGo(Quest const* quest, uint64 guid, uint32 creatureOrGO_idx, uint16 old_count, uint16 add_count);
         void SendQuestUpdateAddPlayer(Quest const* quest, uint16 old_count, uint16 add_count);
@@ -1975,7 +1989,7 @@ class Player : public Unit, public GridObject<Player>
         void SetCanBlock(bool value);
         bool CanTitanGrip() const { return m_canTitanGrip; }
         void SetCanTitanGrip(bool value) { m_canTitanGrip = value; }
-        bool CanTameExoticPets() const { return isGameMaster() || HasAuraType(SPELL_AURA_ALLOW_TAME_PET_TYPE); }
+        bool CanTameExoticPets() const { return IsGameMaster() || HasAuraType(SPELL_AURA_ALLOW_TAME_PET_TYPE); }
 
         void SetRegularAttackTime();
         void SetBaseModValue(BaseModGroup modGroup, BaseModType modType, float value) { m_auraBaseMod[modGroup][modType] = value; }
@@ -2297,7 +2311,7 @@ class Player : public Unit, public GridObject<Player>
         void SetTitle(CharTitlesEntry const* title, bool lost = false);
 
         //bool isActiveObject() const { return true; }
-        bool canSeeSpellClickOn(Creature const* creature) const;
+        bool CanSeeSpellClickOn(Creature const* creature) const;
 
         uint32 GetChampioningFaction() const { return m_ChampioningFaction; }
         void SetChampioningFaction(uint32 faction) { m_ChampioningFaction = faction; }
@@ -2311,14 +2325,11 @@ class Player : public Unit, public GridObject<Player>
         bool IsInWhisperWhiteList(uint64 guid);
         void RemoveFromWhisperWhiteList(uint64 guid) { WhisperList.remove(guid); }
 
-        /*! These methods send different packets to the client in apply and unapply case.
-            These methods are only sent to the current unit.
-        */
-        void SendMovementSetCanFly(bool apply);
-        void SendMovementSetCanTransitionBetweenSwimAndFly(bool apply);
-        void SendMovementSetHover(bool apply);
-        void SendMovementSetWaterWalking(bool apply);
-        void SendMovementSetFeatherFall(bool apply);
+        bool SetDisableGravity(bool disable, bool packetOnly /* = false */);
+        bool SetCanFly(bool apply);
+        bool SetWaterWalking(bool apply, bool packetOnly = false);
+        bool SetFeatherFall(bool apply, bool packetOnly = false);
+        bool SetHover(bool enable, bool packetOnly = false);
 
         bool CanFly() const { return m_movementInfo.HasMovementFlag(MOVEMENTFLAG_CAN_FLY); }
 
@@ -2330,26 +2341,8 @@ class Player : public Unit, public GridObject<Player>
         /*********************************************************/
         /***                     BOT SYSTEM                    ***/
         /*********************************************************/
-        // Playerbot mod
-        PlayerTalentMap* GetTalents(uint8 spec) const { return m_talents[spec]; }
-        void chompAndTrim(std::string& str);
-        bool getNextQuestId(std::string const& pString, uint32& pStartPos, uint32& pId);
-        void GetSkills(std::list<uint32>& m_spellsToLearn);
-        void MakeTalentGlyphLink(std::ostringstream& out);
-        PlayerMails::reverse_iterator GetMailRBegin() { return m_mail.rbegin(); }
-        PlayerMails::reverse_iterator GetMailREnd() { return m_mail.rend(); }
-        void UpdateMail();
-
-        // A Player can either have a playerbotMgr (to manage its bots), or have playerbotAI (if it is a bot)
-        void SetPlayerbotAI(PlayerbotAI* ai) { ASSERT(!m_playerbotAI && !m_playerbotMgr); m_playerbotAI = ai; }
-        PlayerbotAI* GetPlayerbotAI() const { return m_playerbotAI; }
-        void SetPlayerbotMgr(PlayerbotMgr* mgr) { ASSERT(!m_playerbotAI && !m_playerbotMgr); m_playerbotMgr = mgr; }
-        PlayerbotMgr* GetPlayerbotMgr() const { return m_playerbotMgr; }
-
-        bool IsPlayerBot() const { return m_playerbotAI != NULL; }
-        bool HavePBot() const;
-
-        //npcbot
+        void SetBotHelper(BotHelper* hlpr) { ASSERT (!_botHlpr); _botHlpr = hlpr; }
+        BotHelper* GetBotHelper() const { return _botHlpr; }
         void RefreshBot(uint32 p_time);
         void CreateBot(uint32 botentry, uint8 botrace, uint8 botclass, bool istank = false, bool revive = false);
         void CreateNPCBot(uint8 botclass);
@@ -2643,10 +2636,7 @@ class Player : public Unit, public GridObject<Player>
         /*********************************************************/
         /***                     BOT SYSTEM                    ***/
         /*********************************************************/
-        //playerbot
-        PlayerbotAI* m_playerbotAI;
-        PlayerbotMgr* m_playerbotMgr;
-        //npcbot
+        BotHelper* _botHlpr;
         Creature* m_bot;
         int8 m_followdist;
         uint64 m_botTankGuid;

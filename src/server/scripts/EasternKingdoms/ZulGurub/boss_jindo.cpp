@@ -48,11 +48,11 @@ enum Spells
 
 enum Events
 {
-    EVENT_BRAINWASHTOTEM            = 0,
-    EVENT_POWERFULLHEALINGWARD      = 1,
-    EVENT_HEX                       = 2,
-    EVENT_DELUSIONSOFJINDO          = 3,
-    EVENT_TELEPORT                  = 4
+    EVENT_BRAINWASHTOTEM            = 1,
+    EVENT_POWERFULLHEALINGWARD      = 2,
+    EVENT_HEX                       = 3,
+    EVENT_DELUSIONSOFJINDO          = 4,
+    EVENT_TELEPORT                  = 5
 };
 
 Position const TeleportLoc = {-11583.7783f, -1249.4278f, 77.5471f, 4.745f};
@@ -65,17 +65,17 @@ class boss_jindo : public CreatureScript
         {
             boss_jindoAI(Creature* creature) : BossAI(creature, DATA_JINDO) {}
 
-            void Reset()
+            void Reset() OVERRIDE
             {
                 _Reset();
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) OVERRIDE
             {
                 _JustDied();
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) OVERRIDE
             {
                 _EnterCombat();
                 events.ScheduleEvent(EVENT_BRAINWASHTOTEM, 20000);
@@ -86,7 +86,7 @@ class boss_jindo : public CreatureScript
                 Talk(SAY_AGGRO);
             }
 
-            void UpdateAI(uint32 diff)
+            void UpdateAI(uint32 diff) OVERRIDE
             {
                 if (!UpdateVictim())
                     return;
@@ -110,7 +110,7 @@ class boss_jindo : public CreatureScript
                             events.ScheduleEvent(EVENT_POWERFULLHEALINGWARD, urand(14000, 20000));
                             break;
                         case EVENT_HEX:
-                            if (Unit* target = me->getVictim())
+                            if (Unit* target = me->GetVictim())
                             {
                                 DoCast(target, SPELL_HEX, true);
                                 if (DoGetThreat(target))
@@ -134,7 +134,7 @@ class boss_jindo : public CreatureScript
                             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
                             {
                                 DoTeleportPlayer(target, TeleportLoc.m_positionX, TeleportLoc.m_positionY, TeleportLoc.m_positionZ, TeleportLoc.m_orientation);
-                                if (DoGetThreat(me->getVictim()))
+                                if (DoGetThreat(me->GetVictim()))
                                     DoModifyThreatPercent(target, -100);
                                 Creature* SacrificedTroll;
                                 SacrificedTroll = me->SummonCreature(NPC_SACRIFICED_TROLL, target->GetPositionX()+2, target->GetPositionY(), target->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 15000);
@@ -176,25 +176,25 @@ class boss_jindo : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
             return new boss_jindoAI(creature);
         }
 };
 
 //Healing Ward
-class mob_healing_ward : public CreatureScript
+class npc_healing_ward : public CreatureScript
 {
     public:
 
-        mob_healing_ward()
-            : CreatureScript("mob_healing_ward")
+        npc_healing_ward()
+            : CreatureScript("npc_healing_ward")
         {
         }
 
-        struct mob_healing_wardAI : public ScriptedAI
+        struct npc_healing_wardAI : public ScriptedAI
         {
-            mob_healing_wardAI(Creature* creature) : ScriptedAI(creature)
+            npc_healing_wardAI(Creature* creature) : ScriptedAI(creature)
             {
                 instance = creature->GetInstanceScript();
             }
@@ -203,16 +203,16 @@ class mob_healing_ward : public CreatureScript
 
             InstanceScript* instance;
 
-            void Reset()
+            void Reset() OVERRIDE
             {
                 Heal_Timer = 2000;
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) OVERRIDE
             {
             }
 
-            void UpdateAI(uint32 diff)
+            void UpdateAI(uint32 diff) OVERRIDE
             {
                 //Heal_Timer
                 if (Heal_Timer <= diff)
@@ -230,43 +230,43 @@ class mob_healing_ward : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
-            return new mob_healing_wardAI(creature);
+            return new npc_healing_wardAI(creature);
         }
 };
 
 //Shade of Jindo
-class mob_shade_of_jindo : public CreatureScript
+class npc_shade_of_jindo : public CreatureScript
 {
     public:
 
-        mob_shade_of_jindo()
-            : CreatureScript("mob_shade_of_jindo")
+        npc_shade_of_jindo()
+            : CreatureScript("npc_shade_of_jindo")
         {
         }
 
-        struct mob_shade_of_jindoAI : public ScriptedAI
+        struct npc_shade_of_jindoAI : public ScriptedAI
         {
-            mob_shade_of_jindoAI(Creature* creature) : ScriptedAI(creature) {}
+            npc_shade_of_jindoAI(Creature* creature) : ScriptedAI(creature) {}
 
             uint32 ShadowShock_Timer;
 
-            void Reset()
+            void Reset() OVERRIDE
             {
                 ShadowShock_Timer = 1000;
                 DoCast(me, SPELL_INVISIBLE, true);
             }
 
-            void EnterCombat(Unit* /*who*/){}
+            void EnterCombat(Unit* /*who*/)OVERRIDE {}
 
-            void UpdateAI(uint32 diff)
+            void UpdateAI(uint32 diff) OVERRIDE
             {
 
                 //ShadowShock_Timer
                 if (ShadowShock_Timer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_SHADOWSHOCK);
+                    DoCastVictim(SPELL_SHADOWSHOCK);
                     ShadowShock_Timer = 2000;
                 } else ShadowShock_Timer -= diff;
 
@@ -274,15 +274,15 @@ class mob_shade_of_jindo : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
-            return new mob_shade_of_jindoAI(creature);
+            return new npc_shade_of_jindoAI(creature);
         }
 };
 
 void AddSC_boss_jindo()
 {
     new boss_jindo();
-    new mob_healing_ward();
-    new mob_shade_of_jindo();
+    new npc_healing_ward();
+    new npc_shade_of_jindo();
 }

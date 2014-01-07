@@ -121,7 +121,7 @@ class boss_maexxna : public CreatureScript
                             events.ScheduleEvent(EVENT_SHOCK, urand(10000, 20000));
                             break;
                         case EVENT_POISON:
-                            DoCast(me->getVictim(), SPELL_NECROTIC_POISON);
+                            DoCastVictim(SPELL_NECROTIC_POISON);
                             events.ScheduleEvent(EVENT_POISON, urand(10000, 20000));
                             break;
                         case EVENT_FRENZY:
@@ -150,14 +150,14 @@ class boss_maexxna : public CreatureScript
         }
 };
 
-class mob_webwrap : public CreatureScript
+class npc_webwrap : public CreatureScript
 {
     public:
-        mob_webwrap() : CreatureScript("mob_webwrap") { }
+        npc_webwrap() : CreatureScript("npc_webwrap") { }
 
-        struct mob_webwrapAI : public NullCreatureAI
+        struct npc_webwrapAI : public NullCreatureAI
         {
-            mob_webwrapAI(Creature* creature) : NullCreatureAI(creature), victimGUID(0) {}
+            npc_webwrapAI(Creature* creature) : NullCreatureAI(creature), victimGUID(0) {}
 
             void SetGUID(uint64 guid, int32 /*param*/)
             {
@@ -180,12 +180,12 @@ class mob_webwrap : public CreatureScript
 
         CreatureAI* GetAI(Creature* creature) const
         {
-            return GetNaxxramasAI<mob_webwrapAI>(creature);
+            return GetNaxxramasAI<npc_webwrapAI>(creature);
         }
 };
 
 void AddSC_boss_maexxna()
 {
     new boss_maexxna();
-    new mob_webwrap();
+    new npc_webwrap();
 }

@@ -38,9 +38,9 @@ class boss_azshir_the_sleepless : public CreatureScript
 public:
     boss_azshir_the_sleepless() : CreatureScript("boss_azshir_the_sleepless") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_azshir_the_sleeplessAI (creature);
+        return new boss_azshir_the_sleeplessAI(creature);
     }
 
     struct boss_azshir_the_sleeplessAI : public ScriptedAI
@@ -51,16 +51,16 @@ public:
         uint32 CallOftheGrave_Timer;
         uint32 Terrify_Timer;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             SoulSiphon_Timer = 1;
             CallOftheGrave_Timer = 30000;
             Terrify_Timer = 20000;
         }
 
-        void EnterCombat(Unit* /*who*/) {}
+        void EnterCombat(Unit* /*who*/) OVERRIDE {}
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -71,7 +71,7 @@ public:
                 //SoulSiphon_Timer
                 if (SoulSiphon_Timer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_SOULSIPHON);
+                    DoCastVictim(SPELL_SOULSIPHON);
                     return;
 
                     //SoulSiphon_Timer = 20000;
@@ -82,7 +82,7 @@ public:
             //CallOfTheGrave_Timer
             if (CallOftheGrave_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_CALLOFTHEGRAVE);
+                DoCastVictim(SPELL_CALLOFTHEGRAVE);
                 CallOftheGrave_Timer = 30000;
             }
             else CallOftheGrave_Timer -= diff;
@@ -90,7 +90,7 @@ public:
             //Terrify_Timer
             if (Terrify_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_TERRIFY);
+                DoCastVictim(SPELL_TERRIFY);
                 Terrify_Timer = 20000;
             }
             else Terrify_Timer -= diff;

@@ -296,7 +296,7 @@ class boss_mimiron : public CreatureScript
 
                 for (uint8 data = DATA_LEVIATHAN_MK_II; data <= DATA_AERIAL_UNIT; ++data)
                     if (Creature* creature = ObjectAccessor::GetCreature(*me, instance->GetData64(data)))
-                        if (creature->isAlive())
+                        if (creature->IsAlive())
                         {
                             creature->ExitVehicle();
                             creature->AI()->EnterEvadeMode();
@@ -1106,9 +1106,9 @@ class boss_leviathan_mk_turret : public CreatureScript
                     Map::PlayerList const& Players = map->GetPlayers();
                     for (Map::PlayerList::const_iterator itr = Players.begin(); itr != Players.end(); ++itr)
                     {
-                        if (Player* player = itr->getSource())
+                        if (Player* player = itr->GetSource())
                         {
-                            if (player->isDead() || player->isGameMaster())
+                            if (player->isDead() || player->IsGameMaster())
                                 continue;
 
                             float Distance = player->GetDistance(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
@@ -1190,7 +1190,7 @@ class npc_proximity_mine : public CreatureScript
                     return;
 
                 if (Player* player = who->ToPlayer())
-                    if (!player->isGameMaster())
+                    if (!player->IsGameMaster())
                         if (!boomLocked && me->GetDistance2d(player) < 2.0f)
                         {
                             DoCastAOE(SPELL_EXPLOSION);
@@ -1546,8 +1546,8 @@ class boss_vx_001 : public CreatureScript
                         }
                         case EVENT_LASER_BARRAGE_END:
                             me->SetReactState(REACT_AGGRESSIVE);
-                            if (me->getVictim())
-                                AttackStart(me->getVictim());
+                            if (me->GetVictim())
+                                AttackStart(me->GetVictim());
                             else
                                 if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 50.0f, true))
                                     AttackStart(target);
@@ -1875,11 +1875,11 @@ class boss_aerial_unit : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_PLASMA_BALL:
-                            if (phase == PHASE_AERIAL_SOLO__GLOBAL_3 && me->getVictim())
+                            if (phase == PHASE_AERIAL_SOLO__GLOBAL_3 && me->GetVictim())
                             {
-                                float x = me->getVictim()->GetPositionX();
-                                float y = me->getVictim()->GetPositionY();
-                                float z = me->getVictim()->GetPositionZ();
+                                float x = me->GetVictim()->GetPositionX();
+                                float y = me->GetVictim()->GetPositionY();
+                                float z = me->GetVictim()->GetPositionZ();
                                 if (me->IsWithinDist3d(x, y, z, 30.0f))
                                 {
                                     me->GetMotionMaster()->Initialize();
@@ -1888,9 +1888,9 @@ class boss_aerial_unit : public CreatureScript
                                 else
                                     me->GetMotionMaster()->MovePoint(0, x, y, 380.04f);
                             }
-                            else if (phase == PHASE_AERIAL_ASSEMBLED__GLOBAL_4 && me->getVictim())
+                            else if (phase == PHASE_AERIAL_ASSEMBLED__GLOBAL_4 && me->GetVictim())
                             {
-                                if (me->getVictim()->IsWithinDist3d(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 30.0f))
+                                if (me->GetVictim()->IsWithinDist3d(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 30.0f))
                                     DoCastVictim(SPELL_PLASMA_BALL);
                                 else if (Unit* target = SelectTarget(SELECT_TARGET_NEAREST, 0, 0.0f, true))
                                     DoCast(target, SPELL_PLASMA_BALL);
@@ -2179,7 +2179,7 @@ class npc_mimiron_bomb_bot : public CreatureScript
                 if (!UpdateVictim())
                     return;
 
-                if (!despawn && me->IsWithinMeleeRange(me->getVictim()))
+                if (!despawn && me->IsWithinMeleeRange(me->GetVictim()))
                 {
                     despawn = true;
                     me->CastSpell(me, SPELL_BOOM_BOT, true);

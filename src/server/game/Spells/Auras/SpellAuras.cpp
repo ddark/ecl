@@ -347,6 +347,14 @@ m_isRemoved(false), m_isSingleTarget(false), m_isUsingCharges(false)
     // m_casterLevel = cast item level/caster level, caster level should be saved to db, confirmed with sniffs
 }
 
+AuraScript* Aura::GetScriptByName(std::string const& scriptName) const
+{
+    for (std::list<AuraScript*>::const_iterator itr = m_loadedScripts.begin(); itr != m_loadedScripts.end(); ++itr)
+        if ((*itr)->_GetScriptName()->compare(scriptName) == 0)
+            return *itr;
+    return NULL;
+}
+
 void Aura::_InitEffects(uint8 effMask, Unit* caster, int32 *baseAmount)
 {
     // shouldn't be in constructor - functions in AuraEffect::AuraEffect use polymorphism
@@ -535,7 +543,7 @@ void Aura::UpdateTargetMap(Unit* caster, bool apply)
             // persistent area aura does not hit flying targets
             if (GetType() == DYNOBJ_AURA_TYPE)
             {
-                if (itr->first->isInFlight())
+                if (itr->first->IsInFlight())
                     addUnit = false;
             }
             // unit auras can not stack with each other
@@ -937,6 +945,31 @@ bool Aura::CanBeSentToClient() const
     return !IsPassive() || GetSpellInfo()->HasAreaAuraEffect() || HasEffectType(SPELL_AURA_ABILITY_IGNORE_AURASTATE);
 }
 
+bool Aura::IsSingleTargetWith(Aura const* aura) const
+{
+    // Same spell?
+    if (GetSpellInfo()->IsRankOf(aura->GetSpellInfo()))
+        return true;
+
+    SpellSpecificType spec = GetSpellInfo()->GetSpellSpecific();
+    // spell with single target specific types
+    switch (spec)
+    {
+        case SPELL_SPECIFIC_JUDGEMENT:
+        case SPELL_SPECIFIC_MAGE_POLYMORPH:
+            if (aura->GetSpellInfo()->GetSpellSpecific() == spec)
+                return true;
+            break;
+        default:
+            break;
+    }
+
+    if (HasEffectType(SPELL_AURA_CONTROL_VEHICLE) && aura->HasEffectType(SPELL_AURA_CONTROL_VEHICLE))
+        return true;
+
+    return false;
+}
+
 void Aura::UnregisterSingleTarget()
 {
     ASSERT(m_isSingleTarget);
@@ -1046,7 +1079,7 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
         for (SpellAreaForAreaMap::const_iterator itr = saBounds.first; itr != saBounds.second; ++itr)
         {
             // some auras remove at aura remove
-            if (!itr->second->IsFitToRequirements((Player*)target, zone, area))
+            if (!itr->second->IsFitToRequirements(target->ToPlayer(), zone, area))
                 target->RemoveAurasDueToSpell(itr->second->spellId);
             // some auras applied at aura apply
             else if (itr->second->autocast)
@@ -1135,6 +1168,163 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
                         if (target->GetTypeId() == TYPEID_PLAYER)
                             target->ToPlayer()->RemoveSpellCooldown(20252, true);
                         break;
+                }
+                break;
+				case SPELLFAMILY_POTION:
+                if (target->GetTypeId() == TYPEID_PLAYER)
+                {
+                    if (sSpellMgr->IsSpellMemberOfSpellGroup(GetSpellInfo()->Id, SPELL_GROUP_ELIXIR_BATTLE) ||
+                        sSpellMgr->IsSpellMemberOfSpellGroup(GetSpellInfo()->Id, SPELL_GROUP_ELIXIR_GUARDIAN))
+                    {
+                        if (target->HasAura(53042) && target->HasSpell(GetSpellInfo()->Effects[0].TriggerSpell))
+                        {
+                            // Mixology Effect Bonus
+                            switch (GetSpellInfo()->Id)
+                            {
+                                case 11390: // Arcane Elixir
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.6f);
+                                    break;
+                                case 11328: // Elixir of Agility
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 2.5f);
+                                    break;
+                                case 28491: // Elixir of Healing Power
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.5f);
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.333f);
+                                    break;
+                                case 3164: // Elixir of Ogre's Strength
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.75f);
+                                    break;
+                                case 3220: // Elixir of Defense
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.466f);
+                                    break;
+                                case 3166: // Elixir of Wisdom
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.833f);
+                                    break;
+                                case 39627: // Elixir of Draenic Wisdom
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.266f);
+                                    break;
+                                case 54494: // Elixir of Major Agility
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.433f);
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.5f);
+                                    break;
+                                case 39625: // Elixir of Major Fortitude
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.64f);
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.6f);
+                                    break;
+                                case 28490: // Elixir of Major Strength
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.457f);
+                                    break;
+                                case 11349: // Elixir of Greater Defense
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.56f);
+                                    break;
+                                case 2378: // Elixir of Minor Fortitude
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.555f);
+                                    break;
+                                case 11348: // Elixir of Superior Defense
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.311f);
+                                    break;
+                                case 54452: // Adept's Elixir
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.541f);
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.333f);
+                                    break;
+                                case 33720: // Onslaught Elixir
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.533f);
+                                    break;
+                                case 17538: // Elixir of the Mongoose
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.2f);
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.5f);
+                                    break;
+                                case 8212: // Elixir of Giant Growth
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.1f);
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.625f);
+                                    break;
+                                case 17539: // Greater Arcane Elixir
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.542f);
+                                    break;
+                                case 3219:  // Weak Troll's Blood Elixir
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 2.0f);
+                                    break;
+                                case 33721: // Spellpower Elixir
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.397f);
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.397f);
+                                    break;
+                                case 53746: // Wrath Elixir
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.355f);
+                                    break;
+                                case 673:   // Elixir of Minor Defense
+                                case 2374:  // Elixir of Minor Agility
+                                case 2367:  // Elixir of Lion's Strength
+                                case 17635: // Flask of the Titans
+                                case 53758: // Flask of Stoneblood
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.5f);
+                                    break;
+                                case 53755: // Flask of the Frost Wyrm
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.376f);
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.376f);
+                                    break;
+                                case 53760: // Flask of Endless Rage
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.445f);
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.445f);
+                                    break;
+                                case 11371: // Gift of Arthas (only resistance inc)
+                                case 53752: // Lesser Flask of Toughness
+                                case 62380: // Lesser Flask of Resistance
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.8f);
+                                    break;
+                                case 40068: // Wrath Elixir
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.356f); // fixme: patch 3.0.3
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.356f); // fixme: patch 3.0.3
+                                    break;
+                                case 11405: // Elixir of Giants
+                                case 33726: // Elixir of Mastery
+                                case 53747: // Elixir of Spirit
+                                case 53748: // Elixir of Mighty Strength
+                                case 53749: // Guru's Elixir
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.4f);
+                                    break;
+                                case 53751: // Elixir of Mighty Fortitude
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.572f);
+                                    GetEffect(1)->SetAmount(GetEffect(1)->GetBaseAmount() * 1.5f); // fixme: no source for this, just an educated guess
+                                    break;
+                                case 53763: // Elixir of Protection
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.35f);
+                                    break;
+                                case 11334: // Elixir of Greater Agility
+                                case 28497: // Elixir of Mighty Agility
+                                case 54212: // Flask of the Mojo
+                                case 60340: // Elixir of Accuracy
+                                case 60341: // Elixir of Deadly Strikes
+                                case 60343: // Elixir of Mighty Defense
+                                case 60344: // Elixir of Expertise
+                                case 60345: // Elixir of Armor Piercing
+                                case 60346: // Elixir of Lightning Speed
+                                case 60347: // Elixir of Mighty Thoughts
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.445f);
+                                    break;
+                                case 53764: // Elixir of Mighty Mageblood
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.667f);
+                                    break;
+                                case 28589: // Flask of Relentless Assault
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.333f);
+                                    break;
+                                case 28591: // Flask of Pure Death
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.288f);
+                                    break;
+                                case 54213: // Flask of Pure Mojo
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.288f);
+                                    break;
+                                case 17636: // Flask of Distilled Wisdom
+                                    GetEffect(0)->SetAmount(GetEffect(0)->GetBaseAmount() * 1.308f);
+                                    break;
+                                default:
+                                    // more research needs to be done for other potions and flasks...
+                                    // several changes were done to mixology in patches 3.2.0 and 3.3.2
+                                    // so we should not consider bonuses prior to those patches although
+                                    // a smaller bonus is better than none at all.
+                                    break;
+                            }
+                        }
+                    }
                 }
                 break;
             case SPELLFAMILY_DRUID:
@@ -1599,32 +1789,6 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
         case SPELLFAMILY_PALADIN:
             switch (GetId())
             {
-                case 19746:
-                    // Improved concentration aura - linked aura
-                    if (caster->HasAura(20254) || caster->HasAura(20255) || caster->HasAura(20256))
-                    {
-                        if (apply)
-                            target->CastSpell(target, 63510, true);
-                        else
-                            target->RemoveAura(63510);
-                    }
-                case 31821:
-                    // Aura Mastery Triggered Spell Handler
-                    // If apply Concentration Aura -> trigger -> apply Aura Mastery Immunity
-                    // If remove Concentration Aura -> trigger -> remove Aura Mastery Immunity
-                    // If remove Aura Mastery -> trigger -> remove Aura Mastery Immunity
-                    // Do effects only on aura owner
-                    if (GetCasterGUID() != target->GetGUID())
-                        break;
-
-                    if (apply)
-                    {
-                        if ((GetSpellInfo()->Id == 31821 && target->HasAura(19746, GetCasterGUID())) || (GetSpellInfo()->Id == 19746 && target->HasAura(31821)))
-                            target->CastSpell(target, 64364, true);
-                    }
-                    else
-                        target->RemoveAurasDueToSpell(64364, GetCasterGUID());
-                    break;
                 case 31842: // Divine Illumination
                     // Item - Paladin T10 Holy 2P Bonus
                     if (target->HasAura(70755))
@@ -1635,118 +1799,6 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
                             target->RemoveAurasDueToSpell(71166);
                     }
                     break;
-            }
-            if (GetSpellInfo()->GetSpellSpecific() == SPELL_SPECIFIC_AURA)
-            {
-                if (!caster)
-                    break;
-
-                // Improved devotion aura
-                if (caster->HasAura(20140) || caster->HasAura(20138) || caster->HasAura(20139))
-                {
-                    if (apply)
-                        caster->CastSpell(target, 63514, true);
-                    else
-                        target->RemoveAura(63514);
-                }
-                // 63531 - linked aura for both Sanctified Retribution and Swift Retribution talents
-                // Not allow for Retribution Aura (prevent stacking)
-                if ((GetSpellInfo()->SpellIconID != 555) && (caster->HasAura(53648) || caster->HasAura(53484) || caster->HasAura(53379) || caster->HasAura(31869)))
-                {
-                    if (apply)
-                        caster->CastSpell(target, 63531, true);
-                    else
-                        target->RemoveAura(63531);
-                }
-            }
-            break;
-        case SPELLFAMILY_DEATHKNIGHT:
-            if (GetSpellInfo()->GetSpellSpecific() == SPELL_SPECIFIC_PRESENCE)
-            {
-                AuraEffect* bloodPresenceAura=0;  // healing by damage done
-                AuraEffect* frostPresenceAura=0;  // increased health
-                AuraEffect* unholyPresenceAura=0; // increased movement speed, faster rune recovery
-
-                // Improved Presences
-                Unit::AuraEffectList const& vDummyAuras = target->GetAuraEffectsByType(SPELL_AURA_DUMMY);
-                for (Unit::AuraEffectList::const_iterator itr = vDummyAuras.begin(); itr != vDummyAuras.end(); ++itr)
-                {
-                    switch ((*itr)->GetId())
-                    {
-                        // Improved Blood Presence
-                        case 50365:
-                        case 50371:
-                        {
-                            bloodPresenceAura = (*itr);
-                            break;
-                        }
-                        // Improved Frost Presence
-                        case 50384:
-                        case 50385:
-                        {
-                            frostPresenceAura = (*itr);
-                            break;
-                        }
-                        // Improved Unholy Presence
-                        case 50391:
-                        case 50392:
-                        {
-                            unholyPresenceAura = (*itr);
-                            break;
-                        }
-                    }
-                }
-
-                uint32 presence = GetId();
-                if (apply)
-                {
-                    // Blood Presence bonus
-                    if (presence == 48266)
-                        target->CastSpell(target, 63611, true);
-                    else if (bloodPresenceAura)
-                    {
-                        int32 basePoints1 = bloodPresenceAura->GetAmount();
-                        target->CastCustomSpell(target, 63611, NULL, &basePoints1, NULL, true, 0, bloodPresenceAura);
-                    }
-                    // Frost Presence bonus
-                    if (presence == 48263)
-                        target->CastSpell(target, 61261, true);
-                    else if (frostPresenceAura)
-                    {
-                        int32 basePoints0 = frostPresenceAura->GetAmount();
-                        target->CastCustomSpell(target, 61261, &basePoints0, NULL, NULL, true, 0, frostPresenceAura);
-                    }
-                    // Unholy Presence bonus
-                    if (presence == 48265)
-                    {
-                        if (unholyPresenceAura)
-                        {
-                            // Not listed as any effect, only base points set
-                            int32 basePoints0 = unholyPresenceAura->GetSpellInfo()->Effects[EFFECT_1].CalcValue();
-                            target->CastCustomSpell(target, 63622, &basePoints0, &basePoints0, &basePoints0, true, 0, unholyPresenceAura);
-                        }
-                        target->CastSpell(target, 49772, true);
-                    }
-                    else if (unholyPresenceAura)
-                    {
-                        int32 basePoints0 = unholyPresenceAura->GetAmount();
-                        target->CastCustomSpell(target, 49772, &basePoints0, NULL, NULL, true, 0, unholyPresenceAura);
-                    }
-                }
-                else
-                {
-                    // Remove passive auras
-                    if (presence == 48266 || bloodPresenceAura)
-                        target->RemoveAurasDueToSpell(63611);
-                    if (presence == 48263 || frostPresenceAura)
-                        target->RemoveAurasDueToSpell(61261);
-                    if (presence == 48265 || unholyPresenceAura)
-                    {
-                        if (presence == 48265 && unholyPresenceAura)
-                            target->RemoveAurasDueToSpell(63622);
-                        target->RemoveAurasDueToSpell(49772);
-                    }
-                }
             }
             break;
         case SPELLFAMILY_WARLOCK:
@@ -1874,20 +1926,7 @@ bool Aura::CanStackWith(Aura const* existingAura) const
         }
     }
 
-    bool isVehicleAura1 = false;
-    bool isVehicleAura2 = false;
-    uint8 i = 0;
-    while (i < MAX_SPELL_EFFECTS && !(isVehicleAura1 && isVehicleAura2))
-    {
-        if (m_spellInfo->Effects[i].ApplyAuraName == SPELL_AURA_CONTROL_VEHICLE)
-            isVehicleAura1 = true;
-        if (existingSpellInfo->Effects[i].ApplyAuraName == SPELL_AURA_CONTROL_VEHICLE)
-            isVehicleAura2 = true;
-
-        ++i;
-    }
-
-    if (isVehicleAura1 && isVehicleAura2)
+    if (HasEffectType(SPELL_AURA_CONTROL_VEHICLE) && existingAura->HasEffectType(SPELL_AURA_CONTROL_VEHICLE))
     {
         Vehicle* veh = NULL;
         if (GetOwner()->ToUnit())
@@ -1899,7 +1938,7 @@ bool Aura::CanStackWith(Aura const* existingAura) const
         if (!veh->GetAvailableSeatCount())
             return false;   // No empty seat available
 
-        return true;        // Empty seat available (skip rest)
+        return true; // Empty seat available (skip rest)
     }
 
     // spell of same spell rank chain

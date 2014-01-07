@@ -85,7 +85,7 @@ namespace
         for ( ; i < TabCatDest.size() && i < (NB_ITEM_PAGE * (PageC[player] + 1)); ++i)
         {
             if (TabCatDest[i].IsAllowedToTeleport(player))
-                player->ADD_GOSSIP_ITEM(7, TabCatDest[i].GetName(player->isGameMaster()).c_str(), GOSSIP_SHOW_DEST, i);
+                player->ADD_GOSSIP_ITEM(7, TabCatDest[i].GetName(player->IsGameMaster()).c_str(), GOSSIP_SHOW_DEST, i);
         }
 
         if (i < TabCatDest.size())
@@ -120,21 +120,21 @@ namespace
     {
         Dest dest (TabCatDest[Cat[player]].GetDest(id));
 
-        if (player->getLevel() < dest.m_level && !player->isGameMaster())
+        if (player->getLevel() < dest.m_level && !player->IsGameMaster())
         {
             std::string msg ("You do not have the required level. This destination requires level " + ConvertStr(dest.m_level) + ".");
             creature->MonsterWhisper(msg.c_str(), player->GetGUID());
             return;
         }
 
-        if (player->GetMoney() < dest.m_cost && !player->isGameMaster())
+        if (player->GetMoney() < dest.m_cost && !player->IsGameMaster())
         {
             std::string msg ("You do not have enough money. The price for teleportation is " + ConvertMoney(dest.m_cost) + ".");
             creature->MonsterWhisper(msg.c_str(), player->GetGUID());
             return;
         }
 
-        if (!player->isGameMaster() && dest.m_cost)
+        if (!player->IsGameMaster() && dest.m_cost)
             player->ModifyMoney(-1 * dest.m_cost);
 
         Teleport(player, dest.m_map, dest.m_X, dest.m_Y, dest.m_Z, dest.m_orient);
@@ -150,7 +150,7 @@ bool OnGossipHello(Player *player, Creature *creature)
 {
     PageC(player) = PageD(player) = Cat(player) = 0;
 
-    if(player->isInCombat())
+    if(player->IsInCombat())
     {
         player->CLOSE_GOSSIP_MENU();
         creature->MonsterWhisper("You are in combat. Come back later", player->GetGUID());

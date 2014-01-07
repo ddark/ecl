@@ -55,11 +55,11 @@ public:
                 uint8 LHPcount = 0;
                 for (GroupReference* itr = gr->GetFirstMember(); itr != NULL; itr = itr->next())
                 {
-                    Player* tPlayer = itr->getSource();
+                    Player* tPlayer = itr->GetSource();
                     if (!tPlayer || me->GetMap() != tPlayer->FindMap() || 
                         !tPlayer->IsInWorld() || tPlayer->IsBeingTeleported() || 
-                        tPlayer->isPossessed() || tPlayer->isCharmed()) continue;
-                    if (tPlayer->isAlive())
+                        tPlayer->isPossessed() || tPlayer->IsCharmed()) continue;
+                    if (tPlayer->IsAlive())
                     {
                         if (me->GetExactDist(tPlayer) > 35) continue;
                         uint8 pct = 50 + tPlayer->getAttackers().size()*10;
@@ -93,11 +93,11 @@ public:
                 for (GroupReference* itr = gr->GetFirstMember(); itr != NULL; itr = itr->next())
                 {
                     uint8 lowestPCT = 100;
-                    Player* tPlayer = itr->getSource();
+                    Player* tPlayer = itr->GetSource();
                     if (!tPlayer || me->GetMap() != tPlayer->GetMap() || 
                         !tPlayer->IsInWorld() || tPlayer->IsBeingTeleported() || 
-                        tPlayer->isPossessed() || tPlayer->isCharmed()) continue;
-                    if (tPlayer->isAlive())
+                        tPlayer->isPossessed() || tPlayer->IsCharmed()) continue;
+                    if (tPlayer->IsAlive())
                     {
                         if (me->GetExactDist(tPlayer) > 25) continue;
                         if (GetHealthPCT(tPlayer) < 85)
@@ -174,7 +174,7 @@ public:
         {
             ReduceCD(diff);
             if (IAmDead()) return;
-            if (!me->getVictim())
+            if (!me->GetVictim())
                 Evade();
             if (wait == 0)
                 wait = GetWait();
@@ -201,15 +201,15 @@ public:
             CureGroup(master, DISPELMAGIC, diff);
             CureGroup(master, CURE_DISEASE, diff);
             //ShieldGroup(master);
-            if (master->isInCombat() || me->isInCombat())
+            if (master->IsInCombat() || me->IsInCombat())
             {
                 CheckDispel(diff);
                 CheckSilence(diff);
             }
-            if (me->isInCombat())
+            if (me->IsInCombat())
                 CheckShackles(diff);
 
-            if (!me->isInCombat())
+            if (!me->IsInCombat())
                 DoNonCombatActions(diff);
 
             if (!CheckAttackTarget(CLASS_PRIEST))
@@ -223,7 +223,7 @@ public:
                 !IsCasting())
                 //general rule
             {
-                opponent = me->getVictim();
+                opponent = me->GetVictim();
                 if (opponent)
                 {
                     if (!IsCasting())
@@ -297,11 +297,11 @@ public:
             if (hp > 98) return false;
             if (!target || target->isDead() || me->GetExactDist(target) > 40)
                 return false;
-            if (Rand() > 50 + 20*target->isInCombat() + 50*master->GetMap()->IsRaid()) return false;
+            if (Rand() > 50 + 20*target->IsInCombat() + 50*master->GetMap()->IsRaid()) return false;
 
             //GUARDIAN SPIRIT
             if (GUARDIAN_SPIRIT && Guardian_Spirit_Timer <= diff && Rand() < 70 && 
-                target->isInCombat() && !target->getAttackers().empty() && 
+                target->IsInCombat() && !target->getAttackers().empty() && 
                 hp < (5 + std::min(20, uint8(target->getAttackers().size())*5)) && 
                 (master->GetGroup() && master->GetGroup()->IsMember(target->GetGUID()) || target == master) && 
                 !target->HasAura(GUARDIAN_SPIRIT))
@@ -328,7 +328,7 @@ public:
 
             //PAIN SUPPRESSION
             if (hp < 35 && PAIN_SUPPRESSION && Pain_Suppression_Timer <= diff && Rand() < 50 && 
-                (target->isInCombat() || !target->getAttackers().empty()) && 
+                (target->IsInCombat() || !target->getAttackers().empty()) && 
                 !target->HasAura(PAIN_SUPPRESSION))
             {
                 temptimer = GC_Timer;
@@ -357,7 +357,7 @@ public:
             {
                 if (PENANCE && Penance_Timer <= diff && 
                     !me->isMoving() && //better check then stop moving every try (furthermore it doesn't always work properly)
-                    (target->GetTypeId() != TYPEID_PLAYER || !(target->ToPlayer()->isCharmed() || target->ToPlayer()->isPossessed())) && 
+                    (target->GetTypeId() != TYPEID_PLAYER || !(target->ToPlayer()->IsCharmed() || target->ToPlayer()->isPossessed())) && 
                     doCast(target, PENANCE))
                 {
                     Penance_Timer = 8000;
@@ -375,7 +375,7 @@ public:
                 doCast(target, FLASH_HEAL))
                     return true;
             //maintain HoTs
-            Unit* u = target->getVictim();
+            Unit* u = target->GetVictim();
             Creature* boss = u && u->ToCreature() && u->ToCreature()->isWorldBoss() ? u->ToCreature() : NULL;
             bool tanking = tank == target && boss;
             //Renew
@@ -416,7 +416,7 @@ public:
                 }
             }
 
-            if (me->isInCombat() && !master->GetMap()->IsRaid()) return false;
+            if (me->IsInCombat() && !master->GetMap()->IsRaid()) return false;
 
             if (Rand() < 70 && !HasAuraName(target, PW_FORTITUDE) && doCast(target, PW_FORTITUDE))
             {
@@ -545,7 +545,7 @@ public:
             {
                 if (ShieldTarget(me, diff)) return;
 
-                if (FADE && Fade_Timer <= diff && me->isInCombat())
+                if (FADE && Fade_Timer <= diff && me->IsInCombat())
                 {
                     if (b_attackers.empty()) return; //no aggro
                     uint8 Tattackers = 0;

@@ -1481,6 +1481,7 @@ struct WGWorkshop
 
         bf = _bf;
         workshopId = _workshopId;
+        teamControl = BATTLEFIELD_WG_TEAM_NEUTRAL;
     }
 
     void GiveControlTo(uint8 team, bool init /* for first call in setup*/)
@@ -1629,7 +1630,7 @@ struct WintergraspWorkshopData
 
                 // Found associate graveyard and update it
                 if (m_Type < BATTLEFIELD_WG_WORKSHOP_KEEP_WEST)
-                    if (m_WG && m_WG->GetGraveyardById(m_Type))
+                    if (m_WG->GetGraveyardById(m_Type))
                         m_WG->GetGraveyardById(m_Type)->GiveControlTo(TEAM_ALLIANCE);
 
                 m_TeamControl = team;
@@ -1667,7 +1668,7 @@ struct WintergraspWorkshopData
 
                 // Update graveyard control
                 if (m_Type < BATTLEFIELD_WG_WORKSHOP_KEEP_WEST)
-                    if (m_WG && m_WG->GetGraveyardById(m_Type))
+                    if (m_WG->GetGraveyardById(m_Type))
                         m_WG->GetGraveyardById(m_Type)->GiveControlTo(TEAM_HORDE);
 
                 m_TeamControl = team;

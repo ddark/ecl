@@ -1633,7 +1633,7 @@ class b_hunter : public CreatureScript
                             _events.ScheduleEvent(EVENT_STEADY_SHOT, urand(5*IN_MILLISECONDS, 15*IN_MILLISECONDS));
                             return;
                         case EVENT_WING_CLIP:
-                            if (Unit* target = me->getVictim())
+                            if (Unit* target = me->GetVictim())
                             {
                                 if (me->GetDistance2d(target) < 6.0f)
                                     DoCast(target, SPELL_WING_CLIP);
@@ -1951,7 +1951,7 @@ class b_war : public CreatureScript
                             _events.ScheduleEvent(EVENT_SUNDER_ARMOR, urand(2*IN_MILLISECONDS, 5*IN_MILLISECONDS));
                             return;
                         case EVENT_SHATTERING_THROW:
-                            if (Unit* target = me->getVictim())
+                            if (Unit* target = me->GetVictim())
                             {
                                 if (target->HasAuraWithMechanic(1 << MECHANIC_IMMUNE_SHIELD))
                                 {
@@ -2092,7 +2092,7 @@ class b_dk : public CreatureScript
                             _events.ScheduleEvent(EVENT_DEATH_COIL, urand(5*IN_MILLISECONDS, 15*IN_MILLISECONDS));
                             return;
                         case EVENT_DEATH_GRIP:
-                            if (Unit* target = me->getVictim())
+                            if (Unit* target = me->GetVictim())
                             {
                                 if (me->IsInRange(target, 5.0f, 30.0f, false))
                                 {
@@ -2272,7 +2272,7 @@ class b_rogue : public CreatureScript
                                 _events.RescheduleEvent(EVENT_BLADE_FLURRY, 5*IN_MILLISECONDS);
                             return;
                         case EVENT_SHADOWSTEP:
-                            if (Unit* target = me->getVictim())
+                            if (Unit* target = me->GetVictim())
                             {
                                 if (me->IsInRange(target, 10.0f, 40.0f, false))
                                 {
@@ -2972,7 +2972,7 @@ public:
 			if (Bdrh_Timer <= diff)
             {
 				
-                SummonBdrh(me->getVictim());
+                SummonBdrh(me->GetVictim());
                
 
                 Bdrh_Timer = 300000;
@@ -2981,7 +2981,7 @@ public:
 			if (Bshh_Timer <= diff)
             {
 				
-                SummonBshh(me->getVictim());
+                SummonBshh(me->GetVictim());
                
 
                 Bshh_Timer = 300000;
@@ -2990,7 +2990,7 @@ public:
 			if (Bpalah_Timer <= diff)
             {
 				
-                SummonBpalah(me->getVictim());
+                SummonBpalah(me->GetVictim());
                
 
                 Bpalah_Timer = 300000;
@@ -2999,7 +2999,7 @@ public:
 			if (Bprh_Timer <= diff)
             {
 				
-                SummonBprh(me->getVictim());
+                SummonBprh(me->GetVictim());
                
 
                 Bprh_Timer = 300000;
@@ -3008,7 +3008,7 @@ public:
 			if (Bsp_Timer <= diff)
             {
 				
-                SummonBsp(me->getVictim());
+                SummonBsp(me->GetVictim());
                
 
                 Bsp_Timer = 300000;
@@ -3017,7 +3017,7 @@ public:
 			if (Bwl_Timer <= diff)
             {
 				
-                SummonBwl(me->getVictim());
+                SummonBwl(me->GetVictim());
                
 
                 Bwl_Timer = 300000;
@@ -3026,7 +3026,7 @@ public:
 			if (Bmag_Timer <= diff)
             {
 				
-                SummonBmag(me->getVictim());
+                SummonBmag(me->GetVictim());
                
 
                 Bmag_Timer = 300000;
@@ -3035,7 +3035,7 @@ public:
 			if (Bhunter_Timer <= diff)
             {
 				
-                SummonBhunter(me->getVictim());
+                SummonBhunter(me->GetVictim());
                
 
                 Bhunter_Timer = 300000;
@@ -3044,7 +3044,7 @@ public:
 			if (Bdb_Timer <= diff)
             {
 				
-                SummonBdb(me->getVictim());
+                SummonBdb(me->GetVictim());
                
 
                 Bdb_Timer = 300000;
@@ -3053,7 +3053,7 @@ public:
 			if (Bwar_Timer <= diff)
             {
 				
-                SummonBwar(me->getVictim());
+                SummonBwar(me->GetVictim());
                
 
                 Bwar_Timer = 300000;
@@ -3062,7 +3062,7 @@ public:
 			if (Bdk_Timer <= diff)
             {
 				
-                SummonBdk(me->getVictim());
+                SummonBdk(me->GetVictim());
                
 
                 Bdk_Timer = 300000;
@@ -3071,7 +3071,7 @@ public:
 			if (Brogue_Timer <= diff)
             {
 				
-                SummonBrogue(me->getVictim());
+                SummonBrogue(me->GetVictim());
                
 
                 Brogue_Timer = 300000;
@@ -3080,7 +3080,7 @@ public:
 			if (Bshaman_Timer <= diff)
             {
 				
-                SummonBshaman(me->getVictim());
+                SummonBshaman(me->GetVictim());
                
 
                 Bshaman_Timer = 300000;
@@ -3089,7 +3089,7 @@ public:
 			if (Bretropaladin_Timer <= diff)
             {
 				
-                SummonBretropaladin(me->getVictim());
+                SummonBretropaladin(me->GetVictim());
                
 
                 Bretropaladin_Timer = 300000;
@@ -3098,7 +3098,7 @@ public:
 			if (Bpetwarlock_Timer <= diff)
             {
 				
-                SummonBpetwarlock(me->getVictim());
+                SummonBpetwarlock(me->GetVictim());
                
 
                 Bpetwarlock_Timer = 300000;
@@ -3107,7 +3107,7 @@ public:
 			if (Bpethunter_Timer <= diff)
             {
 				
-                SummonBpethunter(me->getVictim());
+                SummonBpethunter(me->GetVictim());
                
 
                 Bpethunter_Timer = 300000;
@@ -3294,7 +3294,7 @@ public:
 			if (Bdrh_Timer <= diff)
             {
 				
-                SummonBdrh(me->getVictim());
+                SummonBdrh(me->GetVictim());
                
 
                 Bdrh_Timer = 300000;
@@ -3303,7 +3303,7 @@ public:
 			if (Bshh_Timer <= diff)
             {
 				
-                SummonBshh(me->getVictim());
+                SummonBshh(me->GetVictim());
                
 
                 Bshh_Timer = 300000;
@@ -3312,7 +3312,7 @@ public:
 			if (Bpalah_Timer <= diff)
             {
 				
-                SummonBpalah(me->getVictim());
+                SummonBpalah(me->GetVictim());
                
 
                 Bpalah_Timer = 300000;
@@ -3321,7 +3321,7 @@ public:
 			if (Bprh_Timer <= diff)
             {
 				
-                SummonBprh(me->getVictim());
+                SummonBprh(me->GetVictim());
                
 
                 Bprh_Timer = 300000;
@@ -3330,7 +3330,7 @@ public:
 			if (Bsp_Timer <= diff)
             {
 				
-                SummonBsp(me->getVictim());
+                SummonBsp(me->GetVictim());
                
 
                 Bsp_Timer = 300000;
@@ -3339,7 +3339,7 @@ public:
 			if (Bwl_Timer <= diff)
             {
 				
-                SummonBwl(me->getVictim());
+                SummonBwl(me->GetVictim());
                
 
                 Bwl_Timer = 300000;
@@ -3348,7 +3348,7 @@ public:
 			if (Bmag_Timer <= diff)
             {
 				
-                SummonBmag(me->getVictim());
+                SummonBmag(me->GetVictim());
                
 
                 Bmag_Timer = 300000;
@@ -3357,7 +3357,7 @@ public:
 			if (Bhunter_Timer <= diff)
             {
 				
-                SummonBhunter(me->getVictim());
+                SummonBhunter(me->GetVictim());
                
 
                 Bhunter_Timer = 300000;
@@ -3366,7 +3366,7 @@ public:
 			if (Bdb_Timer <= diff)
             {
 				
-                SummonBdb(me->getVictim());
+                SummonBdb(me->GetVictim());
                
 
                 Bdb_Timer = 300000;
@@ -3375,7 +3375,7 @@ public:
 			if (Bwar_Timer <= diff)
             {
 				
-                SummonBwar(me->getVictim());
+                SummonBwar(me->GetVictim());
                
 
                 Bwar_Timer = 300000;
@@ -3384,7 +3384,7 @@ public:
 			if (Bdk_Timer <= diff)
             {
 				
-                SummonBdk(me->getVictim());
+                SummonBdk(me->GetVictim());
                
 
                 Bdk_Timer = 300000;
@@ -3393,7 +3393,7 @@ public:
 			if (Brogue_Timer <= diff)
             {
 				
-                SummonBrogue(me->getVictim());
+                SummonBrogue(me->GetVictim());
                
 
                 Brogue_Timer = 300000;
@@ -3402,7 +3402,7 @@ public:
 			if (Bshaman_Timer <= diff)
             {
 				
-                SummonBshaman(me->getVictim());
+                SummonBshaman(me->GetVictim());
                
 
                 Bshaman_Timer = 300000;
@@ -3411,7 +3411,7 @@ public:
 			if (Bretropaladin_Timer <= diff)
             {
 				
-                SummonBretropaladin(me->getVictim());
+                SummonBretropaladin(me->GetVictim());
                
 
                 Bretropaladin_Timer = 300000;
@@ -3420,7 +3420,7 @@ public:
 			if (Bpetwarlock_Timer <= diff)
             {
 				
-                SummonBpetwarlock(me->getVictim());
+                SummonBpetwarlock(me->GetVictim());
                
 
                 Bpetwarlock_Timer = 300000;
@@ -3429,7 +3429,7 @@ public:
 			if (Bpethunter_Timer <= diff)
             {
 				
-                SummonBpethunter(me->getVictim());
+                SummonBpethunter(me->GetVictim());
                
 
                 Bpethunter_Timer = 300000;

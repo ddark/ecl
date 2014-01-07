@@ -47,9 +47,9 @@ class boss_the_black_stalker : public CreatureScript
 public:
     boss_the_black_stalker() : CreatureScript("boss_the_black_stalker") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_the_black_stalkerAI (creature);
+        return new boss_the_black_stalkerAI(creature);
     }
 
     struct boss_the_black_stalkerAI : public ScriptedAI
@@ -68,7 +68,7 @@ public:
         uint32 check_Timer;
         std::list<uint64> Striders;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             Levitate_Timer = 12000;
             ChainLightning_Timer = 6000;
@@ -80,9 +80,9 @@ public:
             Striders.clear();
         }
 
-        void EnterCombat(Unit* /*who*/) {}
+        void EnterCombat(Unit* /*who*/) OVERRIDE {}
 
-        void JustSummoned(Creature* summon)
+        void JustSummoned(Creature* summon) OVERRIDE
         {
             if (summon && summon->GetEntry() == ENTRY_SPORE_STRIDER)
             {
@@ -90,19 +90,19 @@ public:
                 if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1))
                     summon->AI()->AttackStart(target);
                 else
-                    if (me->getVictim())
-                        summon->AI()->AttackStart(me->getVictim());
+                    if (me->GetVictim())
+                        summon->AI()->AttackStart(me->GetVictim());
             }
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             for (std::list<uint64>::const_iterator i = Striders.begin(); i != Striders.end(); ++i)
                 if (Creature* strider = Unit::GetCreature(*me, *i))
                     strider->DisappearAndDie();
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;

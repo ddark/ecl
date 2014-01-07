@@ -315,12 +315,12 @@ class npc_og_infantry : public CreatureScript
                 if (!UpdateVictim())
                     return;
 
-                if (me->IsWithinMeleeRange(me->getVictim()))
+                if (me->IsWithinMeleeRange(me->GetVictim()))
                 {
                     if (uiGCD <= diff)
                     {
                         if (!urand(0, 3))
-                            DoCast(me->getVictim(), SPELL_ATTACK);
+                            DoCastVictim(SPELL_ATTACK);
 
                         uiGCD = 5000;
                     }
@@ -331,7 +331,7 @@ class npc_og_infantry : public CreatureScript
                 {
                     if (uiGCD <= diff)
                     {
-                        DoCast(me->getVictim(), SPELL_SHOOT);
+                        DoCastVictim(SPELL_SHOOT);
                         uiGCD = 3000;
                     }
                     else
@@ -481,7 +481,7 @@ class npc_og_tank : public CreatureScript
 
                 if (uiGCD <= diff)
                 {
-                    DoCast(me->getVictim(), !urand(0, 3) ? SPELL_MACHINE_GUN : SPELL_FLAME_SPRAY);
+                    DoCastVictim(!urand(0, 3) ? SPELL_MACHINE_GUN : SPELL_FLAME_SPRAY);
                     uiGCD = urand(5000, 7000);
                 }
                 else
@@ -718,19 +718,19 @@ class npc_og_mekkatorque : public CreatureScript
                         break;
                     case 5:
                         DoTalk(me, MEK_6_1, SOUND_MEK_6, false);
-                        if (RL[0]->isAlive())
+                        if (RL[0]->IsAlive())
                             AttackStart(RL[0]);
                         break;
                     case 7:
-                        if (RL[1]->isAlive())
+                        if (RL[1]->IsAlive())
                             AttackStart(RL[1]);
                         break;
                     case 8:
-                        if (RL[2]->isAlive())
+                        if (RL[2]->IsAlive())
                             AttackStart(RL[2]);
                         break;
                     case 10:
-                        if (RL[3]->isAlive())
+                        if (RL[3]->IsAlive())
                             AttackStart(RL[3]);
                         break;
                     case 12:
@@ -1227,7 +1227,7 @@ class npc_og_mekkatorque : public CreatureScript
                                 {
                                     for (GroupReference* itr = pGroup->GetFirstMember(); itr != NULL; itr = itr->next())
                                     {
-                                        if (Player* pMember = itr->getSource())
+                                        if (Player* pMember = itr->GetSource())
                                         {
                                             Creature* pCameraVeh = me->SummonCreature(NPC_CAMERA_VEHICLE, -5164.767578f, 556.341125f, 423.753784f, 25.29f, TEMPSUMMON_MANUAL_DESPAWN);
                                             pMember->CastSpell(pMember, SPELL_SEE_INVISIBILITY, true);
@@ -1335,7 +1335,7 @@ class npc_og_mekkatorque : public CreatureScript
                     {
                         for (GroupReference* itr = pGroup->GetFirstMember(); itr != NULL; itr = itr->next())
                         {
-                            if (Player* pMember = itr->getSource())
+                            if (Player* pMember = itr->GetSource())
                                 pMember->CastSpell(pMember, spell, true);
                         }
                     }
@@ -1411,7 +1411,7 @@ class npc_og_mekkatorque : public CreatureScript
 
             void SquadAssist(Creature* pTarget)
             {
-                if (!pTarget->isAlive())
+                if (!pTarget->IsAlive())
                     return;
 
                 if (Creature* pCogspin = me->FindNearestCreature(NPC_COGSPIN, 100))
@@ -1483,7 +1483,7 @@ class npc_og_mekkatorque : public CreatureScript
 
                 for (Map::PlayerList::const_iterator i = PlList.begin(); i != PlList.end(); ++i)
                 {
-                    if (Player* pPlayer = i->getSource())
+                    if (Player* pPlayer = i->GetSource())
                     {
                         if (pPlayer->GetQuestStatus(QUEST_OPERATION_GNOMEREGAN) == QUEST_STATUS_INCOMPLETE)
                             pPlayer->SendUpdateWorldState(worldstate, value);
@@ -1501,7 +1501,7 @@ class npc_og_mekkatorque : public CreatureScript
 
                 for (Map::PlayerList::const_iterator i = PlList.begin(); i != PlList.end(); ++i)
                 {
-                    if (Player* pPlayer = i->getSource())
+                    if (Player* pPlayer = i->GetSource())
                     {
                         if (pPlayer->GetQuestStatus(QUEST_OPERATION_GNOMEREGAN) == QUEST_STATUS_NONE || pPlayer->GetQuestStatus(QUEST_OPERATION_GNOMEREGAN) == QUEST_STATUS_REWARDED|| pPlayer->GetQuestStatus(QUEST_OPERATION_GNOMEREGAN) == QUEST_STATUS_FAILED)
                             for (int8 n = 0; n < 15; ++n)
@@ -1546,7 +1546,7 @@ class npc_og_mekkatorque : public CreatureScript
                 {
                     for (std::list<uint64>::const_iterator itr = SummonsGUID.begin(); itr != SummonsGUID.end(); ++itr)
                         if (Creature* summon = ObjectAccessor::GetCreature(*me, *itr))
-                            if (summon->isAlive())
+                            if (summon->IsAlive())
                                 summon->DisappearAndDie();
                             else
                                 summon->DespawnOrUnsummon();
@@ -1659,7 +1659,7 @@ class npc_og_boltcog : public CreatureScript
 
                 if (uiThrow_timer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_WRENCH_THROW);
+                    DoCastVictim(SPELL_WRENCH_THROW);
                     uiThrow_timer = urand(10000, 25000);
                 }
                 else
@@ -1746,7 +1746,7 @@ class npc_og_cannon : public CreatureScript
 
                 if (uiRocket_timer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_CANNON_SHOT);
+                    DoCastVictim(SPELL_CANNON_SHOT);
                     uiRocket_timer = urand(1000, 5000);
                 }
                 else
@@ -1898,11 +1898,11 @@ class npc_og_i_infantry : public CreatureScript
                 if (!UpdateVictim())
                     return;
 
-                if (!me->IsWithinMeleeRange(me->getVictim()))
+                if (!me->IsWithinMeleeRange(me->GetVictim()))
                 {
                     if (uiGCD <= diff)
                     {
-                        DoCast(me->getVictim(), SPELL_SHOOT);
+                        DoCastVictim(SPELL_SHOOT);
                         uiGCD = 3000;
                     }
                     else

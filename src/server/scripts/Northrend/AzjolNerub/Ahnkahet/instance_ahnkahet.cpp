@@ -146,7 +146,7 @@ public:
             }
         }
 
-        void SetData64(uint32 idx, uint64 guid)
+        void SetData64(uint32 idx, uint64 guid) OVERRIDE
         {
             switch (idx)
             {
@@ -160,7 +160,7 @@ public:
             }
         }
 
-        uint64 GetData64(uint32 identifier) const
+        uint64 GetData64(uint32 identifier) const OVERRIDE
         {
             switch (identifier)
             {
@@ -179,7 +179,7 @@ public:
                     for (std::set<uint64>::const_iterator itr = InitiandGUIDs.begin(); itr != InitiandGUIDs.end(); ++itr)
                     {
                         Creature* cr = instance->GetCreature(*itr);
-                        if (cr && cr->isAlive())
+                        if (cr && cr->IsAlive())
                             vInitiands.push_back(*itr);
                     }
                     if (vInitiands.empty())
@@ -193,7 +193,7 @@ public:
             return 0;
         }
 
-        void SetData(uint32 type, uint32 data)
+        void SetData(uint32 type, uint32 data) OVERRIDE
         {
             switch (type)
             {
@@ -212,7 +212,7 @@ public:
                         for (std::set<uint64>::const_iterator itr = InitiandGUIDs.begin(); itr != InitiandGUIDs.end(); ++itr)
                         {
                             Creature* cr = instance->GetCreature(*itr);
-                            if (cr && cr->isAlive())
+                            if (cr && cr->IsAlive())
                             {
                                 cr->SetVisible(false);
                                 cr->setDeathState(JUST_DIED);
@@ -252,7 +252,7 @@ public:
                 SaveToDB();
         }
 
-        uint32 GetData(uint32 type) const
+        uint32 GetData(uint32 type) const OVERRIDE
         {
             switch (type)
             {
@@ -267,7 +267,7 @@ public:
                     for (std::set<uint64>::const_iterator itr = InitiandGUIDs.begin(); itr != InitiandGUIDs.end(); ++itr)
                     {
                         Creature* cr = instance->GetCreature(*itr);
-                        if (!cr || (cr && cr->isAlive()))
+                        if (!cr || (cr && cr->IsAlive()))
                             return 0;
                     }
                     return 1;
@@ -328,7 +328,7 @@ public:
         }
     };
 
-    InstanceScript* GetInstanceScript(InstanceMap* map) const
+    InstanceScript* GetInstanceScript(InstanceMap* map) const OVERRIDE
     {
        return new instance_ahnkahet_InstanceScript(map);
     }

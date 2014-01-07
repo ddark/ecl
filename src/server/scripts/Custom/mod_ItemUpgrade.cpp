@@ -85,11 +85,11 @@ class Mod_ItemUpgrade_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        ItemUpgradeTextAreYouSure   = ConfigMgr::GetIntDefault("ItemUpgrade.Text.AreYouSure", ARE_YOU_SURE);
-        ItemUpgradeTextNoEffect     = ConfigMgr::GetIntDefault("ItemUpgrade.Text.NoEffect", NO_EFFECT);
-        ItemUpgradeTextEffectNow    = ConfigMgr::GetIntDefault("ItemUpgrade.Text.EffectNow", EFFECT_NOW);
-        ItemUpgradeTextEffectRemove = ConfigMgr::GetIntDefault("ItemUpgrade.Text.EffectRemove", EFFECT_REMOVE);
-        ItemUpgradeEnable           = ConfigMgr::GetIntDefault("ItemUpgrade.Enable", false);
+        ItemUpgradeTextAreYouSure   = sConfigMgr->GetIntDefault("ItemUpgrade.Text.AreYouSure", ARE_YOU_SURE);
+        ItemUpgradeTextNoEffect     = sConfigMgr->GetIntDefault("ItemUpgrade.Text.NoEffect", NO_EFFECT);
+        ItemUpgradeTextEffectNow    = sConfigMgr->GetIntDefault("ItemUpgrade.Text.EffectNow", EFFECT_NOW);
+        ItemUpgradeTextEffectRemove = sConfigMgr->GetIntDefault("ItemUpgrade.Text.EffectRemove", EFFECT_REMOVE);
+        ItemUpgradeEnable           = sConfigMgr->GetIntDefault("ItemUpgrade.Enable", false);
 
         if (ItemUpgradeEnable)
             LoadDataFromDataBase();

@@ -98,7 +98,7 @@ bool CheckAllBossDied(InstanceScript* instance, Creature* me)
     if (!Maulgar || !Kiggler || !Blindeye || !Olm || !Krosh)
         return false;
 
-    if (!Maulgar->isAlive() && !Kiggler->isAlive() && !Blindeye->isAlive() && !Olm->isAlive() && !Krosh->isAlive())
+    if (!Maulgar->IsAlive() && !Kiggler->IsAlive() && !Blindeye->IsAlive() && !Olm->IsAlive() && !Krosh->IsAlive())
         return true;
 
     return false;
@@ -110,9 +110,9 @@ class boss_high_king_maulgar : public CreatureScript
 public:
     boss_high_king_maulgar() : CreatureScript("boss_high_king_maulgar") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_high_king_maulgarAI (creature);
+        return new boss_high_king_maulgarAI(creature);
     }
 
     struct boss_high_king_maulgarAI : public ScriptedAI
@@ -136,7 +136,7 @@ public:
 
         uint64 Council[4];
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             ArcingSmash_Timer = 10000;
             MightyBlow_Timer = 40000;
@@ -154,7 +154,7 @@ public:
                 if (Council[i])
                 {
                     creature = (Unit::GetCreature((*me), Council[i]));
-                    if (creature && !creature->isAlive())
+                    if (creature && !creature->IsAlive())
                     {
                         creature->Respawn();
                         creature->AI()->EnterEvadeMode();
@@ -167,12 +167,12 @@ public:
                 instance->SetData(DATA_MAULGAREVENT, NOT_STARTED);
         }
 
-        void KilledUnit(Unit* /*victim*/)
+        void KilledUnit(Unit* /*victim*/) OVERRIDE
         {
             Talk(SAY_SLAY);
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             Talk(SAY_DEATH);
 
@@ -185,7 +185,7 @@ public:
                 Talk(SAY_OGRE_DEATH);
            }
 
-        void EnterCombat(Unit* who)
+        void EnterCombat(Unit* who) OVERRIDE
         {
             StartEvent(who);
         }
@@ -217,10 +217,10 @@ public:
             DoZoneInCombat();
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Only if not incombat check if the event is started
-            if (!me->isInCombat() && instance && instance->GetData(DATA_MAULGAREVENT))
+            if (!me->IsInCombat() && instance && instance->GetData(DATA_MAULGAREVENT))
             {
                 Unit* target = Unit::GetUnit(*me, instance->GetData64(DATA_MAULGAREVENT_TANK));
 
@@ -245,21 +245,21 @@ public:
             //ArcingSmash_Timer
             if (ArcingSmash_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_ARCING_SMASH);
+                DoCastVictim(SPELL_ARCING_SMASH);
                 ArcingSmash_Timer = 10000;
             } else ArcingSmash_Timer -= diff;
 
             //Whirlwind_Timer
                    if (Whirlwind_Timer <= diff)
                    {
-                        DoCast(me->getVictim(), SPELL_WHIRLWIND);
+                        DoCastVictim(SPELL_WHIRLWIND);
                         Whirlwind_Timer = 55000;
                    } else Whirlwind_Timer -= diff;
 
             //MightyBlow_Timer
             if (MightyBlow_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_MIGHTY_BLOW);
+                DoCastVictim(SPELL_MIGHTY_BLOW);
                 MightyBlow_Timer = 30000+rand()%10000;
             } else MightyBlow_Timer -= diff;
 
@@ -309,9 +309,9 @@ class boss_olm_the_summoner : public CreatureScript
 public:
     boss_olm_the_summoner() : CreatureScript("boss_olm_the_summoner") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_olm_the_summonerAI (creature);
+        return new boss_olm_the_summonerAI(creature);
     }
 
     struct boss_olm_the_summonerAI : public ScriptedAI
@@ -327,7 +327,7 @@ public:
 
         InstanceScript* instance;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             DarkDecay_Timer = 10000;
             Summon_Timer = 15000;
@@ -338,7 +338,7 @@ public:
                 instance->SetData(DATA_MAULGAREVENT, NOT_STARTED);
         }
 
-        void AttackStart(Unit* who)
+        void AttackStart(Unit* who) OVERRIDE
         {
             if (!who)
                 return;
@@ -353,7 +353,7 @@ public:
             }
         }
 
-        void EnterCombat(Unit* who)
+        void EnterCombat(Unit* who) OVERRIDE
         {
             if (instance)
             {
@@ -362,7 +362,7 @@ public:
             }
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (instance)
             {
@@ -377,10 +377,10 @@ public:
             }
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Only if not incombat check if the event is started
-            if (!me->isInCombat() && instance && instance->GetData(DATA_MAULGAREVENT))
+            if (!me->IsInCombat() && instance && instance->GetData(DATA_MAULGAREVENT))
             {
                 Unit* target = Unit::GetUnit(*me, instance->GetData64(DATA_MAULGAREVENT_TANK));
 
@@ -404,7 +404,7 @@ public:
             //DarkDecay_Timer
             if (DarkDecay_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_DARK_DECAY);
+                DoCastVictim(SPELL_DARK_DECAY);
                 DarkDecay_Timer = 20000;
             } else DarkDecay_Timer -= diff;
 
@@ -437,9 +437,9 @@ class boss_kiggler_the_crazed : public CreatureScript
 public:
     boss_kiggler_the_crazed() : CreatureScript("boss_kiggler_the_crazed") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_kiggler_the_crazedAI (creature);
+        return new boss_kiggler_the_crazedAI(creature);
     }
 
     struct boss_kiggler_the_crazedAI : public ScriptedAI
@@ -456,7 +456,7 @@ public:
 
         InstanceScript* instance;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             GreaterPolymorph_Timer = 5000;
             LightningBolt_Timer = 10000;
@@ -468,7 +468,7 @@ public:
                 instance->SetData(DATA_MAULGAREVENT, NOT_STARTED);
         }
 
-        void EnterCombat(Unit* who)
+        void EnterCombat(Unit* who) OVERRIDE
         {
             if (instance)
             {
@@ -477,7 +477,7 @@ public:
             }
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (instance)
             {
@@ -492,10 +492,10 @@ public:
             }
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Only if not incombat check if the event is started
-            if (!me->isInCombat() && instance && instance->GetData(DATA_MAULGAREVENT))
+            if (!me->IsInCombat() && instance && instance->GetData(DATA_MAULGAREVENT))
             {
                 Unit* target = Unit::GetUnit(*me, instance->GetData64(DATA_MAULGAREVENT_TANK));
 
@@ -528,21 +528,21 @@ public:
             //LightningBolt_Timer
             if (LightningBolt_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_LIGHTNING_BOLT);
+                DoCastVictim(SPELL_LIGHTNING_BOLT);
                 LightningBolt_Timer = 15000;
             } else LightningBolt_Timer -= diff;
 
             //ArcaneShock_Timer
             if (ArcaneShock_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_ARCANE_SHOCK);
+                DoCastVictim(SPELL_ARCANE_SHOCK);
                 ArcaneShock_Timer = 20000;
             } else ArcaneShock_Timer -= diff;
 
             //ArcaneExplosion_Timer
             if (ArcaneExplosion_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_ARCANE_EXPLOSION);
+                DoCastVictim(SPELL_ARCANE_EXPLOSION);
                 ArcaneExplosion_Timer = 30000;
             } else ArcaneExplosion_Timer -= diff;
 
@@ -558,9 +558,9 @@ class boss_blindeye_the_seer : public CreatureScript
 public:
     boss_blindeye_the_seer() : CreatureScript("boss_blindeye_the_seer") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_blindeye_the_seerAI (creature);
+        return new boss_blindeye_the_seerAI(creature);
     }
 
     struct boss_blindeye_the_seerAI : public ScriptedAI
@@ -576,7 +576,7 @@ public:
 
         InstanceScript* instance;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             GreaterPowerWordShield_Timer = 5000;
             Heal_Timer = urand(25000, 40000);
@@ -587,7 +587,7 @@ public:
                 instance->SetData(DATA_MAULGAREVENT, NOT_STARTED);
         }
 
-        void EnterCombat(Unit* who)
+        void EnterCombat(Unit* who) OVERRIDE
         {
             if (instance)
             {
@@ -596,7 +596,7 @@ public:
             }
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (instance)
             {
@@ -611,10 +611,10 @@ public:
             }
         }
 
-         void UpdateAI(uint32 diff)
+         void UpdateAI(uint32 diff) OVERRIDE
         {
             //Only if not incombat check if the event is started
-            if (!me->isInCombat() && instance && instance->GetData(DATA_MAULGAREVENT))
+            if (!me->IsInCombat() && instance && instance->GetData(DATA_MAULGAREVENT))
             {
                 Unit* target = Unit::GetUnit(*me, instance->GetData64(DATA_MAULGAREVENT_TANK));
 
@@ -668,9 +668,9 @@ class boss_krosh_firehand : public CreatureScript
 public:
     boss_krosh_firehand() : CreatureScript("boss_krosh_firehand") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_krosh_firehandAI (creature);
+        return new boss_krosh_firehandAI(creature);
     }
 
     struct boss_krosh_firehandAI : public ScriptedAI
@@ -686,7 +686,7 @@ public:
 
         InstanceScript* instance;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             GreaterFireball_Timer = 1000;
             SpellShield_Timer = 5000;
@@ -697,7 +697,7 @@ public:
                 instance->SetData(DATA_MAULGAREVENT, NOT_STARTED);
         }
 
-        void EnterCombat(Unit* who)
+        void EnterCombat(Unit* who) OVERRIDE
         {
             if (instance)
             {
@@ -706,7 +706,7 @@ public:
             }
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (instance)
             {
@@ -721,10 +721,10 @@ public:
             }
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Only if not incombat check if the event is started
-            if (!me->isInCombat() && instance && instance->GetData(DATA_MAULGAREVENT))
+            if (!me->IsInCombat() && instance && instance->GetData(DATA_MAULGAREVENT))
             {
                 Unit* target = Unit::GetUnit(*me, instance->GetData64(DATA_MAULGAREVENT_TANK));
 
@@ -746,9 +746,9 @@ public:
             }
 
             //GreaterFireball_Timer
-            if (GreaterFireball_Timer < diff || me->IsWithinDist(me->getVictim(), 30))
+            if (GreaterFireball_Timer < diff || me->IsWithinDist(me->GetVictim(), 30))
             {
-                DoCast(me->getVictim(), SPELL_GREATER_FIREBALL);
+                DoCastVictim(SPELL_GREATER_FIREBALL);
                 GreaterFireball_Timer = 2000;
             } else GreaterFireball_Timer -= diff;
 
@@ -756,7 +756,7 @@ public:
             if (SpellShield_Timer <= diff)
             {
                 me->InterruptNonMeleeSpells(false);
-                DoCast(me->getVictim(), SPELL_SPELLSHIELD);
+                DoCastVictim(SPELL_SPELLSHIELD);
                 SpellShield_Timer = 30000;
             } else SpellShield_Timer -= diff;
 

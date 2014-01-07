@@ -56,13 +56,13 @@ public:
     {
         guard_genericAI(Creature* creature) : GuardAI(creature) {}
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             globalCooldown = 0;
             buffTimer = 0;
         }
 
-        void EnterCombat(Unit* who)
+        void EnterCombat(Unit* who) OVERRIDE
         {
             if (me->GetEntry() == NPC_CENARION_HOLD_INFANTRY)
                 Talk(SAY_GUARD_SIL_AGGRO, who->GetGUID());
@@ -70,7 +70,7 @@ public:
                 DoCast(who, spell->Id);
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
              //Always decrease our global cooldown first
             if (globalCooldown > diff)
@@ -79,7 +79,7 @@ public:
                 globalCooldown = 0;
 
             //Buff timer (only buff when we are alive and not in combat
-            if (me->isAlive() && !me->isInCombat())
+            if (me->IsAlive() && !me->IsInCombat())
             {
                 if (buffTimer <= diff)
                 {
@@ -109,7 +109,7 @@ public:
             if (me->isAttackReady() && !me->IsNonMeleeSpellCasted(false))
             {
                 //If we are within range melee the target
-                if (me->IsWithinMeleeRange(me->getVictim()))
+                if (me->IsWithinMeleeRange(me->GetVictim()))
                 {
                     bool healing = false;
                     SpellInfo const* info = NULL;
@@ -122,7 +122,7 @@ public:
                     if (info)
                         healing = true;
                     else
-                        info = SelectSpell(me->getVictim(), 0, 0, SELECT_TARGET_ANY_ENEMY, 0, 0, 0, 0, SELECT_EFFECT_DONTCARE);
+                        info = SelectSpell(me->GetVictim(), 0, 0, SELECT_TARGET_ANY_ENEMY, 0, 0, 0, 0, SELECT_EFFECT_DONTCARE);
 
                     //20% chance to replace our white hit with a spell
                     if (info && urand(0, 99) < 20 && !globalCooldown)
@@ -131,13 +131,13 @@ public:
                         if (healing)
                             DoCast(me, info->Id);
                         else
-                            DoCast(me->getVictim(), info->Id);
+                            DoCastVictim(info->Id);
 
                         //Set our global cooldown
                         globalCooldown = GENERIC_CREATURE_COOLDOWN;
                     }
                     else
-                        me->AttackerStateUpdate(me->getVictim());
+                        me->AttackerStateUpdate(me->GetVictim());
 
                     me->resetAttackTimer();
                 }
@@ -158,7 +158,7 @@ public:
                     if (info)
                         healing = true;
                     else
-                        info = SelectSpell(me->getVictim(), 0, 0, SELECT_TARGET_ANY_ENEMY, 0, 0, NOMINAL_MELEE_RANGE, 0, SELECT_EFFECT_DONTCARE);
+                        info = SelectSpell(me->GetVictim(), 0, 0, SELECT_TARGET_ANY_ENEMY, 0, 0, NOMINAL_MELEE_RANGE, 0, SELECT_EFFECT_DONTCARE);
 
                     //Found a spell, check if we arn't on cooldown
                     if (info && !globalCooldown)
@@ -174,7 +174,7 @@ public:
                         if (healing)
                             DoCast(me, info->Id);
                         else
-                            DoCast(me->getVictim(), info->Id);
+                            DoCastVictim(info->Id);
 
                         //Set our global cooldown
                         globalCooldown = GENERIC_CREATURE_COOLDOWN;
@@ -184,7 +184,7 @@ public:
                         //Cancel our current spell and then mutate new movement generator
                         me->InterruptNonMeleeSpells(false);
                         me->GetMotionMaster()->Clear(false);
-                        me->GetMotionMaster()->MoveChase(me->getVictim());
+                        me->GetMotionMaster()->MoveChase(me->GetVictim());
                     }
                 }
             }
@@ -219,7 +219,7 @@ public:
             }
         }
 
-        void ReceiveEmote(Player* player, uint32 textEmote)
+        void ReceiveEmote(Player* player, uint32 textEmote) OVERRIDE
         {
             switch (me->GetEntry())
             {
@@ -242,7 +242,7 @@ public:
         uint32 buffTimer;
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
        return new guard_genericAI(creature);
     }
@@ -265,7 +265,7 @@ public:
     {
         guard_shattrath_scryerAI(Creature* creature) : GuardAI(creature) {}
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             banishTimer = 5000;
             exileTimer = 8500;
@@ -273,7 +273,7 @@ public:
             canTeleport = false;
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -294,7 +294,7 @@ public:
             }
             else if (banishTimer <= diff)
             {
-                Unit* temp = me->getVictim();
+                Unit* temp = me->GetVictim();
                 if (temp && temp->GetTypeId() == TYPEID_PLAYER)
                 {
                     DoCast(temp, SPELL_BANISHED_SHATTRATH_A);
@@ -315,7 +315,7 @@ public:
         bool canTeleport;
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
         return new guard_shattrath_scryerAI(creature);
     }
@@ -330,7 +330,7 @@ public:
     {
         guard_shattrath_aldorAI(Creature* creature) : GuardAI(creature) {}
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             banishTimer = 5000;
             exileTimer = 8500;
@@ -338,7 +338,7 @@ public:
             canTeleport = false;
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -359,7 +359,7 @@ public:
             }
             else if (banishTimer <= diff)
             {
-                Unit* temp = me->getVictim();
+                Unit* temp = me->GetVictim();
                 if (temp && temp->GetTypeId() == TYPEID_PLAYER)
                 {
                     DoCast(temp, SPELL_BANISHED_SHATTRATH_S);
@@ -379,7 +379,7 @@ public:
         bool canTeleport;
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
         return new guard_shattrath_aldorAI(creature);
     }

@@ -50,7 +50,6 @@
 
 //bot
 #include "Config.h"
-#include "bp_mgr.h"
 
 class LoginQueryHolder : public SQLQueryHolder
 {
@@ -799,78 +798,6 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPacket& recvData)
     _charLoginCallback = CharacterDatabase.DelayQueryHolder((SQLQueryHolder*)holder);
 }
 
-// Playerbot mod. Can't easily reuse HandlePlayerLoginOpcode for logging in bots because it assumes
-// a WorldSession exists for the bot. The WorldSession for a bot is created after the character is loaded.
-void PlayerbotMgr::AddPlayerBot(uint64 playerGuid)
-{
-    if (sObjectAccessor->FindPlayer(playerGuid))
-        return;
-
-    uint32 accountId = sObjectMgr->GetPlayerAccountIdByGUID(playerGuid);
-    if (accountId == 0)
-        return;
-
-    if (Group* group = m_master->GetGroup())
-    {
-        Player* leader = sObjectAccessor->FindPlayer(group->GetLeaderGUID());
-        bool isLeader = (leader == m_master || group->IsLeader(m_master->GetGUID()));
-        bool isFriend = (leader && leader->GetSocial()->HasFriend(m_master->GetGUID()));
-        if (!isLeader && !isFriend)
-        {
-            ChatHandler ch(m_master->GetSession());
-            ch.PSendSysMessage("Only group leader and his friends can summon playerbots");
-            return;
-        }
-    }
-
-    LoginQueryHolder* holder = new LoginQueryHolder(accountId, playerGuid);
-    if (!holder->Initialize())
-    {
-        delete holder;                                      // delete all unprocessed queries
-        return;
-    }
-
-    WorldSession* mSession = m_master->GetSession();
-    if (!mSession)
-    {
-        delete holder;
-        return;
-    }
-
-    mSession->_botLoginCallbackSet.push_back(CharacterDatabase.DelayQueryHolder(holder));
-
-    std::string name;
-    sObjectMgr->GetPlayerNameByGUID(playerGuid, name);
-    ChatHandler(m_master->GetSession()).PSendSysMessage("Bot %s added successfully.", name.c_str());
-}
-
-void WorldSession::HandlePlayerBotLogin(LoginQueryHolder* holder)
-{
-    WorldSession* mSession = sWorld->FindSession(holder->GetAccountId());
-    if (!mSession)
-    {
-        //TC_LOG_ERROR(LOG_FILTER_PLAYER, "Failed to create bot. Session if not found!");
-        delete holder;
-        return;
-    }
-    Player* master = mSession->GetPlayer();
-    if (!master)
-    {
-        //TC_LOG_ERROR(LOG_FILTER_PLAYER, "Failed to create bot. Master if not found!");
-        delete holder;
-        return;
-    }
-    //TC_LOG_ERROR(LOG_FILTER_PLAYER, "Creating bot for %s...", master->GetName().c_str());
-    // The bot's WorldSession is owned by the bot's Player object
-    // The bot's WorldSession is deleted by PlayerbotMgr::LogoutPlayerBot
-    WorldSession* botSession = new WorldSession(holder->GetAccountId(), NULL, SEC_PLAYER, mSession->GetSecurity(), mSession->Expansion(), 0, mSession->GetSessionDbcLocale(), 0, false);
-    //botSession->SetRemoteAddress("bot");
-    botSession->m_master = master;
-    botSession->m_Address = "bot";
-    botSession->HandlePlayerLogin(holder); // will delete holder
-    master->GetPlayerbotMgr()->OnBotLogin(botSession->GetPlayer());
-}
-
 void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
 {
     uint64 playerGuid = holder->GetGuid();
@@ -1061,7 +988,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
     pCurrChar->LoadPet();
 
     // Set FFA PvP for non GM in non-rest mode
-    if (sWorld->IsFFAPvPRealm() && !pCurrChar->isGameMaster() && !pCurrChar->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))
+    if (sWorld->IsFFAPvPRealm() && !pCurrChar->IsGameMaster() && !pCurrChar->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))
         pCurrChar->SetByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
 
     if (pCurrChar->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_CONTESTED_PVP))
@@ -1091,7 +1018,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
     if (sWorld->getBoolConfig(CONFIG_ALL_TAXI_PATHS))
         pCurrChar->SetTaxiCheater(true);
 
-    if (pCurrChar->isGameMaster())
+    if (pCurrChar->IsGameMaster())
         SendNotification(LANG_GM_ON);
 
     std::string IP_str = GetRemoteAddress();
@@ -1104,7 +1031,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
     m_playerLoading = false;
 
     //the only place where we check if it has NPC bots
-    if (ConfigMgr::GetBoolDefault("Bot.EnableNpcBots", true))
+    if (sConfigMgr->GetBoolDefault("Bot.EnableNpcBots", true))
     {
         if (QueryResult result = CharacterDatabase.PQuery("SELECT entry,race,class,istank FROM `character_npcbot` WHERE `owner` = '%u'", pCurrChar->GetGUIDLow()))
         {
@@ -1685,7 +1612,7 @@ void WorldSession::HandleEquipmentSetDelete(WorldPacket &recvData)
 
 void WorldSession::HandleEquipmentSetUse(WorldPacket &recvData)
 {
-    if (_player->isInCombat())
+    if (_player->IsInCombat())
         return;
 
     TC_LOG_DEBUG(LOG_FILTER_NETWORKIO, "CMSG_EQUIPMENT_SET_USE");

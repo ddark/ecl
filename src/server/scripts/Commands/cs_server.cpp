@@ -35,7 +35,7 @@ class server_commandscript : public CommandScript
 public:
     server_commandscript() : CommandScript("server_commandscript") { }
 
-    ChatCommand* GetCommands() const
+    ChatCommand* GetCommands() const OVERRIDE
     {
         static ChatCommand serverIdleRestartCommandTable[] =
         {
@@ -117,9 +117,9 @@ public:
 
        // handler->SendSysMessage(_FULLVERSION);
 		handler->PSendSysMessage("Core: Eclcore 3.3.5a");
-        handler->PSendSysMessage("Rev: 17.02.2013");
+        handler->PSendSysMessage("Rev: 26.06.2013");
 		handler->PSendSysMessage("Tdb: rev.51");
-		handler->PSendSysMessage("UP: 18.02.2013");
+		handler->PSendSysMessage("UP: 26.06.2013");
         handler->PSendSysMessage(LANG_CONNECTED_PLAYERS, playersNum, maxPlayersNum);
         handler->PSendSysMessage(LANG_CONNECTED_USERS, activeClientsNum, maxActiveClientsNum, queuedClientsNum, maxQueuedClientsNum);
         handler->PSendSysMessage(LANG_UPTIME, uptime.c_str());
@@ -157,7 +157,7 @@ public:
                 sWorld->SetPlayerSecurityLimit(SEC_ADMINISTRATOR);
             else if (strncmp(paramStr, "reset", limit) == 0)
             {
-                sWorld->SetPlayerAmountLimit(ConfigMgr::GetIntDefault("PlayerLimit", 100));
+                sWorld->SetPlayerAmountLimit(sConfigMgr->GetIntDefault("PlayerLimit", 100));
                 sWorld->LoadDBAllowedSecurityLevel();
             }
             else
@@ -342,7 +342,8 @@ public:
         }
         else
             sWorld->ShutdownServ(time, SHUTDOWN_MASK_IDLE, SHUTDOWN_EXIT_CODE);
-            return true;
+
+        return true;
     }
 
     // Exit the realm

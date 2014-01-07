@@ -44,6 +44,11 @@ set(scripts_STAT_SRCS
   Custom/mr_spell.cpp
   Custom/cs_fake.cpp
   Custom/1.cpp
+  Custom/AIO-4.0a.cpp
+  Custom/npc_gurubashi_theme.cpp
+  Custom/ChangeToken.cpp
+  Custom/TransmogDisplayVendorConf.h
+  Custom/TransmogDisplayVendor.cpp
   Custom/npc_enchant.cpp
   Custom/icc_rings_recovery.cpp
   Custom/arena_fast_start.cpp

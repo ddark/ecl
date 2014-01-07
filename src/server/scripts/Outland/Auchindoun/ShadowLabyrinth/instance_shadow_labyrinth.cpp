@@ -27,11 +27,6 @@ EndScriptData */
 #include "InstanceScript.h"
 #include "shadow_labyrinth.h"
 
-#define MAX_ENCOUNTER 5
-
-#define REFECTORY_DOOR          183296                      //door opened when blackheart the inciter dies
-#define SCREAMING_HALL_DOOR     183295                      //door opened when grandmaster vorpil dies
-
 /* Shadow Labyrinth encounters:
 1 - Ambassador Hellmaw event
 2 - Blackheart the Inciter event
@@ -44,7 +39,7 @@ class instance_shadow_labyrinth : public InstanceMapScript
 public:
     instance_shadow_labyrinth() : InstanceMapScript("instance_shadow_labyrinth", 555) { }
 
-    InstanceScript* GetInstanceScript(InstanceMap* map) const
+    InstanceScript* GetInstanceScript(InstanceMap* map) const OVERRIDE
     {
         return new instance_shadow_labyrinth_InstanceMapScript(map);
     }
@@ -53,7 +48,7 @@ public:
     {
         instance_shadow_labyrinth_InstanceMapScript(Map* map) : InstanceScript(map) {}
 
-        uint32 m_auiEncounter[MAX_ENCOUNTER];
+        uint32 m_auiEncounter[EncounterCount];
         std::string str_data;
 
         uint64 m_uiRefectoryDoorGUID;
@@ -75,7 +70,7 @@ public:
 
         bool IsEncounterInProgress() const
         {
-            for (uint8 i = 0; i < MAX_ENCOUNTER; ++i)
+            for (uint8 i = 0; i < EncounterCount; ++i)
                 if (m_auiEncounter[i] == IN_PROGRESS)
                     return true;
 
@@ -107,7 +102,7 @@ public:
                     m_uiGrandmasterVorpil = creature->GetGUID();
                     break;
                 case 18796:
-                    if (creature->isAlive())
+                    if (creature->IsAlive())
                     {
                         ++m_uiFelOverseerCount;
                         TC_LOG_DEBUG(LOG_FILTER_TSCR, "Shadow Labyrinth: counting %u Fel Overseers.", m_uiFelOverseerCount);
@@ -116,7 +111,7 @@ public:
             }
         }
 
-        void SetData(uint32 type, uint32 uiData)
+        void SetData(uint32 type, uint32 uiData) OVERRIDE
         {
             switch (type)
             {
@@ -179,7 +174,7 @@ public:
             }
         }
 
-        uint32 GetData(uint32 type) const
+        uint32 GetData(uint32 type) const OVERRIDE
         {
             switch (type)
             {
@@ -191,7 +186,7 @@ public:
             return false;
         }
 
-        uint64 GetData64(uint32 identifier) const
+        uint64 GetData64(uint32 identifier) const OVERRIDE
         {
             if (identifier == DATA_GRANDMASTERVORPIL)
                 return m_uiGrandmasterVorpil;
@@ -217,7 +212,7 @@ public:
             std::istringstream loadStream(in);
             loadStream >> m_auiEncounter[0] >> m_auiEncounter[1] >> m_auiEncounter[2] >> m_auiEncounter[3] >> m_auiEncounter[4];
 
-            for (uint8 i = 0; i < MAX_ENCOUNTER; ++i)
+            for (uint8 i = 0; i < EncounterCount; ++i)
                 if (m_auiEncounter[i] == IN_PROGRESS)
                     m_auiEncounter[i] = NOT_STARTED;
 

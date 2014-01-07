@@ -35,7 +35,7 @@ public:
     // Called after the world configuration is (re)loaded.
     void OnConfigLoad(bool /*reload*/)
     {
-        AutoLearnEnable = ConfigMgr::GetBoolDefault("AutoLearn.Enable", false);
+        AutoLearnEnable = sConfigMgr->GetBoolDefault("AutoLearn.Enable", false);
         if (!AutoLearnEnable)
             return;
 
@@ -45,33 +45,33 @@ public:
         OnLoginSpellMask = 0;
         OnCreateSpellMask = 0;
 
-        if (ConfigMgr::GetBoolDefault("AutoLearn.Check.Level", false))
+        if (sConfigMgr->GetBoolDefault("AutoLearn.Check.Level", false))
         {
-            if (ConfigMgr::GetBoolDefault("AutoLearn.SpellClass", false))
+            if (sConfigMgr->GetBoolDefault("AutoLearn.SpellClass", false))
                 OnLevelSpellMask += SPELL_MASK_CLASS;
-            if (ConfigMgr::GetBoolDefault("AutoLearn.SpellRiding", false))
+            if (sConfigMgr->GetBoolDefault("AutoLearn.SpellRiding", false))
                 OnLevelSpellMask += SPELL_MASK_RIDING;
-            if (ConfigMgr::GetBoolDefault("AutoLearn.SpellMount", false))
+            if (sConfigMgr->GetBoolDefault("AutoLearn.SpellMount", false))
                 OnLevelSpellMask += SPELL_MASK_MOUNT;
-            if (ConfigMgr::GetBoolDefault("AutoLearn.SpellWeapon", false))
+            if (sConfigMgr->GetBoolDefault("AutoLearn.SpellWeapon", false))
                 OnLevelSpellMask += SPELL_MASK_WEAPON;
-            if (ConfigMgr::GetBoolDefault("AutoLearn.DualSpec", false))
+            if (sConfigMgr->GetBoolDefault("AutoLearn.DualSpec", false))
                 OnLevelSpellMask += SPELL_MASK_DUAL_SPEC;
 
-            if (ConfigMgr::GetBoolDefault("AutoLearn.Login.Spell", false))
+            if (sConfigMgr->GetBoolDefault("AutoLearn.Login.Spell", false))
                 OnLoginSpellMask += OnLevelSpellMask;
 
-            if (ConfigMgr::GetBoolDefault("AutoLearn.Create.Spell", false))
+            if (sConfigMgr->GetBoolDefault("AutoLearn.Create.Spell", false))
                 OnCreateSpellMask += OnLevelSpellMask;
         }
 
-        if (ConfigMgr::GetBoolDefault("AutoLearn.SpellProfession", false))
+        if (sConfigMgr->GetBoolDefault("AutoLearn.SpellProfession", false))
             OnSkillSpellMask += SPELL_MASK_PROFESSION;
 
-        if (ConfigMgr::GetBoolDefault("AutoLearn.Login.Skill", false))
+        if (sConfigMgr->GetBoolDefault("AutoLearn.Login.Skill", false))
             OnLoginSpellMask += OnSkillSpellMask;
 
-        if (ConfigMgr::GetBoolDefault("AutoLearn.Create.Skill", false))
+        if (sConfigMgr->GetBoolDefault("AutoLearn.Create.Skill", false))
             OnCreateSpellMask += OnSkillSpellMask;
 
         if (loadSpellMask != (OnLevelSpellMask | OnSkillSpellMask))

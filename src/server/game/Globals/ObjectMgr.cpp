@@ -193,7 +193,7 @@ bool SpellClickInfo::IsFitToRequirements(Unit const* clicker, Unit const* clicke
 
     Unit const* summoner = NULL;
     // Check summoners for party
-    if (clickee->isSummon())
+    if (clickee->IsSummon())
         summoner = clickee->ToTempSummon()->GetSummoner();
     if (!summoner)
         summoner = clickee;
@@ -1561,7 +1561,7 @@ void ObjectMgr::LoadCreatures()
         data.curmana        = fields[13].GetUInt32();
         data.movementType   = fields[14].GetUInt8();
         data.spawnMask      = fields[15].GetUInt8();
-        data.phaseMask      = fields[16].GetUInt16();
+        data.phaseMask      = fields[16].GetUInt32();
         int16 gameEvent     = fields[17].GetInt8();
         uint32 PoolId       = fields[18].GetUInt32();
         data.npcflag        = fields[19].GetUInt32();
@@ -1913,7 +1913,7 @@ void ObjectMgr::LoadGameobjects()
         if (data.spawnMask & ~spawnMasks[data.mapid])
             TC_LOG_ERROR(LOG_FILTER_SQL, "Table `gameobject` has gameobject (GUID: %u Entry: %u) that has wrong spawn mask %u including not supported difficulty modes for map (Id: %u), skip", guid, data.id, data.spawnMask, data.mapid);
 
-        data.phaseMask      = fields[15].GetUInt16();
+        data.phaseMask      = fields[15].GetUInt32();
         int16 gameEvent     = fields[16].GetInt8();
         uint32 PoolId        = fields[17].GetUInt32();
 
@@ -2000,12 +2000,12 @@ uint64 ObjectMgr::GetPlayerGUIDByName(std::string const& name) const
     return guid;
 }
 
-bool ObjectMgr::GetPlayerNameByGUID(uint64 guid, std::string &name) const
+bool ObjectMgr::GetPlayerNameByGUID(uint64 guid, std::string& name) const
 {
     // prevent DB access for online player
     if (Player* player = ObjectAccessor::FindPlayer(guid))
     {
-        name = player->GetName();
+        name = player->GetName().c_str();
         return true;
     }
 
@@ -2205,7 +2205,7 @@ void ObjectMgr::LoadItemTemplates()
         itemTemplate.Name1                     = fields[4].GetString();
         itemTemplate.DisplayInfoID             = fields[5].GetUInt32();
         itemTemplate.Quality                   = uint32(fields[6].GetUInt8());
-        itemTemplate.Flags                     = uint32(fields[7].GetInt64());
+        itemTemplate.Flags                     = fields[7].GetUInt32();
         itemTemplate.Flags2                    = fields[8].GetUInt32();
         itemTemplate.BuyCount                  = uint32(fields[9].GetUInt8());
         itemTemplate.BuyPrice                  = int32(fields[10].GetInt64());
@@ -2244,12 +2244,12 @@ void ObjectMgr::LoadItemTemplates()
         }
 
         itemTemplate.Armor          = uint32(fields[56].GetUInt16());
-        itemTemplate.HolyRes        = uint32(fields[57].GetUInt8());
-        itemTemplate.FireRes        = uint32(fields[58].GetUInt8());
-        itemTemplate.NatureRes      = uint32(fields[59].GetUInt8());
-        itemTemplate.FrostRes       = uint32(fields[60].GetUInt8());
-        itemTemplate.ShadowRes      = uint32(fields[61].GetUInt8());
-        itemTemplate.ArcaneRes      = uint32(fields[62].GetUInt8());
+        itemTemplate.HolyRes        = uint32(fields[57].GetInt32());
+        itemTemplate.FireRes        = uint32(fields[58].GetInt32());
+        itemTemplate.NatureRes      = uint32(fields[59].GetInt32());
+        itemTemplate.FrostRes       = uint32(fields[60].GetInt32());
+        itemTemplate.ShadowRes      = uint32(fields[61].GetInt32());
+        itemTemplate.ArcaneRes      = uint32(fields[62].GetInt32());
         itemTemplate.Delay          = uint32(fields[63].GetUInt16());
         itemTemplate.AmmoType       = uint32(fields[64].GetUInt8());
         itemTemplate.RangedModRange = fields[65].GetFloat();
@@ -4888,10 +4888,10 @@ void ObjectMgr::LoadSpellScriptNames()
         Field* fields = result->Fetch();
 
         int32 spellId          = fields[0].GetInt32();
-        const char *scriptName = fields[1].GetCString();
+        char const* scriptName = fields[1].GetCString();
 
         bool allRanks = false;
-        if (spellId <= 0)
+        if (spellId < 0)
         {
             allRanks = true;
             spellId = -spellId;
@@ -4900,25 +4900,35 @@ void ObjectMgr::LoadSpellScriptNames()
         SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
         if (!spellInfo)
         {
-            TC_LOG_ERROR(LOG_FILTER_SQL, "Scriptname:`%s` spell (spell_id:%d) does not exist in `Spell.dbc`.", scriptName, fields[0].GetInt32());
+            TC_LOG_ERROR(LOG_FILTER_SQL, "Scriptname: `%s` spell (Id: %d) does not exist.", scriptName, spellId);
             continue;
         }
 
         if (allRanks)
         {
-            if (sSpellMgr->GetFirstSpellInChain(spellId) != uint32(spellId))
+            if (!spellInfo->IsRanked())
+                TC_LOG_ERROR(LOG_FILTER_SQL, "Scriptname: `%s` spell (Id: %d) has no ranks of spell.", scriptName, fields[0].GetInt32());
+
+            if (spellInfo->GetFirstRankSpell()->Id != uint32(spellId))
             {
-                TC_LOG_ERROR(LOG_FILTER_SQL, "Scriptname:`%s` spell (spell_id:%d) is not first rank of spell.", scriptName, fields[0].GetInt32());
+                TC_LOG_ERROR(LOG_FILTER_SQL, "Scriptname: `%s` spell (Id: %d) is not first rank of spell.", scriptName, fields[0].GetInt32());
                 continue;
             }
+
             while (spellInfo)
             {
                 _spellScriptsStore.insert(SpellScriptsContainer::value_type(spellInfo->Id, GetScriptId(scriptName)));
-                spellInfo = sSpellMgr->GetSpellInfo(spellInfo->Id)->GetNextRankSpell();
+                spellInfo = spellInfo->GetNextRankSpell();
             }
         }
         else
+        {
+            if (spellInfo->IsRanked())
+                TC_LOG_ERROR(LOG_FILTER_SQL, "Scriptname: `%s` spell (Id: %d) is ranked spell. Perhaps not all ranks are assigned to this script.", scriptName, spellId);
+
             _spellScriptsStore.insert(SpellScriptsContainer::value_type(spellInfo->Id, GetScriptId(scriptName)));
+        }
+
         ++count;
     }
     while (result->NextRow());
@@ -5710,7 +5720,7 @@ void ObjectMgr::LoadGraveyardZones()
     TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, ">> Loaded %u graveyard-zone links in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
 
-/*WorldSafeLocsEntry const* ObjectMgr::GetDefaultGraveYard(uint32 team)
+WorldSafeLocsEntry const* ObjectMgr::GetDefaultGraveYard(uint32 team)
 {
     enum DefaultGraveyard
     {
@@ -5724,7 +5734,7 @@ void ObjectMgr::LoadGraveyardZones()
         return sWorldSafeLocsStore.LookupEntry(ALLIANCE_GRAVEYARD);
     else return NULL;
 }
-*/
+
 WorldSafeLocsEntry const* ObjectMgr::GetClosestGraveYard(float x, float y, float z, uint32 MapId, uint32 team)
 {
     // search for zone associated closest graveyard
@@ -5733,11 +5743,11 @@ WorldSafeLocsEntry const* ObjectMgr::GetClosestGraveYard(float x, float y, float
     if (!zoneId)
     {
         if (z > -500)
-   //     {
+        {
            TC_LOG_ERROR(LOG_FILTER_GENERAL, "ZoneId not found for map %u coords (%f, %f, %f)", MapId, x, y, z);
-      //      return GetDefaultGraveYard(team);
-      //  }
-           return NULL; 
+            return GetDefaultGraveYard(team);
+        }
+         //  return NULL; 
     }
 
     // Simulate std. algorithm:
@@ -5751,11 +5761,11 @@ WorldSafeLocsEntry const* ObjectMgr::GetClosestGraveYard(float x, float y, float
     MapEntry const* map = sMapStore.LookupEntry(MapId);
 
     // not need to check validity of map object; MapId _MUST_ be valid here
-    if (range.first == range.second && !map->IsBattleArena())
+    if (range.first == range.second && !map->IsBattlegroundOrArena())
     {
         TC_LOG_ERROR(LOG_FILTER_SQL, "Table `game_graveyard_zone` incomplete: Zone %u Team %u does not have a linked graveyard.", zoneId, team);
-        //return GetDefaultGraveYard(team);
-		return NULL; 
+        return GetDefaultGraveYard(team);
+		//return NULL; 
     }
 
     // at corpse map
@@ -7766,6 +7776,78 @@ SkillRangeType GetSkillRangeType(SkillLineEntry const* pSkill, bool racial)
     }
 }
 
+void ObjectMgr::LoadCreatureOutfits()
+{
+    uint32 oldMSTime = getMSTime();
+
+    _creatureOutfitStore.clear();                           // for reload case (test only)
+
+    //                                                 0     1      2      3     4     5       6           7
+    QueryResult result = WorldDatabase.Query("SELECT entry, race, gender, skin, face, hair, haircolor, facialhair, "
+        //8       9        10    11     12     13    14     15     16     17     18
+        "head, shoulders, body, chest, waist, legs, feet, wrists, hands, back, tabard FROM creature_template_outfits");
+
+    if (!result)
+    {
+        TC_LOG_ERROR(LOG_FILTER_SERVER_LOADING, ">> Loaded 0 creature outfits. DB table `creature_template_outfits` is empty!");
+        return;
+    }
+
+    uint32 count = 0;
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint32 i = 0;
+        uint32 entry   = fields[i++].GetUInt32();
+
+        if (!GetCreatureTemplate(entry))
+        {
+            TC_LOG_ERROR(LOG_FILTER_SERVER_LOADING, ">> Creature entry %u in `creature_template_outfits`, but not in `creature_template`!", entry);
+            continue;
+        }
+
+        CreatureOutfit co; // const, shouldnt be changed after saving
+        co.race         = fields[i++].GetUInt8();
+        const ChrRacesEntry* rEntry = sChrRacesStore.LookupEntry(co.race);
+        if (!rEntry)
+        {
+            TC_LOG_ERROR(LOG_FILTER_SERVER_LOADING, ">> Creature entry %u in `creature_template_outfits` has incorrect race (%u).", entry, uint32(co.race));
+            continue;
+        }
+        co.gender       = fields[i++].GetUInt8();
+        // Set correct displayId
+        switch (co.gender)
+        {
+        case GENDER_FEMALE: _creatureTemplateStore[entry].Modelid1    = rEntry->model_f;    break;
+        case GENDER_MALE:   _creatureTemplateStore[entry].Modelid1    = rEntry->model_m;    break;
+        default:
+            TC_LOG_ERROR(LOG_FILTER_SERVER_LOADING, ">> Creature entry %u in `creature_template_outfits` has invalid gender %u", entry, uint32(co.gender));
+            continue;
+        }
+        _creatureTemplateStore[entry].Modelid2 = 0;
+        _creatureTemplateStore[entry].Modelid3 = 0;
+        _creatureTemplateStore[entry].Modelid4 = 0;
+        _creatureTemplateStore[entry].unit_flags2 |= UNIT_FLAG2_MIRROR_IMAGE; // Needed so client requests mirror packet
+
+        co.skin         = fields[i++].GetUInt8();
+        co.face         = fields[i++].GetUInt8();
+        co.hair         = fields[i++].GetUInt8();
+        co.haircolor    = fields[i++].GetUInt8();
+        co.facialhair   = fields[i++].GetUInt8();
+        for (uint32 j = 0; j < MAX_CREATURE_OUTFIT_DISPLAYS; ++j)
+            co.outfit[j]    = fields[i+j].GetUInt32();
+
+        _creatureOutfitStore[entry] = co;
+
+        ++count;
+    }
+    while (result->NextRow());
+
+    TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, ">> Loaded %u creature outfits in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+}
+
 void ObjectMgr::LoadGameTele()
 {
     uint32 oldMSTime = getMSTime();
@@ -8390,15 +8472,6 @@ bool ObjectMgr::IsVendorItemValid(uint32 vendor_entry, uint32 item_id, int32 max
         return false;
     }
 
-    if (vItems->GetItemCount() >= MAX_VENDOR_ITEMS)
-    {
-        if (player)
-            ChatHandler(player->GetSession()).SendSysMessage(LANG_COMMAND_ADDVENDORITEMITEMS);
-        else
-            TC_LOG_ERROR(LOG_FILTER_SQL, "Table `npc_vendor` has too many items (%u >= %i) for vendor (Entry: %u), ignore", vItems->GetItemCount(), MAX_VENDOR_ITEMS, vendor_entry);
-        return false;
-    }
-
     return true;
 }
 
@@ -8741,6 +8814,108 @@ void ObjectMgr::LoadFactionChangeReputations()
 
     TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, ">> Loaded %u faction change reputation pairs in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
+void ObjectMgr::LoadAreaCustomFlags()
+{
+    uint32 oldMSTime = getMSTime();
+
+    QueryResult result = WorldDatabase.PQuery("SELECT id, flag, x, y, z, radius FROM area_custom_flag");
+
+    if (!result)
+    {
+        TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, ">> Loaded 0 Area Custom Flags. DB table `area_custom_flag` is empty.");
+        return;
+    }
+
+    uint32 count = 0;
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        AreaCustomFlagTPL container;
+        container.flag = fields[1].GetUInt8();
+        container.x = fields[2].GetFloat();
+        container.y = fields[3].GetFloat();
+        container.z = fields[4].GetFloat();
+        container.radius = fields[5].GetUInt32();
+
+        _areaCustomFlags.push_back(container);
+
+        ++count;
+    }
+    while (result->NextRow());
+
+    TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, ">> Loaded %u Area Custom Flags in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+}
+
+void ObjectMgr::LoadPlayerCustomStats()
+{
+	uint32 oldMSTime = getMSTime();
+
+	QueryResult result = WorldDatabase.PQuery("SELECT race,class,level,str,agi,sta,inte,spi FROM player_bonus_stats");
+
+	if(!result)
+	{
+		TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, ">> Loaded 0 Custom Player Stats. DB table `player_bonus_stats` is empty.");
+		return;
+	}
+
+	uint32 count = 0;
+
+	do
+	{
+		Field* fields = result->Fetch();
+
+            uint32 current_race = fields[0].GetUInt8();
+            if (current_race >= MAX_RACES)
+            {
+                TC_LOG_ERROR(LOG_FILTER_SQL, "Wrong race %u in `player_levelstats` table, ignoring.", current_race);
+                continue;
+            }
+
+            uint32 current_class = fields[1].GetUInt8();
+            if (current_class >= MAX_CLASSES)
+            {
+                TC_LOG_ERROR(LOG_FILTER_SQL, "Wrong class %u in `player_levelstats` table, ignoring.", current_class);
+                continue;
+            }
+
+            uint32 current_level = fields[2].GetUInt8();
+            if (current_level > sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
+            {
+                if (current_level > STRONG_MAX_LEVEL)        // hardcoded level maximum
+                    TC_LOG_ERROR(LOG_FILTER_SQL, "Wrong (> %u) level %u in `player_levelstats` table, ignoring.", STRONG_MAX_LEVEL, current_level);
+                else
+                {
+                    TC_LOG_INFO(LOG_FILTER_GENERAL, "Unused (> MaxPlayerLevel in worldserver.conf) level %u in `player_levelstats` table, ignoring.", current_level);
+                    ++count;                                // make result loading percent "expected" correct in case disabled detail mode for example.
+                }
+                continue;
+            }
+
+            if (PlayerInfo* info = _playerInfo[current_race][current_class])
+            {
+                if (!info->levelInfo)
+                    info->levelInfo = new PlayerLevelInfo[sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)];
+
+                PlayerLevelInfo& levelInfo = info->levelInfo[current_level-1];
+                for (int i = 0; i < MAX_STATS; i++)
+					if(levelInfo.stats[i] > 0)
+					{
+						levelInfo.stats[i] += fields[i+3].GetUInt64();
+					}
+					else
+					{
+						levelInfo.stats[i] = fields[i+3].GetUInt64();
+					}
+            }
+
+            ++count;
+	}
+	while (result->NextRow());
+
+	TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, ">> Loaded %u Custom Player Stats in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+ }
 
 void ObjectMgr::LoadFactionChangeSpells()
 {

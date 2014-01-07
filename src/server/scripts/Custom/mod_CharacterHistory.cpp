@@ -32,15 +32,15 @@ class mod_CharacterHistory_WorldScript : public WorldScript
     // Called after the world configuration is (re)loaded.
     void OnConfigLoad(bool /*reload*/)
     {
-        CharacterHistoryEnable    = ConfigMgr::GetBoolDefault("CharacterHistory.Enable", false);
+        CharacterHistoryEnable    = sConfigMgr->GetBoolDefault("CharacterHistory.Enable", false);
 
         if (!CharacterHistoryEnable)
             return;
 
-        CharacterHistoryLogin     = ConfigMgr::GetBoolDefault("CharacterHistory.Login", false);
-        CharacterHistoryLogout    = ConfigMgr::GetBoolDefault("CharacterHistory.Logout", false);
-        CharacterHistoryCreate    = ConfigMgr::GetBoolDefault("CharacterHistory.Create", false);
-        CharacterHistoryDelete    = ConfigMgr::GetBoolDefault("CharacterHistory.Delete", false);
+        CharacterHistoryLogin     = sConfigMgr->GetBoolDefault("CharacterHistory.Login", false);
+        CharacterHistoryLogout    = sConfigMgr->GetBoolDefault("CharacterHistory.Logout", false);
+        CharacterHistoryCreate    = sConfigMgr->GetBoolDefault("CharacterHistory.Create", false);
+        CharacterHistoryDelete    = sConfigMgr->GetBoolDefault("CharacterHistory.Delete", false);
     }
 };
 

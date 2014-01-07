@@ -17,7 +17,7 @@ class Mod_SpecialCode_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        SCEnable = ConfigMgr::GetBoolDefault("SpecialCode.Enable", false);
+        SCEnable = sConfigMgr->GetBoolDefault("SpecialCode.Enable", false);
     }
 };
 

@@ -68,7 +68,7 @@ public:
 
         void Counter()
         {
-            Unit* u = me->getVictim();
+            Unit* u = me->GetVictim();
             bool cSpell = CounterSpell_cd <= 5000;
             bool blast = FireBlast_cd <= 3000 && !(u && u->ToCreature() && (u->ToCreature()->isWorldBoss() || u->ToCreature()->IsDungeonBoss())) && me->HasAura(IMPACT_BUFF);
             if (!cSpell && !blast) return;
@@ -124,7 +124,7 @@ public:
         bool BuffTarget(Unit* target, uint32 diff)
         {
             if (GC_Timer > diff || !target || target->isDead() || Rand() > 50) return false;
-            if (me->isInCombat() && !master->GetMap()->IsRaid()) return false;
+            if (me->IsInCombat() && !master->GetMap()->IsRaid()) return false;
             if (me->GetExactDist(target) > 30) return false;
             if (target->getPowerType() == POWER_MANA && 
                 !HasAuraName(target, ARCANEINTELLECT) && 
@@ -140,7 +140,7 @@ public:
         {
             ReduceCD(diff);
             if (IAmDead()) return;
-            if (!me->getVictim())
+            if (!me->GetVictim())
                 Evade();
             if (clearcast && me->HasAura(CLEARCASTBUFF) && !me->IsNonMeleeSpellCasted(false))
             {
@@ -170,7 +170,7 @@ public:
             FocusMagic(diff);
             BuffAndHealGroup(master, diff);
 
-            if (!me->isInCombat())
+            if (!me->IsInCombat())
                 DoNonCombatActions(diff);
             
             if (!CheckAttackTarget(CLASS_MAGE))
@@ -185,7 +185,7 @@ public:
 
         void DoNormalAttack(uint32 diff)
         {
-            opponent = me->getVictim();
+            opponent = me->GetVictim();
             if (opponent)
             {
                 if (!IsCasting())
@@ -198,7 +198,7 @@ public:
 
             Unit* u = me->SelectNearestTarget(20);
             //ICE_BARRIER
-            if (ICE_BARRIER && Ice_Barrier_cd <= diff && u && u->getVictim() == me && 
+            if (ICE_BARRIER && Ice_Barrier_cd <= diff && u && u->GetVictim() == me && 
                 u->GetDistance(me) < 8 && !me->HasAura(ICE_BARRIER))
             {
                 if (me->IsNonMeleeSpellCasted(true))
@@ -211,7 +211,7 @@ public:
                 }
             }
             if ((!ICE_BARRIER || Ice_Barrier_cd > diff) && 
-                BLINK && Blink_cd < 3000 && u && u->getVictim() == me && 
+                BLINK && Blink_cd < 3000 && u && u->GetVictim() == me && 
                 !me->HasAura(ICE_BARRIER) && u->GetDistance(me) < 6)
             {
                 if (me->IsNonMeleeSpellCasted(true))
@@ -274,9 +274,9 @@ public:
                 Pyroblast_cd = 50;
             //nova //TODO: SEPARATE
             u = me->SelectNearestTarget(7);
-            if (u && NOVA && Nova_cd <= diff && !CCed(u, true) && IsInBotParty(u->getVictim()))
+            if (u && NOVA && Nova_cd <= diff && !CCed(u, true) && IsInBotParty(u->GetVictim()))
             {
-                Unit* tar = u->getVictim();
+                Unit* tar = u->GetVictim();
                 if (tar && IsInBotParty(tar) && doCast(me, NOVA))
                 {
                     Nova_cd = 15000;
@@ -378,7 +378,7 @@ public:
         {
             if (Polymorph == false && GC_Timer < 500)
             {
-                if (Unit* target = FindPolyTarget(30, me->getVictim()))
+                if (Unit* target = FindPolyTarget(30, me->GetVictim()))
                 {
                     if (doCast(target, POLYMORPH))
                     {
@@ -430,7 +430,7 @@ public:
             {
                 if (Unit* op = me->SelectNearestTarget(10))
                 {
-                    if (op->getVictim() == me)
+                    if (op->GetVictim() == me)
                     {
                         me->SetFacingTo(me->GetAngle(master));
                         if (doCast(me, BLINK))
@@ -464,7 +464,7 @@ public:
                 {
                     for (GroupReference* itr = pGroup->GetFirstMember(); itr != NULL; itr = itr->next())
                     {
-                        Player* pPlayer = itr->getSource();
+                        Player* pPlayer = itr->GetSource();
                         if (!pPlayer || pPlayer->isDead()) continue;
                         if (me->GetMapId() != pPlayer->GetMapId()) continue;
                         if ((pPlayer->getClass() == CLASS_MAGE || 
@@ -483,7 +483,7 @@ public:
                     {
                         for (GroupReference* itr = pGroup->GetFirstMember(); itr != NULL; itr = itr->next())
                         {
-                            Player* pPlayer = itr->getSource();
+                            Player* pPlayer = itr->GetSource();
                             if (!pPlayer || !pPlayer->HaveBot()) continue;
                             if (me->GetMapId() != pPlayer->GetMapId()) continue;
                             for (uint8 i = 0; i != pPlayer->GetMaxNpcBots(); ++i)

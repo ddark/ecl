@@ -48,13 +48,13 @@ enum Spells
 
 enum Events
 {
-    EVENT_SPAWN_START_SPIDERS = 0, // Phase 1
-    EVENT_POISON_VOLLEY       = 1, // Phase All
-    EVENT_SPAWN_SPIDER        = 2, // Phase All
-    EVENT_CHARGE_PLAYER       = 3, // Phase 3
-    EVENT_ASPECT_OF_MARLI     = 4, // Phase 2
-    EVENT_TRANSFORM           = 5, // Phase 2
-    EVENT_TRANSFORM_BACK      = 6  // Phase 3
+    EVENT_SPAWN_START_SPIDERS = 1, // Phase 1
+    EVENT_POISON_VOLLEY       = 2, // Phase All
+    EVENT_SPAWN_SPIDER        = 3, // Phase All
+    EVENT_CHARGE_PLAYER       = 4, // Phase 3
+    EVENT_ASPECT_OF_MARLI     = 5, // Phase 2
+    EVENT_TRANSFORM           = 6, // Phase 2
+    EVENT_TRANSFORM_BACK      = 7  // Phase 3
 };
 
 enum Phases
@@ -77,25 +77,25 @@ class boss_marli : public CreatureScript
         {
             boss_marliAI(Creature* creature) : BossAI(creature, DATA_MARLI) {}
 
-            void Reset()
+            void Reset() OVERRIDE
             {
                 _Reset();
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) OVERRIDE
             {
                 _JustDied();
                 Talk(SAY_DEATH);
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) OVERRIDE
             {
                 _EnterCombat();
                 events.ScheduleEvent(EVENT_SPAWN_START_SPIDERS, 1000, 0, PHASE_ONE);
                 Talk(SAY_AGGRO);
             }
 
-            void UpdateAI(uint32 diff)
+            void UpdateAI(uint32 diff) OVERRIDE
             {
                 if (!UpdateVictim())
                     return;
@@ -153,57 +153,54 @@ class boss_marli : public CreatureScript
                             events.ScheduleEvent(EVENT_SPAWN_SPIDER, urand(12000, 17000));
                             break;
                         case EVENT_TRANSFORM:
-                            {
-                                Talk(SAY_TRANSFORM);
-                                DoCast(me, SPELL_SPIDER_FORM);
-                                const CreatureTemplate* cinfo = me->GetCreatureTemplate();
-                                me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (cinfo->mindmg +((cinfo->mindmg/100) * 35)));
-                                me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (cinfo->maxdmg +((cinfo->maxdmg/100) * 35)));
-                                me->UpdateDamagePhysical(BASE_ATTACK);
-                                DoCast(me->getVictim(), SPELL_ENVOLWINGWEB);
-                                if (DoGetThreat(me->getVictim()))
-                                    DoModifyThreatPercent(me->getVictim(), -100);
-                                events.ScheduleEvent(EVENT_CHARGE_PLAYER, 1500, 0, PHASE_THREE);
-                                events.ScheduleEvent(EVENT_TRANSFORM_BACK, 25000, 0, PHASE_THREE);
-                                events.SetPhase(PHASE_THREE);
-                                break;
-                            }
+                        {
+                            Talk(SAY_TRANSFORM);
+                            DoCast(me, SPELL_SPIDER_FORM);
+                            CreatureTemplate const* cinfo = me->GetCreatureTemplate();
+                            me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (cinfo->mindmg +((cinfo->mindmg/100) * 35)));
+                            me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (cinfo->maxdmg +((cinfo->maxdmg/100) * 35)));
+                            me->UpdateDamagePhysical(BASE_ATTACK);
+                            DoCastVictim(SPELL_ENVOLWINGWEB);
+                            if (DoGetThreat(me->GetVictim()))
+                                DoModifyThreatPercent(me->GetVictim(), -100);
+                            events.ScheduleEvent(EVENT_CHARGE_PLAYER, 1500, 0, PHASE_THREE);
+                            events.ScheduleEvent(EVENT_TRANSFORM_BACK, 25000, 0, PHASE_THREE);
+                            events.SetPhase(PHASE_THREE);
+                            break;
+                        }
                         case EVENT_CHARGE_PLAYER:
+                        {
+                            Unit* target = NULL;
+                            int i = 0;
+                            while (i++ < 3) // max 3 tries to get a random target with power_mana
                             {
-                                Unit* target = NULL;
-                                int i = 0;
-                                while (i < 3) // max 3 tries to get a random target with power_mana
-                                {
-                                    ++i;
-                                    Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1, 100, true);  // not aggro leader
-                                    if (target && target->getPowerType() == POWER_MANA)
-                                        i = 3;
-                                }
-                                if (target)
-                                {
-                                    DoCast(target, SPELL_CHARGE);
-                                    //me->SetPosition(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), 0);
-                                    //me->SendMonsterMove(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), 0, true, 1);
-                                    AttackStart(target);
-                                }
-                                events.ScheduleEvent(EVENT_CHARGE_PLAYER, 8000, 0, PHASE_THREE);
-                                break;
+                                target = SelectTarget(SELECT_TARGET_RANDOM, 1, 100, true);  // not aggro leader
+                                if (target && target->getPowerType() == POWER_MANA)
+                                    break;
                             }
+                            if (target)
+                            {
+                                DoCast(target, SPELL_CHARGE);
+                                AttackStart(target);
+                            }
+                            events.ScheduleEvent(EVENT_CHARGE_PLAYER, 8000, 0, PHASE_THREE);
+                            break;
+                        }
                         case EVENT_TRANSFORM_BACK:
-                            {
-                                me->SetDisplayId(MODEL_MARLI);
-                                const CreatureTemplate* cinfo = me->GetCreatureTemplate();
-                                me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (cinfo->mindmg +((cinfo->mindmg/100) * 1)));
-                                me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (cinfo->maxdmg +((cinfo->maxdmg/100) * 1)));
-                                me->UpdateDamagePhysical(BASE_ATTACK);
-                                events.ScheduleEvent(EVENT_ASPECT_OF_MARLI, 12000, 0, PHASE_TWO);
-                                events.ScheduleEvent(EVENT_TRANSFORM, 45000, 0, PHASE_TWO);
-                                events.ScheduleEvent(EVENT_POISON_VOLLEY, 15000);
-                                events.ScheduleEvent(EVENT_SPAWN_SPIDER, 30000);
-                                events.ScheduleEvent(EVENT_TRANSFORM, urand(35000, 60000), 0, PHASE_TWO);
-                                events.SetPhase(PHASE_TWO);
-                                break;
-                            }
+                        {
+                            me->SetDisplayId(MODEL_MARLI);
+                            CreatureTemplate const* cinfo = me->GetCreatureTemplate();
+                            me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (cinfo->mindmg +((cinfo->mindmg/100) * 1)));
+                            me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (cinfo->maxdmg +((cinfo->maxdmg/100) * 1)));
+                            me->UpdateDamagePhysical(BASE_ATTACK);
+                            events.ScheduleEvent(EVENT_ASPECT_OF_MARLI, 12000, 0, PHASE_TWO);
+                            events.ScheduleEvent(EVENT_TRANSFORM, 45000, 0, PHASE_TWO);
+                            events.ScheduleEvent(EVENT_POISON_VOLLEY, 15000);
+                            events.ScheduleEvent(EVENT_SPAWN_SPIDER, 30000);
+                            events.ScheduleEvent(EVENT_TRANSFORM, urand(35000, 60000), 0, PHASE_TWO);
+                            events.SetPhase(PHASE_TWO);
+                            break;
+                        }
                         default:
                             break;
                     }
@@ -213,33 +210,33 @@ class boss_marli : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
             return new boss_marliAI(creature);
         }
 };
 
 // Spawn of Marli
-class mob_spawn_of_marli : public CreatureScript
+class npc_spawn_of_marli : public CreatureScript
 {
-    public: mob_spawn_of_marli() : CreatureScript("mob_spawn_of_marli") {}
+    public: npc_spawn_of_marli() : CreatureScript("npc_spawn_of_marli") {}
 
-        struct mob_spawn_of_marliAI : public ScriptedAI
+        struct npc_spawn_of_marliAI : public ScriptedAI
         {
-            mob_spawn_of_marliAI(Creature* creature) : ScriptedAI(creature) {}
+            npc_spawn_of_marliAI(Creature* creature) : ScriptedAI(creature) {}
 
             uint32 LevelUp_Timer;
 
-            void Reset()
+            void Reset() OVERRIDE
             {
                 LevelUp_Timer = 3000;
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) OVERRIDE
             {
             }
 
-            void UpdateAI(uint32 diff)
+            void UpdateAI(uint32 diff) OVERRIDE
             {
                 //Return since we have no target
                 if (!UpdateVictim())
@@ -256,14 +253,14 @@ class mob_spawn_of_marli : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
-            return new mob_spawn_of_marliAI(creature);
+            return new npc_spawn_of_marliAI(creature);
         }
 };
 
 void AddSC_boss_marli()
 {
     new boss_marli();
-    new mob_spawn_of_marli();
+    new npc_spawn_of_marli();
 }

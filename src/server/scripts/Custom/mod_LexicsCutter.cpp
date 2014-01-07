@@ -298,40 +298,40 @@ class Mod_LexicsCutter_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        LexicsCutterEnable = ConfigMgr::GetBoolDefault("LexicsCutter.Enable", false);
+        LexicsCutterEnable = sConfigMgr->GetBoolDefault("LexicsCutter.Enable", false);
 		LexicsCutterChats = 0;
 
         if (!LexicsCutterEnable)
             return;
 			
-		std::string analogsFileName = ConfigMgr::GetStringDefault("LexicsCutter.AnalogsFile", "");
-        std::string innormativeWordsFileName = ConfigMgr::GetStringDefault("LexicsCutter.WordsFile", "");
+		std::string analogsFileName = sConfigMgr->GetStringDefault("LexicsCutter.AnalogsFile", "");
+        std::string innormativeWordsFileName = sConfigMgr->GetStringDefault("LexicsCutter.WordsFile", "");
 		
 		if (analogsFileName.empty() || innormativeWordsFileName.empty())
             return;
 
-		if (ConfigMgr::GetBoolDefault("LexicsCutter.Chat", false))
+		if (sConfigMgr->GetBoolDefault("LexicsCutter.Chat", false))
 			LexicsCutterChats += LEXICS_CUTTER_CHAT;
-		if (ConfigMgr::GetBoolDefault("LexicsCutter.Whisper", false))
+		if (sConfigMgr->GetBoolDefault("LexicsCutter.Whisper", false))
 			LexicsCutterChats += LEXICS_CUTTER_WHISPER;
-		if (ConfigMgr::GetBoolDefault("LexicsCutter.Group", false))
+		if (sConfigMgr->GetBoolDefault("LexicsCutter.Group", false))
 			LexicsCutterChats += LEXICS_CUTTER_GROUP;
-		if (ConfigMgr::GetBoolDefault("LexicsCutter.Guild", false))
+		if (sConfigMgr->GetBoolDefault("LexicsCutter.Guild", false))
 			LexicsCutterChats += LEXICS_CUTTER_GUILD;
-		if (ConfigMgr::GetBoolDefault("LexicsCutter.Channel", false))
+		if (sConfigMgr->GetBoolDefault("LexicsCutter.Channel", false))
 			LexicsCutterChats += LEXICS_CUTTER_CHANNEL;
 			
-		LexicsCutterMuteTime = ConfigMgr::GetIntDefault("LexicsCutter.MuteTime", 60000);
+		LexicsCutterMuteTime = sConfigMgr->GetIntDefault("LexicsCutter.MuteTime", 60000);
 			
 		if (lexics) {
 			delete lexics;
 		}
 
-		LexicsCutterReplacement = ConfigMgr::GetStringDefault("LexicsCutter.Replacement", "&!@^%!^&*!!!");
+		LexicsCutterReplacement = sConfigMgr->GetStringDefault("LexicsCutter.Replacement", "&!@^%!^&*!!!");
 		
 		lexics = new LexicsCutter(analogsFileName, innormativeWordsFileName,
-                ConfigMgr::GetBoolDefault("LexicsCutter.IgnoreSpaces", true),
-                ConfigMgr::GetBoolDefault("LexicsCutter.IgnoreRepeats", true));
+                sConfigMgr->GetBoolDefault("LexicsCutter.IgnoreSpaces", true),
+                sConfigMgr->GetBoolDefault("LexicsCutter.IgnoreRepeats", true));
     }
 
 };
@@ -368,7 +368,7 @@ public:
  
 	void CheckMessage(uint8 type, Player* player, std::string& msg, uint32 lang, Player* /*receiver*/, Group* /*group*/, Guild* /*guild*/, Channel* /*channel*/)
 	{
-		if (player->isGameMaster() || lang == LANG_ADDON)
+		if (player->IsGameMaster() || lang == LANG_ADDON)
 			return;
 			
 		if (!(type & LexicsCutterChats))

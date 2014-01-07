@@ -60,7 +60,7 @@ public:
             return false;
         }
 
-        if(plr->isInCombat() || plr->isInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
+        if(plr->IsInCombat() || plr->IsInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
         {
             handler->SendSysMessage(LANG_VIP_ERROR);
             handler->SetSentErrorMessage(true);
@@ -91,7 +91,7 @@ public:
             return false;
         }
  
-        if (plr->isInCombat() || plr->isInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
+        if (plr->IsInCombat() || plr->IsInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
         {
             handler->SendSysMessage(LANG_VIP_ERROR);
             handler->SetSentErrorMessage(true);
@@ -121,7 +121,7 @@ public:
             return false;
         }
 
-        if (plr->isInCombat() || plr->isInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
+        if (plr->IsInCombat() || plr->IsInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
         {
             handler->SendSysMessage(LANG_VIP_ERROR);
             handler->SetSentErrorMessage(true);
@@ -152,7 +152,7 @@ public:
             return false;
         }
 
-        if (plr->isInCombat() || plr->isInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
+        if (plr->IsInCombat() || plr->IsInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
         {
             handler->SendSysMessage(LANG_VIP_ERROR);
             handler->SetSentErrorMessage(true);
@@ -183,7 +183,7 @@ public:
             return false;
         }
 
-        if (plr->isInCombat() || plr->isInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
+        if (plr->IsInCombat() || plr->IsInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
         {
             handler->SendSysMessage(LANG_VIP_ERROR);
             handler->SetSentErrorMessage(true);
@@ -216,7 +216,7 @@ public:
             return false;
         }
 
-        if (plr->isInCombat() || plr->isInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
+        if (plr->IsInCombat() || plr->IsInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
         {
             handler->SendSysMessage(LANG_VIP_ERROR);
             handler->SetSentErrorMessage(true);
@@ -247,7 +247,7 @@ public:
             return false;
         }
 
-        if (plr->isInCombat() || plr->isInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
+        if (plr->IsInCombat() || plr->IsInFlight() || plr->GetMap()->IsBattlegroundOrArena() || plr->HasStealthAura() || plr->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || plr->isDead())
         {
             handler->SendSysMessage(LANG_VIP_ERROR);
             handler->SetSentErrorMessage(true);

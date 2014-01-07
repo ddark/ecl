@@ -115,7 +115,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
         else if (Battleground* bg = _player->GetBattleground())
         {
             if (_player->IsInvitedForBattlegroundInstance(_player->GetBattlegroundId()))
-                if (!_player->isGameMaster())//trinity_nya
+                if (!_player->IsGameMaster())//trinity_nya
                     bg->AddPlayer(_player);
         }
     }
@@ -285,14 +285,14 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)
     {
         // transports size limited
         // (also received at zeppelin leave by some reason with t_* as absolute in continent coordinates, can be safely skipped)
-        if (movementInfo.t_pos.GetPositionX() > 50 || movementInfo.t_pos.GetPositionY() > 50 || movementInfo.t_pos.GetPositionZ() > 50)
+        if (movementInfo.transport.pos.GetPositionX() > 50 || movementInfo.transport.pos.GetPositionY() > 50 || movementInfo.transport.pos.GetPositionZ() > 50)
         {
             recvData.rfinish();                 // prevent warnings spam
             return;
         }
 
-        if (!Trinity::IsValidMapCoord(movementInfo.pos.GetPositionX() + movementInfo.t_pos.GetPositionX(), movementInfo.pos.GetPositionY() + movementInfo.t_pos.GetPositionY(),
-            movementInfo.pos.GetPositionZ() + movementInfo.t_pos.GetPositionZ(), movementInfo.pos.GetOrientation() + movementInfo.t_pos.GetOrientation()))
+        if (!Trinity::IsValidMapCoord(movementInfo.pos.GetPositionX() + movementInfo.transport.pos.GetPositionX(), movementInfo.pos.GetPositionY() + movementInfo.transport.pos.GetPositionY(),
+            movementInfo.pos.GetPositionZ() + movementInfo.transport.pos.GetPositionZ(), movementInfo.pos.GetOrientation() + movementInfo.transport.pos.GetOrientation()))
         {
             recvData.rfinish();                 // prevent warnings spam
             return;
@@ -306,7 +306,7 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)
                 // elevators also cause the client to send MOVEMENTFLAG_ONTRANSPORT - just dismount if the guid can be found in the transport list
                 for (MapManager::TransportSet::const_iterator iter = sMapMgr->m_Transports.begin(); iter != sMapMgr->m_Transports.end(); ++iter)
                 {
-                    if ((*iter)->GetGUID() == movementInfo.t_guid)
+                    if ((*iter)->GetGUID() == movementInfo.transport.guid)
                     {
                         plrMover->m_transport = *iter;
                         (*iter)->AddPassenger(plrMover);
@@ -314,13 +314,13 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)
                     }
                 }
             }
-            else if (plrMover->GetTransport()->GetGUID() != movementInfo.t_guid)
+            else if (plrMover->GetTransport()->GetGUID() != movementInfo.transport.guid)
             {
                 bool foundNewTransport = false;
                 plrMover->m_transport->RemovePassenger(plrMover);
                 for (MapManager::TransportSet::const_iterator iter = sMapMgr->m_Transports.begin(); iter != sMapMgr->m_Transports.end(); ++iter)
                 {
-                    if ((*iter)->GetGUID() == movementInfo.t_guid)
+                    if ((*iter)->GetGUID() == movementInfo.transport.guid)
                     {
                         foundNewTransport = true;
                         plrMover->m_transport = *iter;
@@ -332,16 +332,14 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)
                 if (!foundNewTransport)
                 {
                     plrMover->m_transport = NULL;
-                    movementInfo.t_pos.Relocate(0.0f, 0.0f, 0.0f, 0.0f);
-                    movementInfo.t_time = 0;
-                    movementInfo.t_seat = -1;
+                    movementInfo.transport.Reset();
                 }
             }
         }
 
         if (!mover->GetTransport() && !mover->GetVehicle())
         {
-            GameObject* go = mover->GetMap()->GetGameObject(movementInfo.t_guid);
+            GameObject* go = mover->GetMap()->GetGameObject(movementInfo.transport.guid);
             if (!go || go->GetGoType() != GAMEOBJECT_TYPE_TRANSPORT)
                 movementInfo.flags &= ~MOVEMENTFLAG_ONTRANSPORT;
         }
@@ -350,13 +348,11 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)
     {
         plrMover->m_transport->RemovePassenger(plrMover);
         plrMover->m_transport = NULL;
-        movementInfo.t_pos.Relocate(0.0f, 0.0f, 0.0f, 0.0f);
-        movementInfo.t_time = 0;
-        movementInfo.t_seat = -1;
+        movementInfo.transport.Reset();
     }
 
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
-    if (opcode == MSG_MOVE_FALL_LAND && plrMover && !plrMover->isInFlight())
+    if (opcode == MSG_MOVE_FALL_LAND && plrMover && !plrMover->IsInFlight())
         plrMover->HandleFall(movementInfo);
 
     if (plrMover && ((movementInfo.flags & MOVEMENTFLAG_SWIMMING) != 0) != plrMover->IsInWater())
@@ -392,20 +388,64 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)
     {
         plrMover->UpdateFallInformationIfNeed(movementInfo, opcode);
 
+		float underMapValueZ;
+        switch (plrMover->GetMapId())
+        {
+            case 617: // Dalaran Sewers
+                underMapValueZ = 3.0f;
+                break; 
+            case 618: // Ring of Valor
+                underMapValueZ = 28.0f;
+                break;
+            case 562: // Blade Edge Arena
+                underMapValueZ = -10.0f;
+                break;
+            case 559: // Nagrand arena
+                underMapValueZ = -18.0f;
+                break;
+            case 572: // Lordearon
+                underMapValueZ = 28.0f;
+                break;
+            case 571: // Northrend
+                underMapValueZ = -400.0f;
+                break;
+            default:
+                underMapValueZ = -500.0f;
+                break;
+        }
+
+        if (plrMover->GetMapId() == 617 && movementInfo.pos.GetPositionZ() < 3.0) // Dalaran Arena
+            plrMover->TeleportTo(617, 13313.605f, 813.23f, 7.11f, 5.1f);
+
         if (movementInfo.pos.GetPositionZ() < -500.0f)
         {
-            if (!(plrMover->GetBattleground() && plrMover->GetBattleground()->HandlePlayerUnderMap(_player)))
+            if (underMapValueZ != -500) // Only Case Values
+            {
+                // Hackfix for ArenaUnderZ -> Teleport
+                if (plrMover->GetMapId() == 572) // Lordaeron Arena
+                    plrMover->TeleportTo(572, 1286.14868f, 1667.32f, 41.0f, 1.6f);
+
+                if (plrMover->GetMapId() == 559) // Nagrand Arena
+                    plrMover->TeleportTo(559, 4052.79868f, 2926.32f, 16.0f, 1.6f);
+
+                if (plrMover->GetMapId() == 562) // Blade Edge arena
+                    plrMover->TeleportTo(562, 6237.79768f, 261.142f, 2.0f, 4.0f);
+
+                if (plrMover->GetMapId() == 617) // Dalaran Arena
+                    plrMover->TeleportTo(617, 1292.34868f, 790.40f, 8.5f, 1.6f);
+            }
+            else if (!(plrMover->GetBattleground() && plrMover->GetBattleground()->HandlePlayerUnderMap(_player)))
             {
                 // NOTE: this is actually called many times while falling
                 // even after the player has been teleported away
                 /// @todo discard movement packets after the player is rooted
-                if (plrMover->isAlive())
+                if (plrMover->IsAlive())
                 {
                     plrMover->EnvironmentalDamage(DAMAGE_FALL_TO_VOID, GetPlayer()->GetMaxHealth());
                     // player can be alive if GM/etc
                     // change the death state to CORPSE to prevent the death timer from
                     // starting in the next player update
-                    if (!plrMover->isAlive())
+                    if (!plrMover->IsAlive())
                         plrMover->KillPlayer();
                 }
             }
@@ -551,10 +591,10 @@ void WorldSession::HandleMoveKnockBackAck(WorldPacket& recvData)
     _player->BuildMovementPacket(&data);
 
     // knockback specific info
-    data << movementInfo.j_sinAngle;
-    data << movementInfo.j_cosAngle;
-    data << movementInfo.j_xyspeed;
-    data << movementInfo.j_zspeed;
+    data << movementInfo.jump.sinAngle;
+    data << movementInfo.jump.cosAngle;
+    data << movementInfo.jump.xyspeed;
+    data << movementInfo.jump.zspeed;
 
     _player->SendMessageToSet(&data, false);
 }
@@ -591,7 +631,7 @@ void WorldSession::HandleMoveWaterWalkAck(WorldPacket& recvData)
 
 void WorldSession::HandleSummonResponseOpcode(WorldPacket& recvData)
 {
-    if (!_player->isAlive() || _player->isInCombat())
+    if (!_player->IsAlive() || _player->IsInCombat())
         return;
 
     uint64 summoner_guid;

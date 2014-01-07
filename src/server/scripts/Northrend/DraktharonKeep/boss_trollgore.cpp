@@ -31,7 +31,7 @@ enum Spells
     SPELL_CORPSE_EXPLODE                          = 49555,
     SPELL_CONSUME                                 = 49380,
     SPELL_CONSUME_AURA                            = 49381,
-    //Heroic spells
+    // Heroic spells
     H_SPELL_CORPSE_EXPLODE                        = 59807,
     H_SPELL_CONSUME                               = 59803,
     H_SPELL_CONSUME_AURA                          = 59805,
@@ -52,7 +52,10 @@ enum Creatures
     NPC_DRAKKARI_INVADER_2                        = 27709
 };
 
-#define DATA_CONSUMPTION_JUNCTION                 1
+enum Misc
+{
+    DATA_CONSUMPTION_JUNCTION                     = 1
+};
 
 Position AddSpawnPoint = { -260.493011f, -622.968018f, 26.605301f, 3.036870f };
 
@@ -81,7 +84,7 @@ public:
 
         InstanceScript* instance;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             uiConsumeTimer = 15*IN_MILLISECONDS;
             uiAuraCountTimer = 15500;
@@ -96,19 +99,16 @@ public:
 
             me->RemoveAura(DUNGEON_MODE(SPELL_CONSUME_AURA, H_SPELL_CONSUME_AURA));
 
-            if (instance)
-                instance->SetData(DATA_TROLLGORE_EVENT, NOT_STARTED);
+            instance->SetData(DATA_TROLLGORE, NOT_STARTED);
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             Talk(SAY_AGGRO);
-
-            if (instance)
-                instance->SetData(DATA_TROLLGORE_EVENT, IN_PROGRESS);
+            instance->SetBossState(DATA_TROLLGORE, IN_PROGRESS);
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -158,17 +158,16 @@ public:
             DoMeleeAttackIfReady();
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             Talk(SAY_DEATH);
 
             lSummons.DespawnAll();
 
-            if (instance)
-                instance->SetData(DATA_TROLLGORE_EVENT, DONE);
+            instance->SetBossState(DATA_TROLLGORE, DONE);
         }
 
-        uint32 GetData(uint32 type) const
+        uint32 GetData(uint32 type) const OVERRIDE
         {
             if (type == DATA_CONSUMPTION_JUNCTION)
                 return consumptionJunction ? 1 : 0;
@@ -176,14 +175,15 @@ public:
             return 0;
         }
 
-        void KilledUnit(Unit* victim)
+        void KilledUnit(Unit* victim) OVERRIDE
         {
-            if (victim == me)
+            if (victim->GetTypeId() != TYPEID_PLAYER)
                 return;
+
             Talk(SAY_KILL);
         }
 
-        void JustSummoned(Creature* summon)
+        void JustSummoned(Creature* summon) OVERRIDE
         {
             lSummons.Summon(summon);
             if (summon->AI())
@@ -191,9 +191,9 @@ public:
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_trollgoreAI(creature);
+        return GetDrakTharonKeepAI<boss_trollgoreAI>(creature);
     }
 };
 
@@ -204,7 +204,7 @@ class achievement_consumption_junction : public AchievementCriteriaScript
         {
         }
 
-        bool OnCheck(Player* /*player*/, Unit* target)
+        bool OnCheck(Player* /*player*/, Unit* target) OVERRIDE
         {
             if (!target)
                 return false;

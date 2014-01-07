@@ -59,15 +59,15 @@ enum Spells
 
 enum Events
 {
-    EVENT_MORTALCLEAVE        = 0, // Phase 1
-    EVENT_SILENCE             = 1, // Phase 1
-    EVENT_CHECK_TIMER         = 2, // Phase 1
-    EVENT_RESURRECT_TIMER     = 3, // Phase 1
-    EVENT_FRENZY              = 4, // Phase 2
-    EVENT_FORCEPUNCH          = 5, // Phase 2
-    EVENT_SPELL_CHARGE        = 6, // Phase 2
-    EVENT_ENRAGE              = 7, // Phase 2
-    EVENT_SUMMONTIGERS        = 8  // Phase 2
+    EVENT_MORTALCLEAVE        = 1, // Phase 1
+    EVENT_SILENCE             = 2, // Phase 1
+    EVENT_CHECK_TIMER         = 3, // Phase 1
+    EVENT_RESURRECT_TIMER     = 4, // Phase 1
+    EVENT_FRENZY              = 5, // Phase 2
+    EVENT_FORCEPUNCH          = 6, // Phase 2
+    EVENT_SPELL_CHARGE        = 7, // Phase 2
+    EVENT_ENRAGE              = 8, // Phase 2
+    EVENT_SUMMONTIGERS        = 9  // Phase 2
 };
 
 enum Phases
@@ -87,20 +87,20 @@ class boss_thekal : public CreatureScript
             bool Enraged;
             bool WasDead;
 
-            void Reset()
+            void Reset() OVERRIDE
             {
                 _Reset();
                 Enraged = false;
                 WasDead = false;
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) OVERRIDE
             {
                 _JustDied();
                 Talk(SAY_DEATH);
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) OVERRIDE
             {
                 _EnterCombat();
                 events.ScheduleEvent(EVENT_MORTALCLEAVE, 4000, 0, PHASE_ONE);     // Phase 1
@@ -110,13 +110,13 @@ class boss_thekal : public CreatureScript
                 Talk(SAY_AGGRO);
             }
 
-            void JustReachedHome()
+            void JustReachedHome() OVERRIDE
             {
                 if (instance)
                     instance->SetBossState(DATA_THEKAL, NOT_STARTED);
             }
 
-            void UpdateAI(uint32 diff)
+            void UpdateAI(uint32 diff) OVERRIDE
             {
                 if (!UpdateVictim())
                     return;
@@ -249,20 +249,20 @@ class boss_thekal : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
             return new boss_thekalAI(creature);
         }
 };
 
 //Zealot Lor'Khan
-class mob_zealot_lorkhan : public CreatureScript
+class npc_zealot_lorkhan : public CreatureScript
 {
-    public: mob_zealot_lorkhan() : CreatureScript("mob_zealot_lorkhan") {}
+    public: npc_zealot_lorkhan() : CreatureScript("npc_zealot_lorkhan") {}
 
-        struct mob_zealot_lorkhanAI : public ScriptedAI
+        struct npc_zealot_lorkhanAI : public ScriptedAI
         {
-            mob_zealot_lorkhanAI(Creature* creature) : ScriptedAI(creature)
+            npc_zealot_lorkhanAI(Creature* creature) : ScriptedAI(creature)
             {
                 instance = creature->GetInstanceScript();
             }
@@ -277,7 +277,7 @@ class mob_zealot_lorkhan : public CreatureScript
 
             InstanceScript* instance;
 
-            void Reset()
+            void Reset() OVERRIDE
             {
                 Shield_Timer = 1000;
                 BloodLust_Timer = 16000;
@@ -294,11 +294,11 @@ class mob_zealot_lorkhan : public CreatureScript
                 me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) OVERRIDE
             {
             }
 
-            void UpdateAI(uint32 diff)
+            void UpdateAI(uint32 diff) OVERRIDE
             {
                 if (!UpdateVictim())
                     return;
@@ -347,7 +347,7 @@ class mob_zealot_lorkhan : public CreatureScript
                 //Disarm_Timer
                 if (Disarm_Timer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_DISARM);
+                    DoCastVictim(SPELL_DISARM);
                     Disarm_Timer = 15000+rand()%10000;
                 } else Disarm_Timer -= diff;
 
@@ -404,25 +404,25 @@ class mob_zealot_lorkhan : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
-            return new mob_zealot_lorkhanAI(creature);
+            return new npc_zealot_lorkhanAI(creature);
         }
 };
 
 //Zealot Zath
-class mob_zealot_zath : public CreatureScript
+class npc_zealot_zath : public CreatureScript
 {
     public:
 
-        mob_zealot_zath()
-            : CreatureScript("mob_zealot_zath")
+        npc_zealot_zath()
+            : CreatureScript("npc_zealot_zath")
         {
         }
 
-        struct mob_zealot_zathAI : public ScriptedAI
+        struct npc_zealot_zathAI : public ScriptedAI
         {
-            mob_zealot_zathAI(Creature* creature) : ScriptedAI(creature)
+            npc_zealot_zathAI(Creature* creature) : ScriptedAI(creature)
             {
                 instance = creature->GetInstanceScript();
             }
@@ -438,7 +438,7 @@ class mob_zealot_zath : public CreatureScript
 
             InstanceScript* instance;
 
-            void Reset()
+            void Reset() OVERRIDE
             {
                 SweepingStrikes_Timer = 13000;
                 SinisterStrike_Timer = 8000;
@@ -456,11 +456,11 @@ class mob_zealot_zath : public CreatureScript
                 me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) OVERRIDE
             {
             }
 
-            void UpdateAI(uint32 diff)
+            void UpdateAI(uint32 diff) OVERRIDE
             {
                 if (!UpdateVictim())
                     return;
@@ -468,24 +468,24 @@ class mob_zealot_zath : public CreatureScript
                 //SweepingStrikes_Timer
                 if (SweepingStrikes_Timer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_SWEEPINGSTRIKES);
+                    DoCastVictim(SPELL_SWEEPINGSTRIKES);
                     SweepingStrikes_Timer = 22000+rand()%4000;
                 } else SweepingStrikes_Timer -= diff;
 
                 //SinisterStrike_Timer
                 if (SinisterStrike_Timer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_SINISTERSTRIKE);
+                    DoCastVictim(SPELL_SINISTERSTRIKE);
                     SinisterStrike_Timer = 8000+rand()%8000;
                 } else SinisterStrike_Timer -= diff;
 
                 //Gouge_Timer
                 if (Gouge_Timer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_GOUGE);
+                    DoCastVictim(SPELL_GOUGE);
 
-                    if (DoGetThreat(me->getVictim()))
-                        DoModifyThreatPercent(me->getVictim(), -100);
+                    if (DoGetThreat(me->GetVictim()))
+                        DoModifyThreatPercent(me->GetVictim(), -100);
 
                     Gouge_Timer = 17000+rand()%10000;
                 } else Gouge_Timer -= diff;
@@ -493,14 +493,14 @@ class mob_zealot_zath : public CreatureScript
                 //Kick_Timer
                 if (Kick_Timer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_KICK);
+                    DoCastVictim(SPELL_KICK);
                     Kick_Timer = 15000+rand()%10000;
                 } else Kick_Timer -= diff;
 
                 //Blind_Timer
                 if (Blind_Timer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_BLIND);
+                    DoCastVictim(SPELL_BLIND);
                     Blind_Timer = 10000+rand()%10000;
                 } else Blind_Timer -= diff;
 
@@ -557,15 +557,15 @@ class mob_zealot_zath : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
-            return new mob_zealot_zathAI(creature);
+            return new npc_zealot_zathAI(creature);
         }
 };
 
 void AddSC_boss_thekal()
 {
     new boss_thekal();
-    new mob_zealot_lorkhan();
-    new mob_zealot_zath();
+    new npc_zealot_lorkhan();
+    new npc_zealot_zath();
 }

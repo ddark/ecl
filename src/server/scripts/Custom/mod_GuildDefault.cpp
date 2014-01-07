@@ -14,9 +14,9 @@ class Mod_GuildDefault_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        GuildDefaultEnable  = ConfigMgr::GetBoolDefault("GuildDefault.Enable", false);
-        GuildDefaultId      = ConfigMgr::GetIntDefault("GuildDefault.ID", 0);
-        GuildDefaultRank    = ConfigMgr::GetIntDefault("GuildDefault.Rank", 0);
+        GuildDefaultEnable  = sConfigMgr->GetBoolDefault("GuildDefault.Enable", false);
+        GuildDefaultId      = sConfigMgr->GetIntDefault("GuildDefault.ID", 0);
+        GuildDefaultRank    = sConfigMgr->GetIntDefault("GuildDefault.Rank", 0);
     }
 };
 

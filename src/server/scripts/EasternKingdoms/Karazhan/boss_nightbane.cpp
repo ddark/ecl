@@ -69,9 +69,9 @@ class boss_nightbane : public CreatureScript
 public:
     boss_nightbane() : CreatureScript("boss_nightbane") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_nightbaneAI (creature);
+        return new boss_nightbaneAI(creature);
     }
 
     struct boss_nightbaneAI : public ScriptedAI
@@ -109,7 +109,7 @@ public:
         uint32 WaitTimer;
         uint32 MovePhase;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             BellowingRoarTimer = 30000;
             CharredEarthTimer = 15000;
@@ -160,7 +160,7 @@ public:
             }
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             if (instance)
                 instance->SetData(TYPE_NIGHTBANE, IN_PROGRESS);
@@ -169,13 +169,13 @@ public:
            Talk(YELL_AGGRO);
         }
 
-        void AttackStart(Unit* who)
+        void AttackStart(Unit* who) OVERRIDE
         {
             if (!Intro && !Flying)
                 ScriptedAI::AttackStart(who);
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (instance)
                 instance->SetData(TYPE_NIGHTBANE, DONE);
@@ -183,13 +183,14 @@ public:
             HandleTerraceDoors(true);
         }
 
-        void MoveInLineOfSight(Unit* who)
+        void MoveInLineOfSight(Unit* who) OVERRIDE
+
         {
             if (!Intro && !Flying)
                 ScriptedAI::MoveInLineOfSight(who);
         }
 
-        void MovementInform(uint32 type, uint32 id)
+        void MovementInform(uint32 type, uint32 id) OVERRIDE
         {
             if (type != POINT_MOTION_TYPE)
                 return;
@@ -235,9 +236,9 @@ public:
             }
         }
 
-        void JustSummoned(Creature* summoned)
+        void JustSummoned(Creature* summoned) OVERRIDE
         {
-            summoned->AI()->AttackStart(me->getVictim());
+            summoned->AI()->AttackStart(me->GetVictim());
         }
 
         void TakeOff()
@@ -260,7 +261,7 @@ public:
             Skeletons = false;
          }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             /* The timer for this was never setup apparently, not sure if the code works properly:
             if (WaitTimer <= diff)
@@ -309,19 +310,19 @@ public:
             {
                 if (Movement)
                 {
-                    DoStartMovement(me->getVictim());
+                    DoStartMovement(me->GetVictim());
                     Movement = false;
                 }
 
                 if (BellowingRoarTimer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_BELLOWING_ROAR);
+                    DoCastVictim(SPELL_BELLOWING_ROAR);
                     BellowingRoarTimer = urand(30000, 40000);
                 } else BellowingRoarTimer -= diff;
 
                 if (SmolderingBreathTimer <= diff)
                 {
-                    DoCast(me->getVictim(), SPELL_SMOLDERING_BREATH);
+                    DoCastVictim(SPELL_SMOLDERING_BREATH);
                     SmolderingBreathTimer = 20000;
                 } else SmolderingBreathTimer -= diff;
 
@@ -370,14 +371,14 @@ public:
                     {
                         for (uint8 i = 0; i <= 3; ++i)
                         {
-                            DoCast(me->getVictim(), SPELL_SUMMON_SKELETON);
+                            DoCastVictim(SPELL_SUMMON_SKELETON);
                             Skeletons = true;
                         }
                     }
 
                     if (RainofBonesTimer < diff && !RainBones) // only once at the beginning of phase 2
                     {
-                        DoCast(me->getVictim(), SPELL_RAIN_OF_BONES);
+                        DoCastVictim(SPELL_RAIN_OF_BONES);
                         RainBones = true;
                         SmokingBlastTimer = 20000;
                     } else RainofBonesTimer -= diff;
@@ -394,7 +395,7 @@ public:
                 {
                     if (SmokingBlastTimer <= diff)
                      {
-                        DoCast(me->getVictim(), SPELL_SMOKING_BLAST);
+                        DoCastVictim(SPELL_SMOKING_BLAST);
                         SmokingBlastTimer = 1500; //timer wrong
                      } else SmokingBlastTimer -= diff;
                 }

@@ -113,7 +113,7 @@ public:
 
         SummonList Summons;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             CarrionBeetlesTimer = 8*IN_MILLISECONDS;
             LeechingSwarmTimer = 20*IN_MILLISECONDS;
@@ -154,7 +154,7 @@ public:
             return NULL;
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             Talk(SAY_AGGRO);
             DelayTimer = 0;
@@ -168,7 +168,7 @@ public:
                 instance->SetData(DATA_ANUBARAK_EVENT, IN_PROGRESS);
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -217,7 +217,7 @@ public:
                     {
                         if (Creature* Guardian = me->SummonCreature(CREATURE_GUARDIAN, SpawnPointGuardian[i], TEMPSUMMON_CORPSE_DESPAWN, 0))
                         {
-                            Guardian->AddThreat(me->getVictim(), 0.0f);
+                            Guardian->AddThreat(me->GetVictim(), 0.0f);
                             DoZoneInCombat(Guardian);
                         }
                     }
@@ -234,7 +234,7 @@ public:
                             {
                                 if (Creature* Venomancer = me->SummonCreature(CREATURE_VENOMANCER, SpawnPoint[i], TEMPSUMMON_CORPSE_DESPAWN, 0))
                                 {
-                                    Venomancer->AddThreat(me->getVictim(), 0.0f);
+                                    Venomancer->AddThreat(me->GetVictim(), 0.0f);
                                     DoZoneInCombat(Venomancer);
                                 }
                             }
@@ -253,7 +253,7 @@ public:
                             {
                                 if (Creature* Datter = me->SummonCreature(CREATURE_DATTER, SpawnPoint[i], TEMPSUMMON_CORPSE_DESPAWN, 0))
                                 {
-                                    Datter->AddThreat(me->getVictim(), 0.0f);
+                                    Datter->AddThreat(me->GetVictim(), 0.0f);
                                     DoZoneInCombat(Datter);
                                 }
                             }
@@ -300,7 +300,7 @@ public:
                 if (Channeling == true)
                 {
                     for (uint8 i = 0; i < 8; ++i)
-                    DoCast(me->getVictim(), SPELL_SUMMON_CARRION_BEETLES, true);
+                    DoCastVictim(SPELL_SUMMON_CARRION_BEETLES, true);
                     Channeling = false;
                 }
                 else if (CarrionBeetlesTimer <= diff)
@@ -318,7 +318,7 @@ public:
 
                 if (PoundTimer <= diff)
                 {
-                    if (Unit* target = me->getVictim())
+                    if (Unit* target = me->GetVictim())
                     {
                         if (Creature* pImpaleTarget = DoSummonImpaleTarget(target))
                             me->CastSpell(pImpaleTarget, SPELL_POUND, false);
@@ -331,7 +331,7 @@ public:
             }
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             Talk(SAY_DEATH);
             Summons.DespawnAll();
@@ -339,20 +339,21 @@ public:
                 instance->SetData(DATA_ANUBARAK_EVENT, DONE);
         }
 
-        void KilledUnit(Unit* victim)
+        void KilledUnit(Unit* victim) OVERRIDE
         {
-            if (victim == me)
+            if (victim->GetTypeId() != TYPEID_PLAYER)
                 return;
+
             Talk(SAY_SLAY);
         }
 
-        void JustSummoned(Creature* summon)
+        void JustSummoned(Creature* summon) OVERRIDE
         {
             Summons.Summon(summon);
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
         return new boss_anub_arakAI(creature);
     }

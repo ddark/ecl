@@ -31,9 +31,9 @@ class boss_general_angerforge : public CreatureScript
 public:
     boss_general_angerforge() : CreatureScript("boss_general_angerforge") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_general_angerforgeAI (creature);
+        return new boss_general_angerforgeAI(creature);
     }
 
     struct boss_general_angerforgeAI : public ScriptedAI
@@ -46,7 +46,7 @@ public:
         uint32 Adds_Timer;
         bool Medics;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             MightyBlow_Timer = 8000;
             HamString_Timer = 12000;
@@ -55,7 +55,7 @@ public:
             Medics = false;
         }
 
-        void EnterCombat(Unit* /*who*/) {}
+        void EnterCombat(Unit* /*who*/) OVERRIDE {}
 
         void SummonAdds(Unit* victim)
         {
@@ -69,7 +69,7 @@ public:
                 SummonedMedic->AI()->AttackStart(victim);
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -78,21 +78,21 @@ public:
             //MightyBlow_Timer
             if (MightyBlow_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_MIGHTYBLOW);
+                DoCastVictim(SPELL_MIGHTYBLOW);
                 MightyBlow_Timer = 18000;
             } else MightyBlow_Timer -= diff;
 
             //HamString_Timer
             if (HamString_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_HAMSTRING);
+                DoCastVictim(SPELL_HAMSTRING);
                 HamString_Timer = 15000;
             } else HamString_Timer -= diff;
 
             //Cleave_Timer
             if (Cleave_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_CLEAVE);
+                DoCastVictim(SPELL_CLEAVE);
                 Cleave_Timer = 9000;
             } else Cleave_Timer -= diff;
 
@@ -102,9 +102,9 @@ public:
                 if (Adds_Timer <= diff)
                 {
                     // summon 3 Adds every 25s
-                    SummonAdds(me->getVictim());
-                    SummonAdds(me->getVictim());
-                    SummonAdds(me->getVictim());
+                    SummonAdds(me->GetVictim());
+                    SummonAdds(me->GetVictim());
+                    SummonAdds(me->GetVictim());
 
                     Adds_Timer = 25000;
                 } else Adds_Timer -= diff;
@@ -113,8 +113,8 @@ public:
             //Summon Medics
             if (!Medics && HealthBelowPct(21))
             {
-                SummonMedics(me->getVictim());
-                SummonMedics(me->getVictim());
+                SummonMedics(me->GetVictim());
+                SummonMedics(me->GetVictim());
                 Medics = true;
             }
 

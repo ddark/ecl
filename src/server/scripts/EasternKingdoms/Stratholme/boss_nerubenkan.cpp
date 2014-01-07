@@ -40,9 +40,9 @@ class boss_nerubenkan : public CreatureScript
 public:
     boss_nerubenkan() : CreatureScript("boss_nerubenkan") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_nerubenkanAI (creature);
+        return new boss_nerubenkanAI(creature);
     }
 
     struct boss_nerubenkanAI : public ScriptedAI
@@ -59,7 +59,7 @@ public:
         uint32 CryptScarabs_Timer;
         uint32 RaiseUndeadScarab_Timer;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             CryptScarabs_Timer = 3000;
             EncasingWebs_Timer = 7000;
@@ -67,11 +67,11 @@ public:
             RaiseUndeadScarab_Timer = 3000;
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (instance)
                 instance->SetData(TYPE_NERUB, IN_PROGRESS);
@@ -84,7 +84,7 @@ public:
                     pUndeadScarab->AI()->AttackStart(victim);
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -92,7 +92,7 @@ public:
             //EncasingWebs
             if (EncasingWebs_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_ENCASINGWEBS);
+                DoCastVictim(SPELL_ENCASINGWEBS);
                 EncasingWebs_Timer = 30000;
             } else EncasingWebs_Timer -= diff;
 
@@ -100,21 +100,21 @@ public:
             if (PierceArmor_Timer <= diff)
             {
                 if (urand(0, 3) < 2)
-                    DoCast(me->getVictim(), SPELL_PIERCEARMOR);
+                    DoCastVictim(SPELL_PIERCEARMOR);
                 PierceArmor_Timer = 35000;
             } else PierceArmor_Timer -= diff;
 
             //CryptScarabs_Timer
             if (CryptScarabs_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_CRYPT_SCARABS);
+                DoCastVictim(SPELL_CRYPT_SCARABS);
                 CryptScarabs_Timer = 20000;
             } else CryptScarabs_Timer -= diff;
 
             //RaiseUndeadScarab
             if (RaiseUndeadScarab_Timer <= diff)
             {
-                RaiseUndeadScarab(me->getVictim());
+                RaiseUndeadScarab(me->GetVictim());
                 RaiseUndeadScarab_Timer = 16000;
             } else RaiseUndeadScarab_Timer -= diff;
 

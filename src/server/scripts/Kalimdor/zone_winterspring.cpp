@@ -45,7 +45,7 @@ class npc_rivern_frostwind : public CreatureScript
 public:
     npc_rivern_frostwind() : CreatureScript("npc_rivern_frostwind") { }
 
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) OVERRIDE
     {
         player->PlayerTalkClass->ClearMenus();
         if (action == GOSSIP_ACTION_TRADE)
@@ -54,12 +54,12 @@ public:
         return true;
     }
 
-    bool OnGossipHello(Player* player, Creature* creature)
+    bool OnGossipHello(Player* player, Creature* creature) OVERRIDE
     {
-        if (creature->isQuestGiver())
+        if (creature->IsQuestGiver())
             player->PrepareQuestMenu(creature->GetGUID());
 
-        if (creature->isVendor() && player->GetReputationRank(589) == REP_EXALTED)
+        if (creature->IsVendor() && player->GetReputationRank(589) == REP_EXALTED)
             player->ADD_GOSSIP_ITEM(GOSSIP_ICON_VENDOR, GOSSIP_TEXT_BROWSE_GOODS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRADE);
 
         player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetGUID());
@@ -154,14 +154,14 @@ struct DialogueEntry
 class DialogueHelper
 {
 public:
-    // The array MUST be terminated by {0,0,0}
+    // The array MUST be terminated by {0, 0, 0}
     DialogueHelper(DialogueEntry const* dialogueArray) :
       _dialogueArray(dialogueArray),
           _currentEntry(NULL),
           _actionTimer(0),
           _isFirstSide(true)
       {}
-      // The array MUST be terminated by {0,0,0,0,0}
+      // The array MUST be terminated by {0, 0, 0, 0, 0}
 
       /// Function to initialize the dialogue helper for instances. If not used with instances, GetSpeakerByEntry MUST be overwritten to obtain the speakers
       /// Set if take first entries or second entries
@@ -182,9 +182,7 @@ public:
           }
 
           if (!found)
-          {
               return;
-          }
 
           DoNextDialogueStep();
       }
@@ -210,7 +208,7 @@ private:
     void DoNextDialogueStep()
     {
         // Last Dialogue Entry done?
-        if (_currentEntry && !_currentEntry->TextEntry)
+        if (!_currentEntry || !_currentEntry->TextEntry)
         {
             _actionTimer = 0;
             return;
@@ -296,7 +294,7 @@ class npc_ranshalla : public CreatureScript
 {
 public:
     npc_ranshalla() : CreatureScript("npc_ranshalla") { }
-    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest)
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) OVERRIDE
     {
         if (quest->GetQuestId() == QUEST_GUARDIANS_ALTAR)
         {
@@ -311,7 +309,7 @@ public:
 
         return false;
     }
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
         return new npc_ranshallaAI(creature);
     }
@@ -332,7 +330,7 @@ public:
         uint64 _voiceEluneGUID;
         uint64 _altarGUID;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             _delayTimer = 0;
         }
@@ -398,9 +396,9 @@ public:
             StartNextDialogueText(SAY_PRIESTESS_ALTAR_3);
         }
 
-        void WaypointReached(uint32 pointId)
+        void WaypointReached(uint32 pointId) OVERRIDE
         {
-            switch(pointId)
+            switch (pointId)
             {
                 case 3:
                     Talk(SAY_ENTER_OWL_THICKET);
@@ -439,7 +437,7 @@ public:
                     SetEscortPaused(true);
                     DoSummonPriestess();
                     Talk(SAY_RANSHALLA_ALTAR_2);
-                    events.ScheduleEvent(EVENT_RESUME,2000);
+                    events.ScheduleEvent(EVENT_RESUME, 2000);
                     break;
                 case 44:
                     // Stop the escort and turn towards the altar
@@ -567,7 +565,7 @@ public:
 
         }
 
-        void UpdateEscortAI(const uint32 diff)
+        void UpdateEscortAI(const uint32 diff) OVERRIDE
         {
             DialogueUpdate(diff);
 
@@ -600,7 +598,7 @@ class go_elune_fire : public GameObjectScript
 {
 public:
     go_elune_fire() : GameObjectScript("go_elune_fire") { }
-    bool OnGossipHello(Player* /*player*/, GameObject* go)
+    bool OnGossipHello(Player* /*player*/, GameObject* go) OVERRIDE
     {
         // Check if we are using the torches or the altar
         bool isAltar = false;

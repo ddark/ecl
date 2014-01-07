@@ -254,7 +254,7 @@ class npc_ancient_skeletal_soldier_icc : public CreatureScript
  
             if (m_uiBASH_Timer <= uiDiff)
             {
-                DoCast(me->getVictim(), SPELL_SHIELD_BASH);
+                DoCastVictim(SPELL_SHIELD_BASH);
                 //repite cada 10 segundos
                 m_uiBASH_Timer = 10000;
             }
@@ -306,7 +306,7 @@ class npc_deathbound_ward_icc : public CreatureScript
 
                 if (m_uiSaber_Lash_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_SABER_LASH);
+                    DoCastVictim(SPELL_SABER_LASH);
                     //cada 7 segundos al tanke
                     m_uiSaber_Lash_Timer = 7000;
                 }
@@ -376,7 +376,7 @@ class npc_nerubar_broodkeeper_icc : public CreatureScript
 
             if (m_uiSCARABS_Timer <= uiDiff)
             {
-                DoCast(me->getVictim(), SPELL_CRYPT_SCARABS);
+                DoCastVictim(SPELL_CRYPT_SCARABS);
                 //cada 2 segundos
                 m_uiSCARABS_Timer = 2000;
             }
@@ -524,7 +524,7 @@ class npc_deathspeaker_servant_10man_icc : public CreatureScript
 
                 if (m_uiCHAOS_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_CHAOS_BOLT_10M);
+                    DoCastVictim(SPELL_CHAOS_BOLT_10M);
                     //repite entre 3 a 4 segundos para darle holgura
                     m_uiCHAOS_Timer = urand(3000, 4000);
                 }
@@ -594,7 +594,7 @@ class npc_deathspeaker_servant_25man_icc : public CreatureScript
 
                 if (m_uiCHAOS_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_CHAOS_BOLT_25M);
+                    DoCastVictim(SPELL_CHAOS_BOLT_25M);
                     //entre 4 a 6 segs
                     m_uiCHAOS_Timer = (4000, 6000);
                 }
@@ -664,7 +664,7 @@ class npc_deathspeaker_disciple_10man_icc : public CreatureScript
 
                 if (m_uiBOLT_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_SHADOW_BOLT_DEATHSPEAKER);
+                    DoCastVictim(SPELL_SHADOW_BOLT_DEATHSPEAKER);
                     //repite entre 3 a 7 segs
                     m_uiBOLT_Timer = urand(3000, 7000);
                 }
@@ -732,7 +732,7 @@ class npc_deathspeaker_disciple_25man_icc : public CreatureScript
 
                 if (m_uiBOLT_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_SHADOW_BOLT_DEATHSPEAKER);
+                    DoCastVictim(SPELL_SHADOW_BOLT_DEATHSPEAKER);
                     //repite entre 2 a 3 segs
                     m_uiBOLT_Timer = urand(2000, 3000);
                 }
@@ -798,7 +798,7 @@ class npc_deathspeaker_attendant_10man_icc : public CreatureScript
 
                 if (m_uiBOLT_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_SHADOW_BOLT_DEATHSPEAKER);
+                    DoCastVictim(SPELL_SHADOW_BOLT_DEATHSPEAKER);
                     //repite cada 3 a 5 segs
                     m_uiBOLT_Timer = urand(3000, 5000);
                 }
@@ -855,7 +855,7 @@ class npc_deathspeaker_attendant_25man_icc : public CreatureScript
 
                 if (m_uiBOLT_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_SHADOW_BOLT_DEATHSPEAKER);
+                    DoCastVictim(SPELL_SHADOW_BOLT_DEATHSPEAKER);
                     //entre cada 2 a 3 segs
                     m_uiBOLT_Timer = urand(2000, 3000);
                 }
@@ -910,7 +910,7 @@ class npc_deathspeaker_zealot_icc : public CreatureScript
 
                 if (m_uiCLEAVE_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_SHADOW_CLEAVE);
+                    DoCastVictim(SPELL_SHADOW_CLEAVE);
                     //cada 6 segs
                     m_uiCLEAVE_Timer = 6000;
                 }
@@ -1129,7 +1129,7 @@ class npc_blighted_abomination_icc : public CreatureScript
  
                 if (m_uiCLEAVE_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_CLEAVE);
+                    DoCastVictim(SPELL_CLEAVE);
                     //cada 6 segs
                     m_uiCLEAVE_Timer = 6000;
                 }
@@ -1269,7 +1269,7 @@ class npc_plague_scientist_icc : public CreatureScript
  
                 if (m_uiBLAST_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_PLAGUE_BLAST);
+                    DoCastVictim(SPELL_PLAGUE_BLAST);
                     // cada 2 a 3 segs se repite
                     m_uiBLAST_Timer = urand(2000, 3000);
                 }
@@ -1425,7 +1425,7 @@ class npc_decaying_colossus_10man_icc : public CreatureScript
 
                 if (m_uiSTOMP_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_MASSIVE_STOMP_10M);
+                    DoCastVictim(SPELL_MASSIVE_STOMP_10M);
                     // cada 15 a 25 segs se repite
                     m_uiSTOMP_Timer = urand(15000, 25000);
                 }
@@ -1471,7 +1471,7 @@ class npc_decaying_colossus_25man_icc : public CreatureScript
 
                 if (m_uiSTOMP_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_MASSIVE_STOMP_25M);
+                    DoCastVictim(SPELL_MASSIVE_STOMP_25M);
                     // cada 15 a 25 segs se repite
                     m_uiSTOMP_Timer = urand(15000, 25000);
                 }
@@ -1523,7 +1523,7 @@ class npc_darkfallen_archmage_10man_icc : public CreatureScript
 
                 if (m_uiAMPLIFY_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_AMPLIFY_MAGIC_10M);
+                    DoCastVictim(SPELL_AMPLIFY_MAGIC_10M);
                     // amplificar cada 15 a 20 segs
                     m_uiAMPLIFY_Timer = urand(15000, 20000);
                 }
@@ -1542,7 +1542,7 @@ class npc_darkfallen_archmage_10man_icc : public CreatureScript
 
                 if (m_uiFIREBALL_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_FIREBALL_10M);
+                    DoCastVictim(SPELL_FIREBALL_10M);
                     // repite cada 3 a 4 segs
                     m_uiFIREBALL_Timer = urand(3000, 4000);
                 }
@@ -1603,7 +1603,7 @@ class npc_darkfallen_archmage_25man_icc : public CreatureScript
 
                 if (m_uiAMPLIFY_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_AMPLIFY_MAGIC_25M);
+                    DoCastVictim(SPELL_AMPLIFY_MAGIC_25M);
                     // amplificar de 10 a 15 segs
                     m_uiAMPLIFY_Timer = urand(10000, 15000);
                 }
@@ -1622,7 +1622,7 @@ class npc_darkfallen_archmage_25man_icc : public CreatureScript
 
                 if (m_uiFIREBALL_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_FIREBALL_25M);
+                    DoCastVictim(SPELL_FIREBALL_25M);
                     // repite cada 2 a 3 segs
                     m_uiFIREBALL_Timer = urand(2000, 3000);
                 }
@@ -1681,7 +1681,7 @@ class npc_darkfallen_blood_knight_icc : public CreatureScript
 
                 if (m_uiSTRIKE_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_UNHOLY_STRIKE);
+                    DoCastVictim(SPELL_UNHOLY_STRIKE);
                     // castea cada 3 a 4 segs
                     m_uiSTRIKE_Timer = urand(3000, 4000);
                 }
@@ -1701,9 +1701,9 @@ class npc_darkfallen_blood_knight_icc : public CreatureScript
                 {
                     if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
                     {
-                        DoCast(me->getVictim(),SPELL_BLOOD_MIRROR_DUMMY);
-                        me->getVictim()->CastSpell(target,SPELL_BLOOD_MIRROR_DAMAGE,true);
-                        me->CastSpell(me->getVictim(),SPELL_BLOOD_MIRROR_BUFF,true);
+                        DoCast(me->GetVictim(),SPELL_BLOOD_MIRROR_DUMMY);
+                        me->GetVictim()->CastSpell(target,SPELL_BLOOD_MIRROR_DAMAGE,true);
+                        me->CastSpell(me->GetVictim(),SPELL_BLOOD_MIRROR_BUFF,true);
                         // castea el mirror entre 32 a 37 segs para ayudar un poco
                         m_uiMIRROR_Timer = urand(32000, 37000);
                     }
@@ -1754,7 +1754,7 @@ class npc_darkfallen_noble_10man_icc : public CreatureScript
 
                 if (m_uiBOLT_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_SHADOW_BOLT_10M);
+                    DoCastVictim(SPELL_SHADOW_BOLT_10M);
                     // castea cada 4 a 5 segs
                     m_uiBOLT_Timer = urand(4000, 5000);
                 }
@@ -1824,7 +1824,7 @@ class npc_darkfallen_noble_25man_icc : public CreatureScript
 
                 if (m_uiBOLT_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_SHADOW_BOLT_25M);
+                    DoCastVictim(SPELL_SHADOW_BOLT_25M);
                     // castea cada 3 a 4 segs
                     m_uiBOLT_Timer = urand(3000, 4000);
                 }
@@ -1945,7 +1945,7 @@ class npc_darkfallen_advisor_10man_icc : public CreatureScript
 
                 if (m_uiLICH_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_LICH_SLAP_10M);
+                    DoCastVictim(SPELL_LICH_SLAP_10M);
                     // castea cada 10 segs
                     m_uiLICH_Timer = 10000;
                 }
@@ -2006,7 +2006,7 @@ class npc_darkfallen_advisor_25man_icc : public CreatureScript
 
                 if (m_uiLICH_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_LICH_SLAP_25M);
+                    DoCastVictim(SPELL_LICH_SLAP_25M);
                     // castea entre 5 y 8 segs
                     m_uiLICH_Timer = urand(5000, 8000);
                 }
@@ -2183,7 +2183,7 @@ class npc_darkfallen_lieutenant_10man_icc : public CreatureScript
 
                 if (m_uiREND_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_REND_FLESH_10M);
+                    DoCastVictim(SPELL_REND_FLESH_10M);
                     // cada 25 segs
                     m_uiREND_Timer = 25000;
                 }
@@ -2241,7 +2241,7 @@ class npc_darkfallen_lieutenant_25man_icc : public CreatureScript
 
                 if (m_uiREND_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_REND_FLESH_25M);
+                    DoCastVictim(SPELL_REND_FLESH_25M);
                     // igual cada 25 segs
                     m_uiREND_Timer = 25000;
                 }
@@ -2301,7 +2301,7 @@ class npc_darkfallen_tactician_icc : public CreatureScript
 
                 if (m_uiSTRIKE_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_UNHOLY_STRIKE);
+                    DoCastVictim(SPELL_UNHOLY_STRIKE);
                     // cada 6 segs
                     m_uiSTRIKE_Timer = 6000;
                 }
@@ -2390,7 +2390,7 @@ class npc_ymirjar_deathbringer_10man_icc : public CreatureScript
 
                 if (m_uiBOLT_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(),SPELL_SHADOW_BOLT_YMIRJAR_10M);
+                    DoCast(me->GetVictim(),SPELL_SHADOW_BOLT_YMIRJAR_10M);
                     //repite cada 2 segs
                     m_uiBOLT_Timer = 2000;
                 }
@@ -2459,7 +2459,7 @@ class npc_ymirjar_deathbringer_25man_icc : public CreatureScript
 
                 if (m_uiBOLT_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(),SPELL_SHADOW_BOLT_YMIRJAR_25M);
+                    DoCast(me->GetVictim(),SPELL_SHADOW_BOLT_YMIRJAR_25M);
                     //repite cada 2 segs
                     m_uiBOLT_Timer = 2000;
                 }
@@ -2553,7 +2553,7 @@ class npc_ymirjar_battlemaiden_icc : public CreatureScript
 
                 if (m_uiSTRIKE_Timer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_BARBARIC_STRIKE);
+                    DoCastVictim(SPELL_BARBARIC_STRIKE);
                     // cada 2 a 3 segs
                     m_uiSTRIKE_Timer = urand(2000, 3000);
                 }
@@ -2650,11 +2650,11 @@ class npc_ymirjar_huntress_icc : public CreatureScript
 
                 if (me->isAttackReady())
                 {
-                    if (me->IsWithinMeleeRange(me->getVictim()))
+                    if (me->IsWithinMeleeRange(me->GetVictim()))
                         DoMeleeAttackIfReady();
                     else if (m_uiSHOT_Timer <= uiDiff)
                     {
-                        DoCast(me->getVictim(),SPELL_SHOOT);
+                        DoCast(me->GetVictim(),SPELL_SHOOT);
                         m_uiSHOT_Timer = 1000;
                     }
                     else

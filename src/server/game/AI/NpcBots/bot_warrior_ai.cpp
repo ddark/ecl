@@ -60,14 +60,14 @@ public:
                 rendTarget = 0;
             }
             if (IAmDead()) return;
-            if (me->getVictim())
+            if (me->GetVictim())
                 DoMeleeAttackIfReady();
             else
                 Evade();
 
             if (ragetimer2 <= diff)
             {
-                if (me->isInCombat() && me->getLevel() >= 20)
+                if (me->IsInCombat() && me->getLevel() >= 20)
                 {
                     if (getrage() < 990)
                         me->SetPower(POWER_RAGE, rage + uint32(10.f*rageIncomeMult));//1 rage per 2 sec
@@ -78,7 +78,7 @@ public:
             }
             if (ragetimer <= diff)
             {
-                if (!me->isInCombat() && !HasAuraName(me, BLOODRAGE_1))
+                if (!me->IsInCombat() && !HasAuraName(me, BLOODRAGE_1))
                 {
                     if (getrage() > uint32(10.f*rageLossMult))
                         me->SetPower(POWER_RAGE, rage - uint32(10.f*rageLossMult));//-1 rage per 1.5 sec
@@ -112,12 +112,12 @@ public:
                 }
             }
             CheckIntervene(diff);
-            if (!me->isInCombat())
+            if (!me->IsInCombat())
                 DoNonCombatActions(diff);
 
             if (!CheckAttackTarget(CLASS_WARRIOR))
             {
-                if (tank != me && !me->isInCombat() && battleStance != true && master->getAttackers().empty() && stancetimer <= diff)
+                if (tank != me && !me->IsInCombat() && battleStance != true && master->getAttackers().empty() && stancetimer <= diff)
                     stanceChange(diff, 1);
                 return;
             }
@@ -130,7 +130,7 @@ public:
                 doCast(me, BATTLESHOUT))
                 battleShout_cd = BATTLESHOUT_CD;
 
-            if (Rand() < 20 && BLOODRAGE && bloodrage_cd <= diff && me->isInCombat() && getrage() < 500 && 
+            if (Rand() < 20 && BLOODRAGE && bloodrage_cd <= diff && me->IsInCombat() && getrage() < 500 && 
                 !me->HasAura(ENRAGED_REGENERATION))
             {
                 temptimer = GC_Timer;
@@ -200,7 +200,7 @@ public:
 
         void Attack(uint32 diff)
         {
-            opponent = me->getVictim();
+            opponent = me->GetVictim();
             if (opponent)
             {
                 if (!IsCasting())
@@ -248,12 +248,12 @@ public:
             //charge + warbringer
             if (CHARGE && charge_cd <= diff && dist > 11 && dist < 25 && me->HasInArc(M_PI, opponent) && 
                 (me->getLevel() >= 50 || 
-                (!me->isInCombat() && (battleStance == true || stanceChange(diff, 1)))))
+                (!me->IsInCombat() && (battleStance == true || stanceChange(diff, 1)))))
             {
                 temptimer = GC_Timer;
                 if (me->getLevel() >= 50)
                     me->RemoveMovementImpairingAuras();
-                if (doCast(opponent, CHARGE, me->isInCombat()))
+                if (doCast(opponent, CHARGE, me->IsInCombat()))
                 {
                     charge_cd = CHARGE_CD;
                     GC_Timer = temptimer;
@@ -420,7 +420,7 @@ public:
                 }
             }
             //TAUNT
-            Unit* u = opponent->getVictim();
+            Unit* u = opponent->GetVictim();
             if (TAUNT && taunt_cd <= diff && u && u != me && u != tank && dist <= 30 &&
                 (IsInBotParty(u) || tank == me) && !CCed(opponent) && 
                 (defensiveStance == true || (stancetimer <= diff && stanceChange(diff, 2))))//No GCD
@@ -566,8 +566,8 @@ public:
             else {}//HEROIC STRIKE placeholder
             //DISARM DEPRECATED
             /*if (disarm_cd <= diff && meleedist < 5 &&
-                (opponent->getVictim()->GetGUID() == master->GetGUID() || 
-                opponent->getVictim()->GetGUID() == m_creature->GetGUID()) &&
+                (opponent->GetVictim()->GetGUID() == master->GetGUID() || 
+                opponent->GetVictim()->GetGUID() == m_creature->GetGUID()) &&
                 getrage() > 15 &&
                 !HasAuraName(opponent, GetSpellName(DISARM)) &&
                 GC_Timer <= diff)
@@ -593,7 +593,7 @@ public:
             if (INTERVENE && intervene_cd <= diff && getrage() > 100 && Rand() < ((tank == me) ? 80 : 30) && 
                 (defensiveStance == true || (stancetimer <= diff && !SS)))
             {
-                if (!master->isInCombat() && master->getAttackers().empty() && master->isMoving())
+                if (!master->IsInCombat() && master->getAttackers().empty() && master->isMoving())
                 {
                     float mydist = me->GetExactDist(master);
                     if (mydist < 25 && mydist > 18 && (defensiveStance == true || stanceChange(diff, 2)))
@@ -635,7 +635,7 @@ public:
                     float dist;
                     for (GroupReference* itr = gr->GetFirstMember(); itr != NULL; itr = itr->next())
                     {
-                        Player* tPlayer = itr->getSource();
+                        Player* tPlayer = itr->GetSource();
                         if (!tPlayer) continue;
                         if (tPlayer->FindMap() != me->GetMap()) continue;
                         if (!tPlayer->IsInWorld() || tPlayer->IsBeingTeleported()) continue;
@@ -666,7 +666,7 @@ public:
                     if (!Bots) return;
                     for (GroupReference* itr = gr->GetFirstMember(); itr != NULL; itr = itr->next())
                     {
-                        Player* tPlayer = itr->getSource();
+                        Player* tPlayer = itr->GetSource();
                         if (!tPlayer || !tPlayer->HaveBot()) continue;
                         if (tPlayer->FindMap() != me->GetMap()) continue;
                         if (!tPlayer->IsInWorld() || tPlayer->IsBeingTeleported()) continue;

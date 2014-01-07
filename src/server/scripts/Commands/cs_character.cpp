@@ -35,7 +35,7 @@ class character_commandscript : public CommandScript
 public:
     character_commandscript() : CommandScript("character_commandscript") { }
 
-    ChatCommand* GetCommands() const
+    ChatCommand* GetCommands() const OVERRIDE
     {
         static ChatCommand pdumpCommandTable[] =
         {
@@ -281,7 +281,7 @@ public:
                 if (name.empty())
                     continue;
 
-                char const* activeStr = target && target->GetUInt32Value(PLAYER_CHOSEN_TITLE) == titleInfo->bit_index
+                char const* activeStr = target->GetUInt32Value(PLAYER_CHOSEN_TITLE) == titleInfo->bit_index
                 ? handler->GetTrinityString(LANG_ACTIVE)
                 : "";
 
@@ -320,7 +320,7 @@ public:
                 // check online security
                 if (handler->HasLowerSecurity(target, 0))
                     return false;
-                
+
                 playerOldName = target->GetName();
             }
             else
@@ -345,7 +345,7 @@ public:
                 handler->SetSentErrorMessage(true);
                 return false;
             }
-            
+
             if (WorldSession* session = handler->GetSession())
             {
                 if (!session->HasPermission(RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_RESERVEDNAME) && sObjectMgr->IsReservedName(newName))

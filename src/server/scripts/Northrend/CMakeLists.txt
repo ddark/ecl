@@ -26,7 +26,7 @@ set(scripts_STAT_SRCS
   Northrend/Ulduar/Ulduar/boss_algalon_the_observer.cpp
   Northrend/Ulduar/Ulduar/instance_ulduar.cpp
   Northrend/Ulduar/Ulduar/boss_auriaya.cpp
-  Northrend/Ulduar/Ulduar/boss_yoggsaron.cpp
+  Northrend/Ulduar/Ulduar/boss_yogg_saron.cpp
   Northrend/Ulduar/Ulduar/boss_hodir.cpp
   Northrend/Ulduar/Ulduar/boss_assembly_of_iron.cpp
   Northrend/Ulduar/Ulduar/boss_flame_leviathan.cpp
@@ -55,7 +55,6 @@ set(scripts_STAT_SRCS
   Northrend/ChamberOfAspects/RubySanctum/boss_halion.cpp
   Northrend/FrozenHalls/HallsOfReflection/halls_of_reflection.h
   Northrend/FrozenHalls/HallsOfReflection/boss_falric.cpp
-  Northrend/FrozenHalls/HallsOfReflection/boss_the_lich_king_hor.cpp
   Northrend/FrozenHalls/HallsOfReflection/instance_halls_of_reflection.cpp
   Northrend/FrozenHalls/HallsOfReflection/halls_of_reflection.cpp
   Northrend/FrozenHalls/HallsOfReflection/boss_marwyn.cpp
@@ -116,8 +115,8 @@ set(scripts_STAT_SRCS
   Northrend/Naxxramas/boss_razuvious.cpp
   Northrend/Naxxramas/boss_sapphiron.cpp
   Northrend/Naxxramas/boss_grobbulus.cpp
-  Northrend/Naxxramas/boss_noth.cpp
   Northrend/Naxxramas/naxxramas.cpp
+  Northrend/Naxxramas/boss_noth.cpp
   Northrend/Naxxramas/instance_naxxramas.cpp
   Northrend/Naxxramas/naxxramas.h
   Northrend/zone_crystalsong_forest.cpp
@@ -164,14 +163,13 @@ set(scripts_STAT_SRCS
   Northrend/VioletHold/boss_xevozz.cpp
   Northrend/VioletHold/boss_erekem.cpp
   Northrend/VioletHold/violet_hold.cpp
+  Northrend/IcecrownCitadel/boss_gunship_battle.cpp
   Northrend/IcecrownCitadel/instance_icecrown_citadel.cpp
   Northrend/IcecrownCitadel/icecrown_citadel.cpp
   Northrend/IcecrownCitadel/icecrown_citadel.h
   Northrend/IcecrownCitadel/icecrown_citadel_teleport.cpp
-  Northrend/IcecrownCitadel/icecrown_citadel_trashmobs.cpp
   Northrend/IcecrownCitadel/boss_lord_marrowgar.cpp
   Northrend/IcecrownCitadel/boss_lady_deathwhisper.cpp
-  Northrend/IcecrownCitadel/boss_gunship_battle.cpp
   Northrend/IcecrownCitadel/boss_deathbringer_saurfang.cpp
   Northrend/IcecrownCitadel/boss_festergut.cpp
   Northrend/IcecrownCitadel/boss_rotface.cpp
@@ -198,7 +196,7 @@ set(scripts_STAT_SRCS
   Northrend/DraktharonKeep/boss_novos.cpp
   Northrend/DraktharonKeep/drak_tharon_keep.h
   Northrend/DraktharonKeep/boss_tharon_ja.cpp
-  Northrend/DraktharonKeep/boss_dred.cpp
+  Northrend/DraktharonKeep/boss_king_dred.cpp
 )
 
 message("  -> Prepared: Northrend")

@@ -13,7 +13,7 @@ class mod_CharacterModel_WorldScript : public WorldScript
     // Called after the world configuration is (re)loaded.
     void OnConfigLoad(bool /*reload*/)
     {
-        CharacterModelEnable    = ConfigMgr::GetBoolDefault("CharacterModel.Enable", false);
+        CharacterModelEnable    = sConfigMgr->GetBoolDefault("CharacterModel.Enable", false);
     }
 };
 

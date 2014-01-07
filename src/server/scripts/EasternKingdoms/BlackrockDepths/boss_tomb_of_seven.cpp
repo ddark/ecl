@@ -48,7 +48,7 @@ class boss_gloomrel : public CreatureScript
 public:
     boss_gloomrel() : CreatureScript("boss_gloomrel") { }
 
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) OVERRIDE
     {
         player->PlayerTalkClass->ClearMenus();
         switch (action)
@@ -77,7 +77,7 @@ public:
         return true;
     }
 
-    bool OnGossipHello(Player* player, Creature* creature)
+    bool OnGossipHello(Player* player, Creature* creature) OVERRIDE
     {
         if (player->GetQuestRewardStatus(QUEST_SPECTRAL_CHALICE) == 1 && player->GetSkillValue(SKILL_MINING) >= DATA_SKILLPOINT_MIN && !player->HasSpell(SPELL_SMELT_DARK_IRON))
             player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_TEACH_1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
@@ -107,7 +107,7 @@ class boss_doomrel : public CreatureScript
 public:
     boss_doomrel() : CreatureScript("boss_doomrel") { }
 
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) OVERRIDE
     {
         player->PlayerTalkClass->ClearMenus();
         switch (action)
@@ -130,7 +130,7 @@ public:
         return true;
     }
 
-    bool OnGossipHello(Player* player, Creature* creature)
+    bool OnGossipHello(Player* player, Creature* creature) OVERRIDE
     {
         player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_CHALLENGE, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
         player->SEND_GOSSIP_MENU(2601, creature->GetGUID());
@@ -138,9 +138,9 @@ public:
         return true;
     }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_doomrelAI (creature);
+        return new boss_doomrelAI(creature);
     }
 
     struct boss_doomrelAI : public ScriptedAI
@@ -157,7 +157,7 @@ public:
         uint32 DemonArmor_Timer;
         bool Voidwalkers;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             ShadowVolley_Timer = 10000;
             Immolate_Timer = 18000;
@@ -179,30 +179,30 @@ public:
             }
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
         }
 
-        void EnterEvadeMode()
+        void EnterEvadeMode() OVERRIDE
         {
             me->RemoveAllAuras();
             me->DeleteThreatList();
             me->CombatStop(true);
             me->LoadCreaturesAddon();
-            if (me->isAlive())
+            if (me->IsAlive())
                 me->GetMotionMaster()->MoveTargetedHome();
             me->SetLootRecipient(NULL);
             if (instance)
                 instance->SetData64(DATA_EVENSTARTER, 0);
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (instance)
                 instance->SetData(DATA_GHOSTKILL, 1);
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -210,7 +210,7 @@ public:
             //ShadowVolley_Timer
             if (ShadowVolley_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_SHADOWBOLTVOLLEY);
+                DoCastVictim(SPELL_SHADOWBOLTVOLLEY);
                 ShadowVolley_Timer = 12000;
             } else ShadowVolley_Timer -= diff;
 
@@ -226,7 +226,7 @@ public:
             //CurseOfWeakness_Timer
             if (CurseOfWeakness_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_CURSEOFWEAKNESS);
+                DoCastVictim(SPELL_CURSEOFWEAKNESS);
                 CurseOfWeakness_Timer = 45000;
             } else CurseOfWeakness_Timer -= diff;
 
@@ -240,7 +240,7 @@ public:
             //Summon Voidwalkers
             if (!Voidwalkers && HealthBelowPct(51))
             {
-                DoCast(me->getVictim(), SPELL_SUMMON_VOIDWALKERS, true);
+                DoCastVictim(SPELL_SUMMON_VOIDWALKERS, true);
                 Voidwalkers = true;
             }
 

@@ -255,7 +255,7 @@ class npc_arthas : public CreatureScript
 public:
     npc_arthas() : CreatureScript("npc_arthas") { }
 
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) OVERRIDE
     {
         player->PlayerTalkClass->ClearMenus();
         npc_arthasAI* ai = CAST_AI(npc_arthas::npc_arthasAI, creature->AI());
@@ -293,12 +293,12 @@ public:
                 break;
         }
         player->CLOSE_GOSSIP_MENU();
-        ai->SetDespawnAtFar(true);
+        ai->SetDespawnAtFar(false);
         creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
         return true;
     }
 
-    bool OnGossipHello(Player* player, Creature* creature)
+    bool OnGossipHello(Player* player, Creature* creature) OVERRIDE
     {
         npc_arthasAI* ai = CAST_AI(npc_arthas::npc_arthasAI, creature->AI());
 
@@ -342,7 +342,7 @@ public:
         return true;
     }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
         return new npc_arthasAI(creature);
     }
@@ -364,6 +364,7 @@ public:
         uint32 playerFaction;
         uint32 bossEvent;
         uint32 wave;
+		uint32 wavesCounter;
 
         uint64 utherGUID;
         uint64 jainaGUID;
@@ -379,7 +380,7 @@ public:
 
         uint32 exorcismTimer;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             utherGUID = 0;
             jainaGUID = 0;
@@ -398,6 +399,7 @@ public:
             epochGUID = 0;
             malganisGUID = 0;
             infiniteGUID = 0;
+			wavesCounter = 0;
 
             if (instance) {
                 instance->SetData(DATA_ARTHAS_EVENT, NOT_STARTED);
@@ -417,12 +419,12 @@ public:
             }
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             DoCast(me, SPELL_ARTHAS_AURA);
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             if (instance)
                 instance->SetData(DATA_ARTHAS_EVENT, FAIL);
@@ -470,7 +472,7 @@ public:
             ++step;
         }
 
-        void WaypointReached(uint32 waypointId)
+        void WaypointReached(uint32 waypointId) OVERRIDE
         {
             switch (waypointId)
             {
@@ -589,7 +591,7 @@ public:
              }
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             npc_escortAI::UpdateAI(diff);
 
@@ -757,7 +759,10 @@ public:
                         case 24:
                             if (Unit* pStalker = me->SummonCreature(NPC_INVIS_TARGET, 2026.469f, 1287.088f, 143.596f, 1.37f, TEMPSUMMON_TIMED_DESPAWN, 14000))
                             {
+								instance->DoUpdateWorldState(WORLDSTATE_WAVE_COUNT, 0);
                                 stalkerGUID = pStalker->GetGUID();
+								if (IsHeroic())
+									me->SummonCreature(NPC_INFINITE, 2335.47f, 1262.04f, 132.921, 1.42079f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 87000);
                                 me->SetTarget(stalkerGUID);
                             }
                             JumpToNextStep(1000);
@@ -907,6 +912,8 @@ public:
                             {
                                 SpawnWaveGroup(wave, waveGUID);
                                 wave++;
+								wavesCounter++;
+								instance->DoUpdateWorldState(WORLDSTATE_WAVE_COUNT, wavesCounter);
                             }
                             JumpToNextStep(500);
                             break;
@@ -944,6 +951,8 @@ public:
                         case 59:
                             if (instance->GetData(bossEvent) != DONE)
                             {
+								wavesCounter++;
+								instance->DoUpdateWorldState(WORLDSTATE_WAVE_COUNT, wavesCounter);
                                 uint32 uiBossID = 0;
                                 if (bossEvent == DATA_MEATHOOK_EVENT)
                                     uiBossID = NPC_MEATHOOK;
@@ -1069,7 +1078,7 @@ public:
                         case 72:
                         case 74:
                         case 76:
-                            if (me->isInCombat())
+                            if (me->IsInCombat())
                                 phaseTimer = 1000;
                             else
                             {
@@ -1083,7 +1092,7 @@ public:
                             }
                             break;
                         case 78:
-                            if (me->isInCombat())
+                            if (me->IsInCombat())
                                 phaseTimer = 1000;
                             else
                             {
@@ -1214,7 +1223,7 @@ public:
             }
 
             //Battling skills
-            if (!me->getVictim())
+            if (!me->GetVictim())
                 return;
 
             if (exorcismTimer < diff)
@@ -1243,7 +1252,7 @@ class npc_crate_helper : public CreatureScript
                 _marked = false;
             }
 
-            void SpellHit(Unit* /*caster*/, SpellInfo const* spell)
+            void SpellHit(Unit* /*caster*/, SpellInfo const* spell) OVERRIDE
             {
                 if (spell->Id == SPELL_ARCANE_DISRUPTION && !_marked)
                 {
@@ -1262,7 +1271,7 @@ class npc_crate_helper : public CreatureScript
             bool _marked;
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const OVERRIDE
         {
             return new npc_crate_helperAI(creature);
         }

@@ -34,9 +34,9 @@ class boss_moira_bronzebeard : public CreatureScript
 public:
     boss_moira_bronzebeard() : CreatureScript("boss_moira_bronzebeard") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_moira_bronzebeardAI (creature);
+        return new boss_moira_bronzebeardAI(creature);
     }
 
     struct boss_moira_bronzebeardAI : public ScriptedAI
@@ -48,7 +48,7 @@ public:
         uint32 ShadowWordPain_Timer;
         uint32 Smite_Timer;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             Heal_Timer = 12000;                                 //These times are probably wrong
             MindBlast_Timer = 16000;
@@ -56,9 +56,9 @@ public:
             Smite_Timer = 8000;
         }
 
-        void EnterCombat(Unit* /*who*/) {}
+        void EnterCombat(Unit* /*who*/) OVERRIDE {}
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -67,21 +67,21 @@ public:
             //MindBlast_Timer
             if (MindBlast_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_MINDBLAST);
+                DoCastVictim(SPELL_MINDBLAST);
                 MindBlast_Timer = 14000;
             } else MindBlast_Timer -= diff;
 
             //ShadowWordPain_Timer
             if (ShadowWordPain_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_SHADOWWORDPAIN);
+                DoCastVictim(SPELL_SHADOWWORDPAIN);
                 ShadowWordPain_Timer = 18000;
             } else ShadowWordPain_Timer -= diff;
 
             //Smite_Timer
             if (Smite_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_SMITE);
+                DoCastVictim(SPELL_SMITE);
                 Smite_Timer = 10000;
             } else Smite_Timer -= diff;
         }

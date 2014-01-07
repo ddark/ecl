@@ -79,7 +79,8 @@ void ArenaWatcherAfterTeleport(Player* player)
 
     if (ArenaWatcherFly)
     {
-        player->SendMovementSetCanFly(true);
+        //player->SendMovementSetCanFly(true);
+		//player->SetDisableGravity(true);
         player->SetCanFly(true);
     }
 
@@ -109,7 +110,8 @@ void ArenaWatcherEnd(Player* player)
         player->SetGMVisible(true);
         player->SetGameMaster(false);
         player->SetAcceptWhispers(true);
-        player->SendMovementSetCanFly(false);
+        //player->SendMovementSetCanFly(false);
+		//player->SetDisableGravity(false);
         player->SetCanFly(false);
         player->SetSpeed(MOVE_WALK, 1.0f, true);
         player->SetSpeed(MOVE_RUN, 1.0f, true);
@@ -125,13 +127,13 @@ class mod_ArenaWatcher_WorldScript : public WorldScript
 
     void OnConfigLoad(bool reload)
     {
-        ArenaWatcherEnable = ConfigMgr::GetBoolDefault("ArenaWatcher.Enable", false);
-        ArenaWatcherOnlyGM = ConfigMgr::GetBoolDefault("ArenaWatcher.OnlyGM", false);
-        ArenaWatcherOnlyRated = ConfigMgr::GetBoolDefault("ArenaWatcher.OnlyRated", false);
-        ArenaWatcherToPlayers = ConfigMgr::GetBoolDefault("ArenaWatcher.ToPlayers", false);
-        ArenaWatcherSilence = ConfigMgr::GetBoolDefault("ArenaWatcher.Silence", false);
-        ArenaWatcherFly = ConfigMgr::GetBoolDefault("ArenaWatcher.Fly", false);
-        ArenaWatcherSpeed = ConfigMgr::GetFloatDefault("ArenaWatcher.Speed", 3.0f);
+        ArenaWatcherEnable = sConfigMgr->GetBoolDefault("ArenaWatcher.Enable", false);
+        ArenaWatcherOnlyGM = sConfigMgr->GetBoolDefault("ArenaWatcher.OnlyGM", false);
+        ArenaWatcherOnlyRated = sConfigMgr->GetBoolDefault("ArenaWatcher.OnlyRated", false);
+        ArenaWatcherToPlayers = sConfigMgr->GetBoolDefault("ArenaWatcher.ToPlayers", false);
+        ArenaWatcherSilence = sConfigMgr->GetBoolDefault("ArenaWatcher.Silence", false);
+        ArenaWatcherFly = sConfigMgr->GetBoolDefault("ArenaWatcher.Fly", false);
+        ArenaWatcherSpeed = sConfigMgr->GetFloatDefault("ArenaWatcher.Speed", 3.0f);
 
         if (!reload)
             ArenaWatcherPlayers.clear();
@@ -167,10 +169,10 @@ class npc_arena_watcher : public CreatureScript
 
     bool OnGossipHello(Player* player, Creature* creature)
     {
-        if (creature->isQuestGiver())
+        if (creature->IsQuestGiver())
             player->PrepareQuestMenu(creature->GetGUID());
 
-        if (ArenaWatcherEnable && (!ArenaWatcherOnlyGM || player->isGameMaster()))
+        if (ArenaWatcherEnable && (!ArenaWatcherOnlyGM || player->IsGameMaster()))
         {
             uint8 arenasCount[MAX_ARENA_SLOT] = {0, 0, 0};
 
@@ -226,7 +228,7 @@ class npc_arena_watcher : public CreatureScript
     {
         player->PlayerTalkClass->ClearMenus();
 
-        if (!ArenaWatcherEnable && (!ArenaWatcherOnlyGM || player->isGameMaster()))
+        if (!ArenaWatcherEnable && (!ArenaWatcherOnlyGM || player->IsGameMaster()))
             return true;
 
         if (action <= GOSSIP_OFFSET)
@@ -362,7 +364,7 @@ class npc_arena_watcher : public CreatureScript
         player->PlayerTalkClass->ClearMenus();
         player->CLOSE_GOSSIP_MENU();
 
-        if (!ArenaWatcherToPlayers || !ArenaWatcherEnable || (ArenaWatcherOnlyGM && !player->isGameMaster()) || !*targetName)
+        if (!ArenaWatcherToPlayers || !ArenaWatcherEnable || (ArenaWatcherOnlyGM && !player->IsGameMaster()) || !*targetName)
             return true;
 
         if (uiSender == GOSSIP_SENDER_MAIN)
@@ -377,7 +379,7 @@ class npc_arena_watcher : public CreatureScript
                             sCreatureTextMgr->SendChat(creature, SAY_TARGET_NOT_IN_WORLD, player->GetGUID());
                         else if (!target->InArena())
                             sCreatureTextMgr->SendChat(creature, SAY_TARGET_NOT_IN_ARENA, player->GetGUID());
-                        else if (target->isGameMaster())
+                        else if (target->IsGameMaster())
                             sCreatureTextMgr->SendChat(creature, SAY_TARGET_IS_GM, player->GetGUID());
                         else
                         {

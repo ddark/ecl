@@ -47,9 +47,9 @@ class boss_azuregos : public CreatureScript
 public:
     boss_azuregos() : CreatureScript("boss_azuregos") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_azuregosAI (creature);
+        return new boss_azuregosAI(creature);
     }
 
     struct boss_azuregosAI : public ScriptedAI
@@ -66,7 +66,7 @@ public:
         uint32 EnrageTimer;
         bool Enraged;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             MarkOfFrostTimer = 35000;
             ManaStormTimer = urand(5000, 17000);
@@ -79,9 +79,9 @@ public:
             Enraged = false;
         }
 
-        void EnterCombat(Unit* /*who*/) {}
+        void EnterCombat(Unit* /*who*/) OVERRIDE {}
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -108,21 +108,21 @@ public:
             //        //MarkOfFrostTimer
             //        if (MarkOfFrostTimer <= diff)
             //        {
-            //            DoCast(me->getVictim(), SPELL_MARKOFFROST);
+            //            DoCastVictim(SPELL_MARKOFFROST);
             //            MarkOfFrostTimer = 25000;
             //        } else MarkOfFrostTimer -= diff;
 
             //ChillTimer
             if (ChillTimer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_CHILL);
+                DoCastVictim(SPELL_CHILL);
                 ChillTimer = urand(13000, 25000);
             } else ChillTimer -= diff;
 
             //BreathTimer
             if (BreathTimer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_FROSTBREATH);
+                DoCastVictim(SPELL_FROSTBREATH);
                 BreathTimer = urand(10000, 15000);
             } else BreathTimer -= diff;
 
@@ -144,7 +144,7 @@ public:
             //CleaveTimer
             if (CleaveTimer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_CLEAVE);
+                DoCastVictim(SPELL_CLEAVE);
                 CleaveTimer = 7000;
             } else CleaveTimer -= diff;
 

@@ -22,16 +22,16 @@ class mod_BossHistory_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        BossHistoryEnable      = ConfigMgr::GetBoolDefault("BossHistory.Enable", false);
+        BossHistoryEnable      = sConfigMgr->GetBoolDefault("BossHistory.Enable", false);
 
         if (!BossHistoryEnable)
             return;
 
-        BossHistoryInstance    = ConfigMgr::GetBoolDefault("BossHistory.InstanceOnly", false);
-        BossHistoryAnnounce    = ConfigMgr::GetBoolDefault("BossHistory.Announce", false);
-        BossHistoryLog         = ConfigMgr::GetBoolDefault("BossHistory.Log", false);
-        BossHistoryNormalText  = ConfigMgr::GetIntDefault("BossHistory.NormalTextId", 11006);
-        BossHistoryHeroicText  = ConfigMgr::GetIntDefault("BossHistory.HeroicTextId", 11007);
+        BossHistoryInstance    = sConfigMgr->GetBoolDefault("BossHistory.InstanceOnly", false);
+        BossHistoryAnnounce    = sConfigMgr->GetBoolDefault("BossHistory.Announce", false);
+        BossHistoryLog         = sConfigMgr->GetBoolDefault("BossHistory.Log", false);
+        BossHistoryNormalText  = sConfigMgr->GetIntDefault("BossHistory.NormalTextId", 11006);
+        BossHistoryHeroicText  = sConfigMgr->GetIntDefault("BossHistory.HeroicTextId", 11007);
     }
 };
 
@@ -75,7 +75,7 @@ class mod_BossHistory_AllCreatureScript : public AllCreatureScript
         {
             for(GroupReference *itr = pGroup->GetFirstMember(); itr != NULL; itr = itr->next())
             {
-                Player* Temp = itr->getSource();
+                Player* Temp = itr->GetSource();
 
                 if(!Temp)
                     continue;
@@ -89,7 +89,7 @@ class mod_BossHistory_AllCreatureScript : public AllCreatureScript
                     PeopleData << Temp->GetName() << DATA_SEPARATOR;
                     PeopleData << uint32(Temp->getLevel()) << DATA_SEPARATOR;
                     PeopleData << playerGuildId << DATA_SEPARATOR;
-                    PeopleData << uint32(Temp->isAlive()) << DATA_SEPARATOR;
+                    PeopleData << uint32(Temp->IsAlive()) << DATA_SEPARATOR;
                     PeopleData << uint32(Temp->IsAtGroupRewardDistance(creature)) << PEOPLE_SEPARATOR;
                     TeamKill += PeopleData.str();
                 }
@@ -116,7 +116,7 @@ class mod_BossHistory_AllCreatureScript : public AllCreatureScript
                 PeopleData << recipient->GetName() << DATA_SEPARATOR;
                 PeopleData << uint32(recipient->getLevel()) << DATA_SEPARATOR;
                 PeopleData << recipient->GetGuildId() << DATA_SEPARATOR;
-                PeopleData << uint32(recipient->isAlive()) << DATA_SEPARATOR;
+                PeopleData << uint32(recipient->IsAlive()) << DATA_SEPARATOR;
                 PeopleData << uint32(1) << PEOPLE_SEPARATOR;
                 TeamKill += PeopleData.str();
             }

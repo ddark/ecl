@@ -544,7 +544,7 @@ void TournamentManager::updateTournament(uint32 entry, uint32 diff)
                         summon->SetHomePosition(move->x, move->y, move->z, move->o);
                         summon->GetMotionMaster()->MovePoint(0, move->x, move->y, move->z);
                     }
-                    else if (tournament->starter && tournament->starter->isAlive())
+                    else if (tournament->starter && tournament->starter->IsAlive())
                     {
                         summon->SetHomePosition(point->x, point->y, point->z, point->o);
                         summon->AI()->AttackStart(tournament->starter);
@@ -627,7 +627,7 @@ bool TournamentManager::existsAlive(uint32 entry)
         return false;
 
     for (CreatureList::const_iterator itr = tournament->creatures.begin(); itr != tournament->creatures.end(); ++itr)
-        if ((*itr)->isAlive())
+        if ((*itr)->IsAlive())
             return true;
             
     return false;
@@ -767,10 +767,10 @@ class ModTournamentsWorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        TournamentEnable     = ConfigMgr::GetBoolDefault("Tournaments.Enable", false);
-        TournamentDebug      = ConfigMgr::GetBoolDefault("Tournaments.Debug", false);
-        TournamentLadder     = ConfigMgr::GetBoolDefault("Tournaments.Ladder", false);
-        TournamentLadderText =  ConfigMgr::GetIntDefault("Tournaments.LadderText", 0);
+        TournamentEnable     = sConfigMgr->GetBoolDefault("Tournaments.Enable", false);
+        TournamentDebug      = sConfigMgr->GetBoolDefault("Tournaments.Debug", false);
+        TournamentLadder     = sConfigMgr->GetBoolDefault("Tournaments.Ladder", false);
+        TournamentLadderText =  sConfigMgr->GetIntDefault("Tournaments.LadderText", 0);
 
         if (!TournamentEnable)
             return;

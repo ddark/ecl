@@ -1,18 +1,18 @@
 /*
 Name: script_bot_commands
 %Complete: ???
-Comment: Playerbot and Npcbot related commands
+Comment: Npcbot related commands
 Category: commandscripts/custom/
 */
 
 #include "bot_ai.h"
-#include "bp_ai.h"
-#include "bp_mgr.h"
+#include "bothelper.h"
 #include "Chat.h"
 #include "Config.h"
 #include "Group.h"
 #include "Language.h"
 #include "Player.h"
+#include "ScriptedGossip.h"
 #include "ScriptMgr.h"
 
 class script_bot_commands : public CommandScript
@@ -31,12 +31,13 @@ public:
             { "reset",          SEC_PLAYER,         false, &HandleNpcBotResetCommand,                   "", NULL },
             { "command",        SEC_PLAYER,         false, &HandleNpcBotCommandCommand,                 "", NULL },
             { "distance",       SEC_PLAYER,         false, &HandleNpcBotDistanceCommand,                "", NULL },
+            { "helper",         SEC_PLAYER,         false, &HandleBotHelperCommand,                     "", NULL },
             //{ "reloadequips",   SEC_ADMINISTRATOR,  false, &HandleReloadEquipsCommand,                  "", NULL },
             { NULL,             0,                  false, NULL,                                        "", NULL }
         };
+
         static ChatCommand commandTable[] =
         {
-            { "bot",            SEC_ADMINISTRATOR,  false, &HandlePlayerbotCommand,                     "", NULL },
             { "maintank",       SEC_PLAYER,         false, &HandleMainTankCommand,                      "", NULL },
             { "mt",             SEC_PLAYER,         false, &HandleMainTankCommand,                      "", NULL },
             { "npcbot",         SEC_PLAYER,         false, NULL,                          "", npcbotCommandTable },
@@ -53,224 +54,32 @@ public:
     //    return true;
     //}
 
-    static bool HandlePlayerbotCommand(ChatHandler* handler, const char* args)
+    static bool HandleBotHelperCommand(ChatHandler* handler, const char* /*args*/)
     {
-        if (!handler->GetSession())
-        {
-            handler->PSendSysMessage("You may only add bots from an active session");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-
-        bool allowPBots = ConfigMgr::GetBoolDefault("Bot.EnablePlayerBots", false);
-        if (allowPBots == false)
-        {
-            handler->PSendSysMessage("Playerbot system is disabled");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-
-        if (!*args)
-        {
-            handler->PSendSysMessage("usage: add PLAYERNAME  or  remove PLAYERNAME");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
         Player* player = handler->GetSession()->GetPlayer();
-
-        char* cmd = strtok ((char*)args, " ");
-        if (!cmd)
+        handler->SetSentErrorMessage(true);
+        if (/*player->IsInCombat() ||*/
+            player->isDead() ||
+            !player->IsAlive() ||
+            player->IsInFlight() ||
+            player->IsCharmed() ||
+            bot_ai::CCed(player))
         {
-            handler->PSendSysMessage("usage: add PLAYERNAME  or  remove PLAYERNAME");
-            handler->SetSentErrorMessage(true);
+            handler->SendSysMessage("You cannot do this right now");
             return false;
         }
-        std::string cmdStr = cmd;
-        
-        //if (cmdStr.compare("tele") == 0 || cmdStr.compare("teleport") == 0 || cmdStr.compare("summ") == 0 || cmdStr.compare("summon") == 0)
-        //{
-        //    if (handler->GetSession()->m_playerBots.empty())
-        //    {
-        //        handler->PSendSysMessage("You Have No Playerbots!");
-        //        handler->SetSentErrorMessage(true);
-        //        return false;
-        //    }
-        //    PlayerbotChatHandler ch(player);
-        //    for (PlayerBotMap::const_iterator itr = handler->GetSession()->GetPlayerBotsBegin(); itr != handler->GetSession()->GetPlayerBotsEnd(); ++itr)
-        //    {
-        //        Player* botPlayer = itr->second;
-        //        if (!botPlayer)
-        //            continue;
-        //        ch.teleport(*botPlayer);
-        //        //botPlayer->TeleportTo(*player);
-        //    }
-        //    return true;
-        //}
-        char* charname = strtok (NULL, " ");
-        if (!charname)
+        //close current menu
+        player->PlayerTalkClass->SendCloseGossip();
+        if (player->GetTrader())
+            player->GetSession()->SendCancelTrade();
+
+        BotHelper* hlpr = player->GetBotHelper();
+        if (!hlpr)
         {
-            handler->PSendSysMessage("usage: add PLAYERNAME  or  remove PLAYERNAME");
-            handler->SetSentErrorMessage(true);
-            return false;
+            hlpr = new BotHelper(player);
+            player->SetBotHelper(hlpr);
         }
-        std::string charnameStr = charname;
-
-        PlayerbotMgr* mgr = player->GetPlayerbotMgr();
-        if (!mgr)
-        {
-            mgr = new PlayerbotMgr(player);
-            player->SetPlayerbotMgr(mgr);
-        }
-
-        uint64 guid;
-
-       if (charnameStr.compare("all") != 0)
-       {
-           if (!normalizePlayerName(charnameStr))
-               return false;
-
-           guid = sObjectMgr->GetPlayerGUIDByName(charnameStr.c_str());
-           if (guid == 0 || (guid == handler->GetSession()->GetPlayer()->GetGUID()))
-           {
-               handler->PSendSysMessage(LANG_PLAYER_NOT_FOUND);
-               handler->SetSentErrorMessage(true);
-               return false;
-           }
-
-           uint32 accountId = sObjectMgr->GetPlayerAccountIdByGUID(guid);
-           if (accountId != handler->GetSession()->GetAccountId())
-           {
-               handler->PSendSysMessage("You may only add bots from the same account.");
-               handler->SetSentErrorMessage(true);
-               return false;
-           }
-       }
-
-        if (cmdStr.compare("add") == 0 || cmdStr.compare("login") == 0)
-        {
-            if (charnameStr.compare("all") == 0)
-            {
-                std::string plName;
-                std::list<std::string>* names = new std::list<std::string>;
-                uint32 accId = player->GetSession()->GetAccountId();
-                PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PLAYERBOTS);
-                stmt->setUInt32(0, accId);
-                stmt->setUInt32(1, player->GetGUIDLow());
-                PreparedQueryResult results = CharacterDatabase.Query(stmt);
-                //CharacterDatabase.PQuery("SELECT name FROM characters WHERE account = '%u' AND guid != '%u'", accId, player->GetGUIDLow());
-                if (results)
-                {
-                    do
-                    {
-                        Field* fields = results->Fetch();
-                        plName = fields[0].GetString();
-                        if (ObjectAccessor::FindPlayerByName(plName))
-                            continue;
-                        names->insert(names->end(), plName);
-                    } while(results->NextRow());
-                }
-                std::list<std::string>::iterator iter,next;
-                for (iter = names->begin(); iter != names->end(); iter++)
-                {
-                    std::stringstream arg;
-                    arg << "add " << (*iter).c_str();
-                    HandlePlayerbotCommand(handler, arg.str().c_str());
-                }
-                handler->PSendSysMessage("Bots added successfully.");
-                delete names;
-                return true;
-            }
-            else
-            {
-                guid = sObjectMgr->GetPlayerGUIDByName(charnameStr.c_str());
-                if (mgr->GetPlayerBot(guid) != NULL)
-                {
-                    handler->PSendSysMessage("Bot already exists in world.");
-                    handler->SetSentErrorMessage(true);
-                    return false;
-                }
-                mgr->AddPlayerBot(guid);
-            }
-        }
-        else if (cmdStr.compare("remove") == 0 || cmdStr.compare("logout") == 0)
-        {
-            if (charnameStr.compare("all") == 0)
-            {
-                std::list<std::string>* names = new std::list<std::string>;
-                for (PlayerBotMap::const_iterator iter = mgr->GetPlayerBotsBegin(); iter != mgr->GetPlayerBotsEnd(); ++iter)
-                {
-                    names->push_back(iter->second->GetName());
-                }
-                std::list<std::string>::iterator iter, next;
-                for (iter = names->begin(); iter != names->end(); iter++)
-                {
-                    std::stringstream arg;
-                    arg << "remove " << (*iter).c_str();
-                    HandlePlayerbotCommand(handler, arg.str().c_str());
-                }
-                delete names;
-                return true;
-            }
-            else
-            {
-                guid = sObjectMgr->GetPlayerGUIDByName(charnameStr.c_str());
-                if (!mgr->GetPlayerBot(guid))
-                {
-                    handler->PSendSysMessage("Bot can not be removed because bot does not exist in world.");
-                    handler->SetSentErrorMessage(true);
-                    return false;
-                }
-                mgr->LogoutPlayerBot(guid);
-                handler->PSendSysMessage("Bot removed successfully.");
-                return true;
-            }
-        }
-        else if (cmdStr == "co" || cmdStr == "combatorder")
-        {
-            Unit* target = NULL;
-            char* orderChar = strtok(NULL, " ");
-            if (!orderChar || mgr->getPlayerbots().empty())
-            {
-                handler->PSendSysMessage("|cffff0000Syntax error:|cffffffff .bot co <botName> <order=reset|tank|assist|heal|protect> [targetPlayer]");
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
-            std::string orderStr = orderChar;
-            if (orderStr == "protect" || orderStr == "assist")
-            {
-                char* targetChar = strtok(NULL, " ");
-                uint64 targetGUID = handler->GetSession()->GetPlayer()->GetSelection();
-                if (!targetChar && !targetGUID)
-                {
-                    handler->PSendSysMessage("|cffff0000Combat orders protect and assist expect a target either by selection or by giving target player in command string!");
-                    handler->SetSentErrorMessage(true);
-                    return false;
-                }
-                if (targetChar)
-                {
-                    std::string targetStr = targetChar;
-                    targetGUID = sObjectMgr->GetPlayerGUIDByName(targetStr.c_str());
-                }
-                target = ObjectAccessor::GetUnit(*handler->GetSession()->GetPlayer(), targetGUID);
-                if (!target)
-                {
-                    handler->PSendSysMessage("|cffff0000Invalid target for combat order protect or assist!");
-                    handler->SetSentErrorMessage(true);
-                    return false;
-                }
-            }
-            //if (handler->GetSession()->GetPlayerBot(guid) == NULL)
-            //{
-            //    handler->PSendSysMessage("|cffff0000Bot can not receive combat order because bot does not exist in world.");
-            //    handler->SetSentErrorMessage(true);
-            //    return false;
-            //}
-            //if (mgr)
-            //for (PlayerBotMap::const_iterator itr = mgr->GetPlayerBotsBegin(); itr != mgr->GetPlayerBotsEnd(); ++itr)
-            //    if (Player* bot = ObjectAccessor::GetPlayer(*player, itr->first))
-            //        bot->GetPlayerbotAI()->SetCombatOrderByStr(orderStr, target);
-        }
-        return true;
+        return hlpr->OnGossipHello(player);
     }
 
     static bool HandleMainTankCommand(ChatHandler* handler, const char* args)
@@ -356,7 +165,7 @@ public:
             if (Unit* unit = bot_ai::GetBotGroupMainTank(group))
             {
                 bool bot = unit->GetTypeId() == TYPEID_UNIT && unit->ToCreature()->GetIAmABot();
-                handler->PSendSysMessage("Main tank is %s (%s%s).", unit->GetName().c_str(), (bot ? "npcbot" : "player"), (unit->isAlive() ? "" : ", dead"));
+                handler->PSendSysMessage("Main tank is %s (%s%s).", unit->GetName().c_str(), (bot ? "npcbot" : "player"), (unit->IsAlive() ? "" : ", dead"));
                 handler->SetSentErrorMessage(true);
                 return true;
             }
@@ -421,70 +230,59 @@ public:
         if (!owner->GetSelection())
         {
             handler->PSendSysMessage(".npcbot info");
-            handler->PSendSysMessage("Lists NpcBots count of each class owned by selected player. You can use this on self and your Playerbots");
+            handler->PSendSysMessage("Lists NpcBots count of each class owned by selected player. You can use this on self and your party memebers");
             handler->SetSentErrorMessage(true);
             return false;
         }
         Player* master = owner->GetSelectedPlayer();
-        if (!master || (master && master != owner && master->GetSession()->m_master != owner))
+        if (!master || (owner->GetGroup() ? !owner->GetGroup()->IsMember(master->GetGUID()) : master->GetGUID() != owner->GetGUID()))
         {
-            handler->PSendSysMessage("You should select one of your PlayerBots or self.");
+            handler->PSendSysMessage("You should select self or one of your party memebers.");
             handler->SetSentErrorMessage(true);
             return false;
         }
-        //create list
-        std::set<Player*> Players;
-        Players.insert(master);
-        PlayerbotMgr* mgr = master->GetPlayerbotMgr();
-        if (mgr && !mgr->getPlayerbots().empty())
-            for (PlayerBotMap::const_iterator itr = mgr->GetPlayerBotsBegin(); itr != mgr->GetPlayerBotsEnd(); ++itr)
-                Players.insert(itr->second);
-        //cycle through
-        for (std::set<Player*>::const_iterator it = Players.begin(); it != Players.end(); ++it)
+        if (!master->HaveBot())
         {
-            Player* pl = *it;
-            if (!pl->HaveBot())
+            handler->PSendSysMessage("%s has no NpcBots!", master->GetName().c_str());
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        handler->PSendSysMessage("Listing NpcBots for %s", master->GetName().c_str());
+        handler->PSendSysMessage("Owned NpcBots: %u", master->GetNpcBotsCount());
+        for (uint8 i = CLASS_WARRIOR; i != MAX_CLASSES; ++i)
+        {
+            uint8 count = 0;
+            uint8 alivecount = 0;
+            for (uint8 pos = 0; pos != master->GetMaxNpcBots(); ++pos)
             {
-                handler->PSendSysMessage("%s has no NpcBots!", pl->GetName().c_str());
-                continue;
-            }
-            const std::string plType = pl == owner ? ", player" : ", playerbot";
-            handler->PSendSysMessage("Listing NpcBots for %s%s", pl->GetName().c_str(), plType.c_str());
-            handler->PSendSysMessage("Owned NpcBots: %u", pl->GetNpcBotsCount());
-            for (uint8 i = CLASS_WARRIOR; i != MAX_CLASSES; ++i)
-            {
-                uint8 count = 0;
-                uint8 alivecount = 0;
-                for (uint8 pos = 0; pos != pl->GetMaxNpcBots(); ++pos)
+                if (Creature* cre = master->GetBotMap(pos)->_Cre())
                 {
-                    if (Creature* cre = pl->GetBotMap(pos)->_Cre())
+                    if (cre->GetBotClass() == i)
                     {
-                        if (cre->GetBotClass() == i)
-                        {
-                            ++count;
-                            if (cre->isAlive())
-                                ++alivecount;
-                        }
+                        ++count;
+                        if (cre->IsAlive())
+                            ++alivecount;
                     }
                 }
-                char const* bclass;
-                switch (i)
-                {
-                case CLASS_WARRIOR:         bclass = "Warriors";        break;
-                case CLASS_PALADIN:         bclass = "Paladins";        break;
-                case CLASS_MAGE:            bclass = "Mages";           break;
-                case CLASS_PRIEST:          bclass = "Priests";         break;
-                case CLASS_WARLOCK:         bclass = "Warlocks";        break;
-                case CLASS_DRUID:           bclass = "Druids";          break;
-                case CLASS_DEATH_KNIGHT:    bclass = "DeathKnights";    break;
-                case CLASS_ROGUE:           bclass = "Rogues";          break;
-                case CLASS_SHAMAN:          bclass = "Shamans";         break;
-                case CLASS_HUNTER:          bclass = "Hunters";         break;
-                default:                    bclass = "Unknown Class";   break;
-                }
-                if (count > 0)
-                    handler->PSendSysMessage("%s: %u (alive: %u)", bclass, count, alivecount);
             }
+            char const* bclass;
+            switch (i)
+            {
+            case CLASS_WARRIOR:         bclass = "Warriors";        break;
+            case CLASS_PALADIN:         bclass = "Paladins";        break;
+            case CLASS_MAGE:            bclass = "Mages";           break;
+            case CLASS_PRIEST:          bclass = "Priests";         break;
+            case CLASS_WARLOCK:         bclass = "Warlocks";        break;
+            case CLASS_DRUID:           bclass = "Druids";          break;
+            case CLASS_DEATH_KNIGHT:    bclass = "DeathKnights";    break;
+            case CLASS_ROGUE:           bclass = "Rogues";          break;
+            case CLASS_SHAMAN:          bclass = "Shamans";         break;
+            case CLASS_HUNTER:          bclass = "Hunters";         break;
+            default:                    bclass = "Unknown Class";   break;
+            }
+            if (count > 0)
+                handler->PSendSysMessage("%s: %u (alive: %u)", bclass, count, alivecount);
         }
         return true;
     }
@@ -516,7 +314,7 @@ public:
         if (dist >= 0 && dist <= 75)
         {
             owner->SetBotFollowDist(dist);
-            if (!owner->isInCombat() && owner->HaveBot())
+            if (!owner->IsInCombat() && owner->HaveBot())
             {
                 for (uint8 i = 0; i != owner->GetMaxNpcBots(); ++i)
                 {
@@ -525,21 +323,22 @@ public:
                     owner->SendBotCommandState(cre, COMMAND_FOLLOW);
                 }
             }
-            PlayerbotMgr* mgr = owner->GetPlayerbotMgr();
-            if (mgr && !mgr->getPlayerbots().empty())
+            Group* gr = owner->GetGroup();
+            if (gr && owner->GetMap()->Instanceable() && /*gr->isRaidGroup() &&*/ gr->IsLeader(owner->GetGUID()))
             {
-                for (PlayerBotMap::const_iterator itr = mgr->GetPlayerBotsBegin(); itr != mgr->GetPlayerBotsEnd(); ++itr)
+                for (GroupReference* itr = gr->GetFirstMember(); itr != NULL; itr = itr->next())
                 {
-                    if (Player* bot = itr->second)
+                    Player* pl = itr->GetSource();
+                    if (pl && pl->IsInWorld() && pl->GetMap() == owner->GetMap())
                     {
-                        bot->SetBotFollowDist(dist);
-                        if (!bot->isInCombat() && bot->HaveBot())
+                        pl->SetBotFollowDist(dist);
+                        if (!pl->IsInCombat() && pl->HaveBot())
                         {
-                            for (uint8 i = 0; i != bot->GetMaxNpcBots(); ++i)
+                            for (uint8 i = 0; i != pl->GetMaxNpcBots(); ++i)
                             {
-                                Creature* cre = bot->GetBotMap(i)->_Cre();
+                                Creature* cre = pl->GetBotMap(i)->_Cre();
                                 if (!cre || !cre->IsInWorld()) continue;
-                                bot->SendBotCommandState(cre, COMMAND_FOLLOW);
+                                pl->SendBotCommandState(cre, COMMAND_FOLLOW);
                             }
                         }
                     }
@@ -559,29 +358,27 @@ public:
         if (!*args)
         {
             handler->PSendSysMessage(".npcbot command <command>");
-            handler->PSendSysMessage("Forces npcbots to either follow you or hold position. Can be used on Playerbots");
+            handler->PSendSysMessage("Forces npcbots to either follow you or hold position.");
             handler->SetSentErrorMessage(true);
             return false;
         }
-        Player* master = owner->GetSelectedPlayer();
-        if (!master || (master && master != owner && master->GetSession()->m_master != owner))
-            master = owner;
         char* command = strtok((char*)args, " ");
         int8 state = -1;
         if (!strncmp(command, "s", 2) || !strncmp(command, "st", 3) || !strncmp(command, "stay", 5) || !strncmp(command, "stand", 6))
             state = COMMAND_STAY;
         else if (!strncmp(command, "f", 2) || !strncmp(command, "follow", 7) || !strncmp(command, "fol", 4) || !strncmp(command, "fo", 3))
             state = COMMAND_FOLLOW;
-        if (state >= 0 && master->HaveBot())
+        if (state >= 0 && owner->HaveBot())
         {
-            for (uint8 i = 0; i != master->GetMaxNpcBots(); ++i)
+            for (uint8 i = 0; i != owner->GetMaxNpcBots(); ++i)
             {
-                Creature* cre = master->GetBotMap(i)->_Cre();
+                Creature* cre = owner->GetBotMap(i)->_Cre();
                 if (!cre || !cre->IsInWorld()) continue;
-                master->SendBotCommandState(cre, CommandStates(state));
+                owner->SendBotCommandState(cre, CommandStates(state));
             }
             return true;
         }
+        handler->SetSentErrorMessage(true);
         return false;
     }
 
@@ -592,32 +389,24 @@ public:
         if (!guid)
         {
             handler->PSendSysMessage(".npcbot remove");
-            handler->PSendSysMessage("Remove npcbots for selected Playerbot, you can also remove npcbots manually");
+            handler->PSendSysMessage("Remove selected npcbots. Select yourself to remove all npcbots");
             handler->SetSentErrorMessage(true);
             return false;
         }
-        Player* master = ObjectAccessor::GetPlayer(*owner, guid);
-        if (master)
+        if (guid == owner->GetGUID())
         {
-            if (master != owner && master->GetSession()->m_master != owner)
+            if (owner->HaveBot())
             {
-                handler->PSendSysMessage("You can only remove bots from self and your own playerbots!");
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
-            if (master->HaveBot())
-            {
-                for (uint8 i = 0; i != master->GetMaxNpcBots(); ++i)
-                {
-                    master->RemoveBot(master->GetBotMap(i)->_Guid(), true);
-                }
-                if (!master->HaveBot())
+                for (uint8 i = 0; i != owner->GetMaxNpcBots(); ++i)
+                    owner->RemoveBot(owner->GetBotMap(i)->_Guid(), true);
+
+                if (!owner->HaveBot())
                 {
                     handler->PSendSysMessage("Npcbots successfully removed");
                     handler->SetSentErrorMessage(true);
                     return true;
                 }
-                handler->PSendSysMessage("Error!");
+                handler->PSendSysMessage("Some npcbots were not removed!");
                 handler->SetSentErrorMessage(true);
                 return false;
             }
@@ -625,13 +414,14 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
+        
         Creature* cre = ObjectAccessor::GetCreature(*owner, guid);
         if (cre && cre->GetIAmABot())
         {
-            master = cre->GetBotOwner();
-            if (!master || (master && master != owner && master->GetSession()->m_master != owner))
+            Player* master = cre->GetBotOwner();
+            if (!master || (master->GetGUID() != owner->GetGUID()))
             {
-                handler->PSendSysMessage("You can only remove bots from self and your own playerbots");
+                handler->PSendSysMessage("You can only remove your own bots");
                 handler->SetSentErrorMessage(true);
                 return false;
             }
@@ -643,11 +433,11 @@ public:
                 handler->SetSentErrorMessage(true);
                 return true;
             }
-            handler->PSendSysMessage("NpcBot is NOT removed for some reason!");
+            handler->PSendSysMessage("NpcBot was NOT removed for some stupid reason!");
             handler->SetSentErrorMessage(true);
             return false;
         }
-        handler->PSendSysMessage("You should select Player or it's Npcbot!");
+        handler->PSendSysMessage("You should select self or your npcbot!");
         handler->SetSentErrorMessage(true);
         return false;
     }
@@ -661,13 +451,13 @@ public:
         if (!guid)
         {
             handler->PSendSysMessage(".npcbot reset");
-            handler->PSendSysMessage("Reset selected npcbot or npcbots for selected Playerbot, you can also reset your npcbots");
+            handler->PSendSysMessage("Reset selected npcbot, or all npcbots if used on self");
             handler->SetSentErrorMessage(true);
             return false;
         }
         if (IS_PLAYER_GUID(guid))
         {
-            master = ObjectAccessor::FindPlayer(guid);
+            master = owner;
             all = true;
         }
         else if (IS_CREATURE_GUID(guid))
@@ -675,9 +465,9 @@ public:
             if (Creature* cre = ObjectAccessor::GetCreature(*owner, guid))
                 master = cre->GetBotOwner();
         }
-        if (master && (master == owner || master->GetSession()->m_master == owner))
+        if (master && master->GetGUID() == owner->GetGUID())
         {
-            if (master->isInCombat() && master->GetSession()->GetSecurity() == SEC_PLAYER)
+            if (master->IsInCombat() && master->GetSession()->GetSecurity() == SEC_PLAYER)
             {
                 handler->PSendSysMessage("Cannot reset bots in combat!");
                 handler->SetSentErrorMessage(true);
@@ -699,10 +489,11 @@ public:
                     break;
                 }
             }
+            handler->SetSentErrorMessage(true);
             return true;
         }
         handler->PSendSysMessage(".npcbot reset");
-        handler->PSendSysMessage("Reset selected npcbot or npcbot for selected Playerbot, you can also reset your npcbot. Cannot be used in combat");
+        handler->PSendSysMessage("Reset selected npcbot. Cannot be used in combat");
         handler->SetSentErrorMessage(true);
         return false;
     }
@@ -723,13 +514,7 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
-        if (owner->isInCombat())
-        {
-            handler->PSendSysMessage("Bot revival is disabled in combat");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-        if (owner->isInFlight())
+        if (owner->IsInFlight())
         {
             handler->PSendSysMessage("Bot revival is disabled in flight");
             handler->SetSentErrorMessage(true);
@@ -760,36 +545,33 @@ public:
     static bool HandleNpcBotAddCommand(ChatHandler* handler, const char* args)
     {
         Player* owner = handler->GetSession()->GetPlayer();
-        Player* master = owner->GetSelectedPlayer();
-        if (!master || !*args || (master != owner && master->GetSession()->m_master != owner))
+        uint64 sel = owner->GetSelection();
+        if (!*args || sel != owner->GetGUID())
         {
             handler->PSendSysMessage(".npcbot add");
-            handler->PSendSysMessage("Allows to create npcbot of given class for targeted Playerbot, can be also used on self");
+            handler->PSendSysMessage("Allows to create npcbot of given class, you should select yourself");
             handler->SetSentErrorMessage(true);
             return false;
         }
-        if (master->RestrictBots())
+        if (owner->RestrictBots())
         {
             handler->GetSession()->SendNotification("This place is restricted for NpcBots");
             handler->SetSentErrorMessage(true);
             return false;
         }
-        if (master->isDead())
+        if (owner->isDead())
         {
-            if (master == owner)
-                owner->GetSession()->SendNotification("You're dead!");
-            else
-                owner->GetSession()->SendNotification("%s is dead!", master->GetName().c_str());
+            owner->GetSession()->SendNotification("You're dead!");
             handler->SetSentErrorMessage(true);
             return false;
         }
-        if (master->GetGroup() && master->GetGroup()->isRaidGroup() && master->GetGroup()->IsFull())
+        if (owner->GetGroup() && owner->GetGroup()->isRaidGroup() && owner->GetGroup()->IsFull())
         {
             handler->PSendSysMessage("Group is full, aborted");
             handler->SetSentErrorMessage(true);
             return false;
         }
-        if (master->GetNpcBotsCount() >= master->GetMaxNpcBots())
+        if (owner->GetNpcBotsCount() >= owner->GetMaxNpcBots())
         {
             handler->PSendSysMessage("NpcBots limit exceed");
             handler->SetSentErrorMessage(true);
@@ -827,15 +609,15 @@ public:
             return false;
         }
 
-        uint8 bots = master->GetNpcBotsCount();
-        master->CreateNPCBot(botclass);
-        master->RefreshBot(0);
-        if (master->GetNpcBotsCount() > bots)
+        uint8 bots = owner->GetNpcBotsCount();
+        owner->CreateNPCBot(botclass);
+        owner->RefreshBot(0);
+        if (owner->GetNpcBotsCount() > bots)
         {
-            if (master->isInCombat())
-                handler->PSendSysMessage("NpcBot successfully created (%s). Will appear out of combat", master->GetName().c_str());
+            if (owner->IsInCombat())
+                handler->PSendSysMessage("NpcBot successfully created (%s). Will appear out of combat", owner->GetName().c_str());
             else
-                handler->PSendSysMessage("NpcBot successfully created (%s).", master->GetName().c_str());
+                handler->PSendSysMessage("NpcBot successfully created (%s).", owner->GetName().c_str());
             handler->SetSentErrorMessage(true);
             return true;
         }

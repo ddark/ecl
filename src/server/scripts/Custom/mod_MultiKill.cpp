@@ -122,16 +122,16 @@ class Mod_MultiKill_WorldScript : public WorldScript
 
     void OnConfigLoad(bool reload)
     {
-        MultiKillEnable = ConfigMgr::GetBoolDefault("MultiKill.Enable", false);
+        MultiKillEnable = sConfigMgr->GetBoolDefault("MultiKill.Enable", false);
 
         if (!reload) MultiKillPlayer.clear();
 
         if (!MultiKillEnable)
             return;
 
-        MultiKillBattleGround   = ConfigMgr::GetBoolDefault("MultiKill.BattleGroundOnly", true);
-        MultiKillLog            = ConfigMgr::GetBoolDefault("MultiKill.Log", false);
-        MultiKillTimeBetween    = ConfigMgr::GetIntDefault("MultiKill.Time.Between", 15);
+        MultiKillBattleGround   = sConfigMgr->GetBoolDefault("MultiKill.BattleGroundOnly", true);
+        MultiKillLog            = sConfigMgr->GetBoolDefault("MultiKill.Log", false);
+        MultiKillTimeBetween    = sConfigMgr->GetIntDefault("MultiKill.Time.Between", 15);
 
         if (!MultiKillLoaded || !reload)
             LoadDataFromDataBase();

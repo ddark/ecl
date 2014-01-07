@@ -41,7 +41,7 @@ class lfg_commandscript : public CommandScript
 public:
     lfg_commandscript() : CommandScript("lfg_commandscript") { }
 
-    ChatCommand* GetCommands() const
+    ChatCommand* GetCommands() const OVERRIDE
     {
         static ChatCommand lfgCommandTable[] =
         {
@@ -92,7 +92,7 @@ public:
             state.c_str(), sLFGMgr->GetDungeon(guid));
 
         for (GroupReference* itr = grp->GetFirstMember(); itr != NULL; itr = itr->next())
-            GetPlayerInfo(handler, itr->getSource());
+            GetPlayerInfo(handler, itr->GetSource());
 
         return true;
     }

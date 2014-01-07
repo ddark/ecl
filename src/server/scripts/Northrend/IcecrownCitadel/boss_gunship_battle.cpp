@@ -327,7 +327,7 @@ TPlayerLists GetPlayersInTheMaps(Map *pMap)
     const Map::PlayerList &PlayerList = pMap->GetPlayers();
     if (!PlayerList.isEmpty())
         for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-            if (Player* player = i->getSource())
+            if (Player* player = i->GetSource())
                 players.push_back(player);
     return players;
 }
@@ -363,7 +363,7 @@ void StartFlyShip(Transport* t)
 
     for (Map::PlayerList::const_iterator itr = map->GetPlayers().begin(); itr != map->GetPlayers().end(); ++itr)
     {
-        if (Player* pPlayer = itr->getSource())
+        if (Player* pPlayer = itr->GetSource())
         {
             UpdateData transData;
             t->BuildCreateUpdateBlockForPlayer(&transData, pPlayer);
@@ -380,7 +380,7 @@ void UpdateTransportMotionInMap(Transport* t)
 
     for (Map::PlayerList::const_iterator itr = map->GetPlayers().begin(); itr != map->GetPlayers().end(); ++itr)
     {
-        if (Player* pPlayer = itr->getSource())
+        if (Player* pPlayer = itr->GetSource())
         {
             UpdateData transData;
             t->BuildCreateUpdateBlockForPlayer(&transData, pPlayer);
@@ -440,7 +440,7 @@ void StopFlyShip(Transport* t)
 
     for (Map::PlayerList::const_iterator itr = map->GetPlayers().begin(); itr != map->GetPlayers().end(); ++itr)
     {
-        if (Player* pPlayer = itr->getSource())
+        if (Player* pPlayer = itr->GetSource())
         {
             UpdateData transData;
             t->BuildCreateUpdateBlockForPlayer(&transData, pPlayer);
@@ -470,7 +470,7 @@ void TeleportPlayers(Map* map, uint64 TeamInInstance)
         {
             for(Map::PlayerList::const_iterator itr = lPlayers.begin(); itr != lPlayers.end(); ++itr)
             {
-                if (Player* pPlayer = itr->getSource())
+                if (Player* pPlayer = itr->GetSource())
                 {
                     if (pPlayer->isDead() && !pPlayer->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
                         pPlayer->ResurrectPlayer(1.0f);
@@ -507,7 +507,7 @@ bool DoWipeCheck(Transport* t)
         Player* plr = *itr;
         ++itr;
 
-        if (plr && plr->isAlive())
+        if (plr && plr->IsAlive())
             return true;
     }
     return false;
@@ -525,7 +525,7 @@ void DoCheckFallingPlayer(Creature* me)
         {
             for(Map::PlayerList::const_iterator itr = lPlayers.begin(); itr != lPlayers.end(); ++itr)
             {
-                if (Player* pPlayer = itr->getSource())
+                if (Player* pPlayer = itr->GetSource())
                 {
                     if (pPlayer->GetPositionZ() < 420.0f && pPlayer->IsWithinDistInMap(me, 300.0f))
                         pPlayer->NearTeleportTo(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ() + 5.0f, me->GetOrientation());
@@ -765,7 +765,7 @@ void StopFight(Transport* t1, Transport* t2)
 
     for (Map::PlayerList::const_iterator itr = map->GetPlayers().begin(); itr != map->GetPlayers().end(); ++itr)
     {
-        if (Player* pPlayer = itr->getSource())
+        if (Player* pPlayer = itr->GetSource())
             pPlayer->CombatStop();
     }
 }
@@ -781,7 +781,7 @@ class npc_muradin_gunship : public CreatureScript
             InstanceScript* pInstance = pCreature->GetInstanceScript();
             if (pInstance && pInstance->GetData(DATA_TEAM_IN_INSTANCE) == ALLIANCE)
             {
-                if ((!player->GetGroup() || !player->GetGroup()->IsLeader(player->GetGUID())) && !player->isGameMaster())
+                if ((!player->GetGroup() || !player->GetGroup()->IsLeader(player->GetGUID())) && !player->IsGameMaster())
                 {
                     player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "I'm not the raid leader...", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+2);
                     player->SEND_GOSSIP_MENU(DEFAULT_GOSSIP_MESSAGE, pCreature->GetGUID());
@@ -853,7 +853,7 @@ class npc_muradin_gunship : public CreatureScript
                 Map::PlayerList const& players = me->GetMap()->GetPlayers();
                 if (!players.isEmpty())
                     for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                        if (Player* player = itr->getSource())
+                        if (Player* player = itr->GetSource())
                             player->GetSession()->SendPacket(data);
             }
 
@@ -1065,7 +1065,7 @@ class npc_muradin_gunship : public CreatureScript
                             break;
                         case EVENT_RENDING_THROW:
                             if (UpdateVictim())
-                                if (me->getVictim()->IsWithinDistInMap(me, 50.0f, false)) // Todo: Fix the distance
+                                if (me->GetVictim()->IsWithinDistInMap(me, 50.0f, false)) // Todo: Fix the distance
                                 {
                                     DoCastVictim(SPELL_RENDING_THROW);
                                     EventScheduled = false;
@@ -1386,9 +1386,9 @@ class npc_korkron_axethrower_rifleman : public CreatureScript
                 if (attacktimer <= diff)
                 {
                     if(me->GetEntry() == NPC_GB_KORKRON_AXETHROWER)
-                        DoCast(me->getVictim(), SPELL_HURL_AXE);
+                        DoCastVictim(SPELL_HURL_AXE);
                     else if(me->GetEntry() == NPC_GB_SKYBREAKER_RIFLEMAN)
-                        DoCast(me->getVictim(), SPELL_SHOOT);
+                        DoCastVictim(SPELL_SHOOT);
                     attacktimer = urand(6000, 15000);
                 } else attacktimer -= diff;
 
@@ -2016,7 +2016,7 @@ class npc_saurfang_gunship : public CreatureScript
             InstanceScript* pInstance = pCreature->GetInstanceScript();
             if (pInstance && pInstance->GetData(DATA_TEAM_IN_INSTANCE) == HORDE)
             {
-                if ((!player->GetGroup() || !player->GetGroup()->IsLeader(player->GetGUID())) && !player->isGameMaster())
+                if ((!player->GetGroup() || !player->GetGroup()->IsLeader(player->GetGUID())) && !player->IsGameMaster())
                 {
                     player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "I'm not the raid leader...", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+2);
                     player->SEND_GOSSIP_MENU(DEFAULT_GOSSIP_MESSAGE, pCreature->GetGUID());
@@ -2085,7 +2085,7 @@ class npc_saurfang_gunship : public CreatureScript
                 Map::PlayerList const& players = me->GetMap()->GetPlayers();
                 if (!players.isEmpty())
                     for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                        if (Player* player = itr->getSource())
+                        if (Player* player = itr->GetSource())
                             player->GetSession()->SendPacket(data);
             }
 
@@ -2340,7 +2340,7 @@ class npc_saurfang_gunship : public CreatureScript
                             break;
                         case EVENT_RENDING_THROW:
                             if (UpdateVictim())
-                                if (me->getVictim()->IsWithinDistInMap(me, 50.0f, false)) // Todo: Fix the distance
+                                if (me->GetVictim()->IsWithinDistInMap(me, 50.0f, false)) // Todo: Fix the distance
                                 {
                                     DoCastVictim(SPELL_RENDING_THROW);
                                     EventScheduled = false;
@@ -3136,14 +3136,14 @@ class transport_gunship : public TransportScript
 };
 
 /* Remove Rocket Pack - 70713 */
-class spell_icc_remove_rocket_pack : public SpellScriptLoader
+class spell_remove_rocket_pack : public SpellScriptLoader
 {
     public:
-        spell_icc_remove_rocket_pack() : SpellScriptLoader("spell_icc_remove_rocket_pack") { }
+        spell_remove_rocket_pack() : SpellScriptLoader("spell_remove_rocket_pack") { }
  
-        class spell_icc_remove_rocket_pack_SpellScript : public SpellScript
+        class spell_remove_rocket_pack_SpellScript : public SpellScript
         {
-            PrepareSpellScript(spell_icc_remove_rocket_pack_SpellScript);
+            PrepareSpellScript(spell_remove_rocket_pack_SpellScript);
  
             void HandleEffect(SpellEffIndex /*effIndex*/)
             {
@@ -3158,13 +3158,13 @@ class spell_icc_remove_rocket_pack : public SpellScriptLoader
  
             void Register()
             {
-                OnEffectHit += SpellEffectFn(spell_icc_remove_rocket_pack_SpellScript::HandleEffect, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+                OnEffectHit += SpellEffectFn(spell_remove_rocket_pack_SpellScript::HandleEffect, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
             }
         };
  
         SpellScript* GetSpellScript() const
         {
-            return new spell_icc_remove_rocket_pack_SpellScript();
+            return new spell_remove_rocket_pack_SpellScript();
         }
 };
 
@@ -3315,14 +3315,14 @@ class spell_gb_burning_pitch : public SpellScriptLoader
 /* Rocket Pack - 69188 */
 /* 68721 is a big red ball */
 /* 69193 is the damage when landing, it does not include the visual (which is 69192) */
-class spell_icc_rocket_pack : public SpellScriptLoader
+class spell_rocket_pack : public SpellScriptLoader
 {
     public:
-        spell_icc_rocket_pack() : SpellScriptLoader("spell_icc_rocket_pack") { }
+        spell_rocket_pack() : SpellScriptLoader("spell_rocket_pack") { }
  
-        class spell_icc_rocket_pack_SpellScript : public SpellScript
+        class spell_rocket_pack_SpellScript : public SpellScript
         {
-            PrepareSpellScript(spell_icc_rocket_pack_SpellScript);
+            PrepareSpellScript(spell_rocket_pack_SpellScript);
  
             SpellCastResult CheckRequirement()
             {
@@ -3343,13 +3343,13 @@ class spell_icc_rocket_pack : public SpellScriptLoader
  
             void Register()
             {
-                OnCheckCast += SpellCheckCastFn(spell_icc_rocket_pack_SpellScript::CheckRequirement);
+                OnCheckCast += SpellCheckCastFn(spell_rocket_pack_SpellScript::CheckRequirement);
             }
         };
  
-        class spell_icc_rocket_pack_AuraScript : public AuraScript
+        class spell_rocket_pack_AuraScript : public AuraScript
         {
-            PrepareAuraScript(spell_icc_rocket_pack_AuraScript);
+            PrepareAuraScript(spell_rocket_pack_AuraScript);
  
             void AfterRemove(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*/)
             {
@@ -3362,18 +3362,18 @@ class spell_icc_rocket_pack : public SpellScriptLoader
  
             void Register()
             {
-                AfterEffectRemove += AuraEffectRemoveFn(spell_icc_rocket_pack_AuraScript::AfterRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+                AfterEffectRemove += AuraEffectRemoveFn(spell_rocket_pack_AuraScript::AfterRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
             }
         };
  
         SpellScript* GetSpellScript() const
         {
-            return new spell_icc_rocket_pack_SpellScript();
+            return new spell_rocket_pack_SpellScript();
         }
  
         AuraScript* GetAuraScript() const
         {
-            return new spell_icc_rocket_pack_AuraScript();
+            return new spell_rocket_pack_AuraScript();
         }
 };
 
@@ -3399,10 +3399,10 @@ void AddSC_boss_gunship_battle()
     new npc_gunship_skybreaker();
     new npc_gunship_orgrimmar();
     new transport_gunship();
-    new spell_icc_remove_rocket_pack();
+    new spell_remove_rocket_pack();
     new spell_gb_heat_drain();
     new spell_gb_overheat_drain();
     new spell_gb_incinerating_blast();
     new spell_gb_burning_pitch();
-    new spell_icc_rocket_pack();
+    new spell_rocket_pack();
 }

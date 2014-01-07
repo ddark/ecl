@@ -329,7 +329,7 @@ class npc_thorim_controller : public CreatureScript
                                 Trinity::PlayerSearcher<Trinity::AnyPlayerInObjectRangeCheck> searcher(me, player, u_check);
                                 me->VisitNearbyObject(50.0f, searcher);
                                 if (player)
-                                    if (!player->isGameMaster())
+                                    if (!player->IsGameMaster())
                                     {
                                         for (uint8 i = 0; i < 6; i++)   // Spawn Pre-Phase Adds
                                             me->SummonCreature(preAddLocations[i].entry, preAddLocations[i].pos, TEMPSUMMON_CORPSE_DESPAWN);
@@ -558,9 +558,9 @@ class boss_thorim : public CreatureScript
                 if (!UpdateVictim())
                     return;
 
-                if (phase == PHASE_ARENA_ADDS && me->getVictim() && ArenaAreaCheck(false)(me->getVictim()))
+                if (phase == PHASE_ARENA_ADDS && me->GetVictim() && ArenaAreaCheck(false)(me->GetVictim()))
                 {
-                    me->getVictim()->getHostileRefManager().deleteReference(me);
+                    me->GetVictim()->getHostileRefManager().deleteReference(me);
                     return;
                 }
 
@@ -711,7 +711,7 @@ class boss_thorim : public CreatureScript
             void JustSummoned(Creature* summon)
             {
                 summons.Summon(summon);
-                if (me->isInCombat())
+                if (me->IsInCombat())
                     DoZoneInCombat(summon);
 
                 if (summon->GetEntry() == NPC_LIGHTNING_ORB)
@@ -951,21 +951,21 @@ class npc_thorim_pre_phase_add : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_CHECK_PLAYER_IN_RANGE:
-                            if (!me->isInCombat())
+                            if (!me->IsInCombat())
                             {
                                 Player* player = 0;
                                 Trinity::AnyPlayerInObjectRangeCheck u_check(me, 70.0f, true);
                                 Trinity::PlayerSearcher<Trinity::AnyPlayerInObjectRangeCheck> searcher(me, player, u_check);
                                 me->VisitNearbyObject(30.0f, searcher);
                                 if (player)
-                                    if (!player->isGameMaster())
+                                    if (!player->IsGameMaster())
                                         AttackStart(player);
 
                                 events.ScheduleEvent(EVENT_CHECK_PLAYER_IN_RANGE, 1*IN_MILLISECONDS);
                             }
                             break;
                         case EVENT_PRIMARY_SKILL:
-                            if (Unit* target = amIHealer ? (me->GetHealthPct() > 40? DoSelectLowestHpFriendly(40) : me) : me->getVictim())
+                            if (Unit* target = amIHealer ? (me->GetHealthPct() > 40? DoSelectLowestHpFriendly(40) : me) : me->GetVictim())
                             {
                                 DoCast(target, myHelper(myIndex, PrePhaseAddHelper::INDEX_PRIMARY));
                                 events.ScheduleEvent(EVENT_PRIMARY_SKILL, urand(10*IN_MILLISECONDS, 15*IN_MILLISECONDS));
@@ -974,7 +974,7 @@ class npc_thorim_pre_phase_add : public CreatureScript
                                 events.ScheduleEvent(EVENT_PRIMARY_SKILL, urand(2*IN_MILLISECONDS, 3*IN_MILLISECONDS));
                             break;
                         case EVENT_SECONDARY_SKILL:
-                            if (amIHealer ? (me->GetHealthPct() > 40? DoSelectLowestHpFriendly(40) : me) : me->getVictim())
+                            if (amIHealer ? (me->GetHealthPct() > 40? DoSelectLowestHpFriendly(40) : me) : me->GetVictim())
                             {
                                 DoCast(myHelper(myIndex, PrePhaseAddHelper::INDEX_SECONDARY));
                                 events.ScheduleEvent(EVENT_PRIMARY_SKILL, urand(4*IN_MILLISECONDS, 8*IN_MILLISECONDS));
@@ -1175,9 +1175,9 @@ class npc_thorim_arena_phase_add : public CreatureScript
                 if (!UpdateVictim())
                     return;
 
-                if (me->getVictim() && !isOnSameSide(me->getVictim()))
+                if (me->GetVictim() && !isOnSameSide(me->GetVictim()))
                 {
-                    me->getVictim()->getHostileRefManager().deleteReference(me);
+                    me->GetVictim()->getHostileRefManager().deleteReference(me);
                     return;
                 }
 
@@ -1191,7 +1191,7 @@ class npc_thorim_arena_phase_add : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_PRIMARY_SKILL:
-                            if (Unit* target = amIhealer ? (me->GetHealthPct() > 40 ? DoSelectLowestHpFriendly(40) : me) : me->getVictim())
+                            if (Unit* target = amIhealer ? (me->GetHealthPct() > 40 ? DoSelectLowestHpFriendly(40) : me) : me->GetVictim())
                             {
                                 if (myIndex == INDEX_DARK_RUNE_EVOKER)  // Specialize
                                     DoCast(target, SPELL_RUNIC_MENDING);
@@ -1204,7 +1204,7 @@ class npc_thorim_arena_phase_add : public CreatureScript
                                 events.ScheduleEvent(EVENT_PRIMARY_SKILL, urand(1*IN_MILLISECONDS, 2*IN_MILLISECONDS));
                             break;
                         case EVENT_SECONDARY_SKILL:
-                            if (Unit* target = amIhealer ? (me->GetHealthPct() > 40 ? DoSelectLowestHpFriendly(40) : me) : me->getVictim())
+                            if (Unit* target = amIhealer ? (me->GetHealthPct() > 40 ? DoSelectLowestHpFriendly(40) : me) : me->GetVictim())
                             {
                                 if (uint32 spellID = myHelper(myIndex, ArenaPhaseAddHelper::INDEX_SECONDARY))
                                     DoCast(target, spellID);

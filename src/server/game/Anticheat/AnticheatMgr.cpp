@@ -50,7 +50,7 @@ void AnticheatMgr::WalkOnWaterHackDetection(Player* player, MovementInfo /*movem
         return;
 
     // if we are a ghost we can walk on water
-    if (!player->isAlive())
+    if (!player->IsAlive())
         return;
 
     if (player->HasAuraType(SPELL_AURA_FEATHER_FALL) ||
@@ -115,12 +115,12 @@ void AnticheatMgr::StartHackDetection(Player* player, MovementInfo movementInfo,
     if (!sWorld->getBoolConfig(CONFIG_ANTICHEAT_ENABLE))
         return;
 
-    if (player->isGameMaster())
+    if (player->IsGameMaster())
         return;
 
     uint32 key = player->GetGUIDLow();
 
-    if (player->isInFlight() || player->GetTransport() || player->GetVehicle())
+    if (player->IsInFlight() || player->GetTransport() || player->GetVehicle())
     {
         m_Players[key].SetLastMovementInfo(movementInfo);
         m_Players[key].SetLastOpcode(opcode);
@@ -199,7 +199,7 @@ void AnticheatMgr::SpeedHackDetection(Player* player,MovementInfo movementInfo)
         moveType = MOVE_RUN;
 
     // how many yards the player can do in one sec.
-    uint32 speedRate = (uint32)(player->GetSpeed(UnitMoveType(moveType)) + movementInfo.j_xyspeed);
+    uint32 speedRate = (uint32)(player->GetSpeed(UnitMoveType(moveType)) + movementInfo.jump.xyspeed);
 
     // how long the player took to move to here.
     uint32 timeDiff = getMSTimeDiff(m_Players[key].GetLastMovementInfo().time,movementInfo.time);
@@ -334,15 +334,15 @@ void AnticheatMgr::BuildReport(Player* player,uint8 reportType)
         {
             if (m_Players[key].GetAverage() > 0.5f)
             {
-                str = "Possible cheater found: " + std::string(player->GetName());
+                str = "Possible cheater found: " + std::string(player->GetName().c_str());
                 sWorld->BanCharacter(player->GetName(), "1h", str, "Anticheat");
-                sWorld->SendWorldText(LANG_BAN_CHEATER, player->GetName());
+                sWorld->SendWorldText(LANG_BAN_CHEATER, player->GetName().c_str());
             }
         }
         else
         {
 		 }
-        str = "|cFFFFFC00[AC]|cFF00FFFF[|cFF60FF00" + std::string(player->GetName()) + "|cFF00FFFF] Possible cheater!";
+        str = "|cFFFFFC00[AC]|cFF00FFFF[|cFF60FF00" + std::string(player->GetName().c_str()) + "|cFF00FFFF] Possible cheater!";
         WorldPacket data(SMSG_NOTIFICATION, (str.size()+1));
         data << str;
         sWorld->SendGlobalGMMessage(&data);

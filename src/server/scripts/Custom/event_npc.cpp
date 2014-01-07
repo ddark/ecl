@@ -158,7 +158,7 @@ class event_npc_firelord : public CreatureScript
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
 
-                if (!me->getVictim())
+                if (!me->GetVictim())
                 {
                     me->CombatStop(true);
                     EnterEvadeMode();
@@ -169,7 +169,7 @@ class event_npc_firelord : public CreatureScript
                     //Jets Timer
                     if (m_uiJetsTimer <= uiDiff)
                     {
-                        DoCast(me->getVictim(), SPELL_JETS_FIRE);
+                        DoCastVictim(SPELL_JETS_FIRE);
 
                         m_uiJetsTimer = urand(10000, 30000);
                     }
@@ -190,7 +190,7 @@ class event_npc_firelord : public CreatureScript
                     //Scorch Timer
                     if (m_uiScorchTimer <= uiDiff)
                     {
-                        DoCast(me->getVictim(), SPELL_SCORCH_FIRE);
+                        DoCastVictim(SPELL_SCORCH_FIRE);
                         m_uiScorchTimer = urand(10000, 30000);
                     }
                     else
@@ -199,7 +199,7 @@ class event_npc_firelord : public CreatureScript
                     //Fireball Timer
                     if (m_uiFireballTimer <= uiDiff)
                     {
-                        DoCast(me->getVictim(), SPELL_FIREBALL_FIRE);
+                        DoCastVictim(SPELL_FIREBALL_FIRE);
                         m_uiFireballTimer = urand(10000, 25000);
                     }
                     else
@@ -242,7 +242,7 @@ class event_npc_firelord : public CreatureScript
                     //Sunbeam Timer
                     if (m_uiSunbeamTimer <= uiDiff)
                     {
-                        DoCast(me->getVictim(), SPELL_SUNBEAM_FIRE);
+                        DoCastVictim(SPELL_SUNBEAM_FIRE);
 
                         m_uiSunbeamTimer = urand(10000, 30000);
                     }
@@ -252,7 +252,7 @@ class event_npc_firelord : public CreatureScript
                     //Scorch Timer
                     if (m_uiScorchTimer <= uiDiff)
                     {
-                        DoCast(me->getVictim(), SPELL_SCORCH_FIRE);
+                        DoCastVictim(SPELL_SCORCH_FIRE);
                         m_uiScorchTimer = urand(10000, 35000);
                     }
                     else
@@ -396,7 +396,7 @@ class event_npc_icelord : public CreatureScript
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
 
-                if (!me->getVictim())
+                if (!me->GetVictim())
                 {
                     me->CombatStop(true);
                     EnterEvadeMode();
@@ -561,7 +561,7 @@ class event_npc_earthlord : public CreatureScript
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
 
-                if (!me->getVictim())
+                if (!me->GetVictim())
                 {
                     me->CombatStop(true);
                     EnterEvadeMode();
@@ -633,7 +633,7 @@ class event_npc_earthlord : public CreatureScript
                 //Petrifying Breath Timer
                 if (m_uiPetrifyingBreathTimer <= uiDiff)
                 {
-                    me->CastSpell(me->getVictim(), SPELL_PETRIFYING_BREATH_EARTH, true);
+                    me->CastSpell(me->GetVictim(), SPELL_PETRIFYING_BREATH_EARTH, true);
 
                     m_uiPetrifyingBreathTimer = urand(10000,  20000);
                 }
@@ -745,7 +745,7 @@ class event_npc_darklord : public CreatureScript
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
 
-                if (!me->getVictim())
+                if (!me->GetVictim())
                 {
                     me->CombatStop(true);
                     EnterEvadeMode();
@@ -1161,7 +1161,7 @@ class event_dk : public CreatureScript
                 //Frost Strike Timer
                 if (m_uiFrostStrikeTimer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_FROST_STRIKE);
+                    DoCastVictim(SPELL_FROST_STRIKE);
 
                     m_uiFrostStrikeTimer = urand(7000, 10000);
                 }
@@ -1266,7 +1266,7 @@ class event_warrior : public CreatureScript
                 //Bloddthrist Timer
                 if (m_uiBloodthristTimer <= uiDiff)
                 {
-                    DoCast(me->getVictim(), SPELL_BLOODTHRIST);
+                    DoCastVictim(SPELL_BLOODTHRIST);
 
                     m_uiBloodthristTimer = urand(5000, 9000);
                 }
@@ -1295,6 +1295,63 @@ class event_warrior : public CreatureScript
 
 };
 
+#define MSG_LVLUP "Повысить уровень персонажа"
+#define MSG_ERR_INCOMBAT "Вы находитесь в бою. Чтобы использовать данного Npc выйдите из боя!"
+#define MSG_EXIT "Выход"
+ 
+class npc_levelup : public CreatureScript
+{
+public:
+npc_levelup() : CreatureScript("npc_levelup") { }
+ 
+bool OnGossipHello(Player *player, Creature *_creature)
+{
+player->PlayerTalkClass->ClearMenus();
+player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TALK, MSG_LVLUP, GOSSIP_SENDER_MAIN, 1);
+player->ADD_GOSSIP_ITEM(GOSSIP_ICON_INTERACT_1, "Выход", GOSSIP_SENDER_MAIN, 2);
+player->SEND_GOSSIP_MENU (DEFAULT_GOSSIP_MESSAGE,_creature->GetGUID());
+return true;
+}
+ 
+bool OnGossipSelect(Player *player, Creature *_creature, uint32 sender, uint32 action )
+{
+ 
+player->PlayerTalkClass->ClearMenus();
+ 
+if (sender != GOSSIP_SENDER_MAIN)
+return false;
+ 
+if (!player->getAttackers().empty())
+{
+_creature->MonsterWhisper(MSG_ERR_INCOMBAT, player->GetGUID());
+player->CLOSE_GOSSIP_MENU();
+return false;
+}
+switch (action){
+case 1:
+if (player->getLevel() < 255)
+{
+player->SetLevel(player->getLevel() + 1 );
+return true;
+}
+if (player->getLevel() >= 255)
+{
+ChatHandler(player->GetSession()).PSendSysMessage("|cfff4b25eРэнд шепчет:|r |cfffcedbbЯ не могу повысить ваш уровень, так как он максимальный!|r");
+return false;
+}
+break;
+case 2:
+player->CLOSE_GOSSIP_MENU();
+break;
+default:
+break;
+}
+ 
+return true;
+ 
+}
+};
+
 void AddSC_event_npc()
 {
     new event_npc_firelord();
@@ -1305,6 +1362,7 @@ void AddSC_event_npc()
     new event_mage_fire();
     new event_dk();
     new event_warrior();
+	new npc_levelup();
 }
 
 // © gmlt.A [worldofwarcraft.by]

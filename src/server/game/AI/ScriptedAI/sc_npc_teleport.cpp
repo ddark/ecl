@@ -98,7 +98,7 @@ std::string TELE::GetName(const bool IsGM /* = false */) const
 
 bool TELE::IsAllowedToTeleport(Player * const player) const
 {
-    if (player->isGameMaster())
+    if (player->IsGameMaster())
     {
         if (m_flag == FLAG_GMLEVEL)
             return player->GetSession()->GetSecurity() >= m_data0;
@@ -122,7 +122,7 @@ bool TELE::IsAllowedToTeleport(Player * const player) const
         return player->GetSession()->GetSecurity() >= m_data0;
 
       case FLAG_ISGM:
-        return player->isGameMaster();
+        return player->IsGameMaster();
 
       case FLAG_ACCOUNT:
         return player->GetSession()->GetAccountId() == m_data0;

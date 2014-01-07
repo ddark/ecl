@@ -194,13 +194,13 @@ class Mod_AuctionHouseBot_WorldScript : public WorldScript
     // Called after the world configuration is (re)loaded.
     void OnConfigLoad(bool reload)
     {
-        AHEnable        = ConfigMgr::GetBoolDefault("AuctionHouseBot.Enable", false);
+        AHEnable        = sConfigMgr->GetBoolDefault("AuctionHouseBot.Enable", false);
         if (!AHEnable)
             return;
 
-        AHInterval      = ConfigMgr::GetIntDefault("AuctionHouseBot.Interval", 5);
-        AHPlayerGuid    = ConfigMgr::GetIntDefault("AuctionHouseBot.PlayerGuid", 0);
-        AHItemsPerCycle = ConfigMgr::GetIntDefault("AuctionHouseBot.ItemsPerCycle", 100);
+        AHInterval      = sConfigMgr->GetIntDefault("AuctionHouseBot.Interval", 5);
+        AHPlayerGuid    = sConfigMgr->GetIntDefault("AuctionHouseBot.PlayerGuid", 0);
+        AHItemsPerCycle = sConfigMgr->GetIntDefault("AuctionHouseBot.ItemsPerCycle", 100);
 
         AuctionHouseTimer.SetInterval(AHInterval * MINUTE * IN_MILLISECONDS);
         AuctionHouseTimer.Reset();

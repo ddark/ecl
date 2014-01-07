@@ -45,7 +45,7 @@ class boss_warmaster_voone : public CreatureScript
 public:
     boss_warmaster_voone() : CreatureScript("boss_warmaster_voone") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
         return new boss_warmastervooneAI(creature);
     }
@@ -54,12 +54,12 @@ public:
     {
         boss_warmastervooneAI(Creature* creature) : BossAI(creature, DATA_WARMASTER_VOONE) {}
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             _Reset();
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             _EnterCombat();
             events.ScheduleEvent(EVENT_SNAP_KICK, 8 * IN_MILLISECONDS);
@@ -70,12 +70,12 @@ public:
             events.ScheduleEvent(EVENT_THROW_AXE, 1 * IN_MILLISECONDS);
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             _JustDied();
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -90,27 +90,27 @@ public:
                 switch (eventId)
                 {
                     case EVENT_SNAP_KICK:
-                        DoCast(me->getVictim(), SPELL_SNAPKICK);
+                        DoCastVictim(SPELL_SNAPKICK);
                         events.ScheduleEvent(EVENT_SNAP_KICK, 6 * IN_MILLISECONDS);
                         break;
                     case EVENT_CLEAVE:
-                        DoCast(me->getVictim(), SPELL_CLEAVE);
+                        DoCastVictim(SPELL_CLEAVE);
                         events.ScheduleEvent(EVENT_CLEAVE, 12 * IN_MILLISECONDS);
                         break;
                     case EVENT_UPPERCUT:
-                        DoCast(me->getVictim(), SPELL_UPPERCUT);
+                        DoCastVictim(SPELL_UPPERCUT);
                         events.ScheduleEvent(EVENT_UPPERCUT, 14 * IN_MILLISECONDS);
                         break;
                     case EVENT_MORTAL_STRIKE:
-                        DoCast(me->getVictim(), SPELL_MORTALSTRIKE);
+                        DoCastVictim(SPELL_MORTALSTRIKE);
                         events.ScheduleEvent(EVENT_MORTAL_STRIKE, 10 * IN_MILLISECONDS);
                         break;
                     case EVENT_PUMMEL:
-                        DoCast(me->getVictim(), SPELL_PUMMEL);
+                        DoCastVictim(SPELL_PUMMEL);
                         events.ScheduleEvent(EVENT_MORTAL_STRIKE, 16 * IN_MILLISECONDS);
                         break;
                     case EVENT_THROW_AXE:
-                        DoCast(me->getVictim(), SPELL_THROWAXE);
+                        DoCastVictim(SPELL_THROWAXE);
                         events.ScheduleEvent(EVENT_THROW_AXE, 8 * IN_MILLISECONDS);
                         break;
                 }

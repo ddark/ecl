@@ -47,19 +47,19 @@ public:
 	
 bool OnGossipHello(Player* pPlayer, Creature* pCreature)
 {
-	if(ConfigMgr::GetBoolDefault("Npc_Buff.OnlyGMs", false)) // If Npc_Buff.OnlyGMs is enabled in worldserver.conf
+	if(sConfigMgr->GetBoolDefault("Npc_Buff.OnlyGMs", false)) // If Npc_Buff.OnlyGMs is enabled in worldserver.conf
 		if (pPlayer->GetSession()->GetSecurity() == SEC_PLAYER)
 		{
 			pCreature->MonsterWhisper("Sorry, I can only Buff Platinum Members.", pPlayer->GetGUID());
 			return true;
 		}
 
-	bool EnableSmallBuff = ConfigMgr::GetBoolDefault("Npc_Buff.EnableSmallBuff", true);
-	bool EnableGreatBuff = ConfigMgr::GetBoolDefault("Npc_Buff.EnableGreatBuff", true);
-	bool EnableGMBuff = ConfigMgr::GetBoolDefault("Npc_Buff.EnableGMBuff", true);
-	bool EnablePlayerTools = ConfigMgr::GetBoolDefault("Npc_Buff.EnablePlayerTools", true);
-	bool EnableResSickness = ConfigMgr::GetBoolDefault("Npc_Buff.EnableRemoveResSickness", true);
-	bool EnableGivemeGold = ConfigMgr::GetBoolDefault("Npc_Buff.EnableGivemeGold", false);
+	bool EnableSmallBuff = sConfigMgr->GetBoolDefault("Npc_Buff.EnableSmallBuff", true);
+	bool EnableGreatBuff = sConfigMgr->GetBoolDefault("Npc_Buff.EnableGreatBuff", true);
+	bool EnableGMBuff = sConfigMgr->GetBoolDefault("Npc_Buff.EnableGMBuff", true);
+	bool EnablePlayerTools = sConfigMgr->GetBoolDefault("Npc_Buff.EnablePlayerTools", true);
+	bool EnableResSickness = sConfigMgr->GetBoolDefault("Npc_Buff.EnableRemoveResSickness", true);
+	bool EnableGivemeGold = sConfigMgr->GetBoolDefault("Npc_Buff.EnableGivemeGold", false);
 
 	// Main Menu
 
@@ -266,22 +266,22 @@ void SendDefaultMenu(Player* pPlayer, Creature* pCreature, uint32 uiAction)
 {
 
 // Not allow in combat
-if (pPlayer->isInCombat())
+if (pPlayer->IsInCombat())
 {
     pPlayer->CLOSE_GOSSIP_MENU();
     pCreature->MonsterSay("You are in combat!", LANG_UNIVERSAL, NULL);
 	return;
 }
 
-	bool EnableSmallBuff = ConfigMgr::GetBoolDefault("Npc_Buff.EnableSmallBuff", true);
-	bool EnableGreatBuff = ConfigMgr::GetBoolDefault("Npc_Buff.EnableGreatBuff", true);
-	bool EnableGMBuff = ConfigMgr::GetBoolDefault("Npc_Buff.EnableGMBuff", true);
-	bool EnablePlayerTools = ConfigMgr::GetBoolDefault("Npc_Buff.EnablePlayerTools", true);
-	bool EnableResSickness = ConfigMgr::GetBoolDefault("Npc_Buff.EnableRemoveResSickness", true);
-	bool EnableGivemeGold = ConfigMgr::GetBoolDefault("Npc_Buff.EnableGivemeGold", false);
+	bool EnableSmallBuff = sConfigMgr->GetBoolDefault("Npc_Buff.EnableSmallBuff", true);
+	bool EnableGreatBuff = sConfigMgr->GetBoolDefault("Npc_Buff.EnableGreatBuff", true);
+	bool EnableGMBuff = sConfigMgr->GetBoolDefault("Npc_Buff.EnableGMBuff", true);
+	bool EnablePlayerTools = sConfigMgr->GetBoolDefault("Npc_Buff.EnablePlayerTools", true);
+	bool EnableResSickness = sConfigMgr->GetBoolDefault("Npc_Buff.EnableRemoveResSickness", true);
+	bool EnableGivemeGold = sConfigMgr->GetBoolDefault("Npc_Buff.EnableGivemeGold", false);
 
 //Money Check
-if (pPlayer->GetMoney() < (ConfigMgr::GetFloatDefault("BuffGoldCost",0)))
+if (pPlayer->GetMoney() < (sConfigMgr->GetFloatDefault("BuffGoldCost",0)))
 {
     pPlayer->CLOSE_GOSSIP_MENU();
     pCreature->MonsterWhisper("You don't have enough money.", pPlayer->GetGUID());

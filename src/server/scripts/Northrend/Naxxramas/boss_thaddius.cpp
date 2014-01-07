@@ -122,11 +122,11 @@ class boss_thaddius : public CreatureScript
             {
                 checkFeugenAlive = false;
                 if (Creature* pFeugen = me->GetCreature(*me, instance->GetData64(DATA_FEUGEN)))
-                    checkFeugenAlive = pFeugen->isAlive();
+                    checkFeugenAlive = pFeugen->IsAlive();
 
                 checkStalaggAlive = false;
                 if (Creature* pStalagg = me->GetCreature(*me, instance->GetData64(DATA_STALAGG)))
-                    checkStalaggAlive = pStalagg->isAlive();
+                    checkStalaggAlive = pStalagg->IsAlive();
 
                 if (!checkFeugenAlive && !checkStalaggAlive)
                 {
@@ -256,7 +256,7 @@ class boss_thaddius : public CreatureScript
                             events.ScheduleEvent(EVENT_SHIFT, 30000);
                             break;
                         case EVENT_CHAIN:
-                            DoCast(me->getVictim(), SPELL_CHAIN_LIGHTNING);
+                            DoCastVictim(SPELL_CHAIN_LIGHTNING);
                             events.ScheduleEvent(EVENT_CHAIN, urand(10000, 20000));
                             break;
                         case EVENT_BERSERK:
@@ -265,8 +265,8 @@ class boss_thaddius : public CreatureScript
                     }
                 }
 
-                    if (events.GetTimer() > 15000 && !me->IsWithinMeleeRange(me->getVictim()))
-                        DoCast(me->getVictim(), SPELL_BALL_LIGHTNING);
+                    if (events.GetTimer() > 15000 && !me->IsWithinMeleeRange(me->GetVictim()))
+                        DoCastVictim(SPELL_BALL_LIGHTNING);
                     else
                         DoMeleeAttackIfReady();
             }
@@ -285,14 +285,14 @@ class boss_thaddius : public CreatureScript
         }
 };
 
-class mob_stalagg : public CreatureScript
+class npc_stalagg : public CreatureScript
 {
     public:
-        mob_stalagg() : CreatureScript("mob_stalagg") { }
+        npc_stalagg() : CreatureScript("npc_stalagg") { }
 
-        struct mob_stalaggAI : public ScriptedAI
+        struct npc_stalaggAI : public ScriptedAI
         {
-            mob_stalaggAI(Creature* creature) : ScriptedAI(creature)
+            npc_stalaggAI(Creature* creature) : ScriptedAI(creature)
             {
                 instance = creature->GetInstanceScript();
                 IsChanneling = false;
@@ -363,8 +363,8 @@ class mob_stalagg : public CreatureScript
                 {
                     if (Creature* pFeugen = me->GetCreature(*me, instance->GetData64(DATA_FEUGEN)))
                     {
-                        Unit* pStalaggVictim = me->getVictim();
-                        Unit* pFeugenVictim = pFeugen->getVictim();
+                        Unit* pStalaggVictim = me->GetVictim();
+                        Unit* pFeugenVictim = pFeugen->GetVictim();
 
                         if (pFeugenVictim && pStalaggVictim)
                         {
@@ -400,18 +400,18 @@ class mob_stalagg : public CreatureScript
 
         CreatureAI* GetAI(Creature* creature) const
         {
-            return GetNaxxramasAI<mob_stalaggAI>(creature);
+            return GetNaxxramasAI<npc_stalaggAI>(creature);
         }
 };
 
-class mob_feugen : public CreatureScript
+class npc_feugen : public CreatureScript
 {
     public:
-        mob_feugen() : CreatureScript("mob_feugen") { }
+        npc_feugen() : CreatureScript("npc_feugen") { }
 
-        struct mob_feugenAI : public ScriptedAI
+        struct npc_feugenAI : public ScriptedAI
         {
-            mob_feugenAI(Creature* creature) : ScriptedAI(creature)
+            npc_feugenAI(Creature* creature) : ScriptedAI(creature)
             {
                 instance = creature->GetInstanceScript();
                 IsChanneling = false;
@@ -496,7 +496,7 @@ class mob_feugen : public CreatureScript
 
         CreatureAI* GetAI(Creature* creature) const
         {
-            return GetNaxxramasAI<mob_feugenAI>(creature);
+            return GetNaxxramasAI<npc_feugenAI>(creature);
         }
 };
 
@@ -643,8 +643,8 @@ class at_thaddius_intro : public AreaTriggerScript
 void AddSC_boss_thaddius()
 {
     new boss_thaddius();
-    new mob_stalagg();
-    new mob_feugen();
+    new npc_stalagg();
+    new npc_feugen();
     new spell_thaddius_pos_neg_charge();
     new spell_thaddius_polarity_shift();
     new achievement_polarity_switch();

@@ -37,7 +37,7 @@ GmTicket::GmTicket() { }
 GmTicket::GmTicket(Player* player, WorldPacket& recvData) : _createTime(time(NULL)), _lastModifiedTime(time(NULL)), _closedBy(0), _assignedTo(0), _completed(false), _escalatedStatus(TICKET_UNASSIGNED), _haveTicket(false)
 {
     _id = sTicketMgr->GenerateTicketId();
-    _playerName = player->GetName();
+    _playerName = player->GetName().c_str();
     _playerGuid = player->GetGUID();
 
     uint32 mapId;

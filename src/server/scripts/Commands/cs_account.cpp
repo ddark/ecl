@@ -33,7 +33,7 @@ class account_commandscript : public CommandScript
 public:
     account_commandscript() : CommandScript("account_commandscript") { }
 
-    ChatCommand* GetCommands() const
+    ChatCommand* GetCommands() const OVERRIDE
     {
         static ChatCommand accountSetCommandTable[] =
         {
@@ -482,7 +482,7 @@ public:
         char* arg3 = strtok(NULL, " ");
         bool isAccountNameGiven = true;
 
-        if (arg1 && !arg3)
+        if (!arg3)
         {
             if (!handler->getSelectedPlayer())
                 return false;

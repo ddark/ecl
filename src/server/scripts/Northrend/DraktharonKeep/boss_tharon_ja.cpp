@@ -87,7 +87,7 @@ public:
 
         InstanceScript* instance;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             uiPhaseTimer = 20*IN_MILLISECONDS;
             uiCurseOfLifeTimer = 1*IN_MILLISECONDS;
@@ -95,19 +95,16 @@ public:
             uiShadowVolleyTimer = urand(8*IN_MILLISECONDS, 10*IN_MILLISECONDS);
             Phase = SKELETAL;
             me->SetDisplayId(me->GetNativeDisplayId());
-            if (instance)
-                instance->SetData(DATA_THARON_JA_EVENT, NOT_STARTED);
+            instance->SetBossState(DATA_THARON_JA, NOT_STARTED);
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             Talk(SAY_AGGRO);
-
-            if (instance)
-                instance->SetData(DATA_THARON_JA_EVENT, IN_PROGRESS);
+            instance->SetBossState(DATA_THARON_JA, IN_PROGRESS);
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -219,12 +216,12 @@ public:
             }
         }
 
-        void KilledUnit(Unit* /*victim*/)
+        void KilledUnit(Unit* /*victim*/) OVERRIDE
         {
             Talk(SAY_KILL);
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             Talk(SAY_DEATH);
 
@@ -234,19 +231,19 @@ public:
                 Map::PlayerList const &PlayerList = instance->instance->GetPlayers();
 
                 for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                    if (Player* player = i->getSource())
+                    if (Player* player = i->GetSource())
                         player->DeMorph();
 
                 DoCast(me, SPELL_ACHIEVEMENT_CHECK);
 
-                instance->SetData(DATA_THARON_JA_EVENT, DONE);
+                instance->SetBossState(DATA_THARON_JA, DONE);
             }
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_tharon_jaAI(creature);
+        return GetDrakTharonKeepAI<boss_tharon_jaAI>(creature);
     }
 };
 

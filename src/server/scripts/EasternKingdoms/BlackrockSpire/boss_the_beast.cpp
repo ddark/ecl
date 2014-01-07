@@ -39,7 +39,7 @@ class boss_the_beast : public CreatureScript
 public:
     boss_the_beast() : CreatureScript("boss_the_beast") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
         return new boss_thebeastAI(creature);
     }
@@ -48,12 +48,12 @@ public:
     {
         boss_thebeastAI(Creature* creature) : BossAI(creature, DATA_THE_BEAST) {}
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             _Reset();
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             _EnterCombat();
             events.ScheduleEvent(EVENT_FLAME_BREAK,     12 * IN_MILLISECONDS);
@@ -61,12 +61,12 @@ public:
             events.ScheduleEvent(EVENT_TERRIFYING_ROAR, 23 * IN_MILLISECONDS);
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             _JustDied();
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -81,7 +81,7 @@ public:
                 switch (eventId)
                 {
                     case EVENT_FLAME_BREAK:
-                        DoCast(me->getVictim(), SPELL_FLAMEBREAK);
+                        DoCastVictim(SPELL_FLAMEBREAK);
                         events.ScheduleEvent(EVENT_FLAME_BREAK, 10 * IN_MILLISECONDS);
                         break;
                     case EVENT_IMMOLATE:
@@ -90,7 +90,7 @@ public:
                         events.ScheduleEvent(EVENT_IMMOLATE, 8 * IN_MILLISECONDS);
                         break;
                     case EVENT_TERRIFYING_ROAR:
-                        DoCast(me->getVictim(), SPELL_TERRIFYINGROAR);
+                        DoCastVictim(SPELL_TERRIFYINGROAR);
                         events.ScheduleEvent(EVENT_TERRIFYING_ROAR, 20 * IN_MILLISECONDS);
                         break;
                 }

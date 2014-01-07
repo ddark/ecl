@@ -81,7 +81,7 @@ bool DICreateOrExisted(Map* map)
     Map::PlayerList const &players = map->GetPlayers();
 
     if (!players.isEmpty())
-        if (Player* player = players.begin()->getSource())
+        if (Player* player = players.begin()->GetSource())
         {
             DIData[map->GetInstanceId()].level = player->getLevel();
             CharacterDatabase.PExecute(DI_SQL_SAVE, map->GetInstanceId(), DIData[map->GetInstanceId()].level);
@@ -176,10 +176,10 @@ void DIRemoveData(uint32 instanceid)
 */
 bool DICreatureCalcStats(Creature* creature)
 {
-    if (!DDEnable || !creature->isAlive())
+    if (!DDEnable || !creature->IsAlive())
         return false;
 
-    if (creature->isTotem() || creature->isTrigger() || creature->GetCreatureType() == CREATURE_TYPE_CRITTER || creature->isSpiritService())
+    if (creature->IsTotem() || creature->IsTrigger() || creature->GetCreatureType() == CREATURE_TYPE_CRITTER || creature->IsSpiritService())
         return false;
 
     uint8 level = 1;
@@ -211,7 +211,7 @@ bool DICreatureCalcStats(Creature* creature)
     if (level > DD_EXPANSION_WOTLK)
         expansion++;
 
-    uint32 rank = creature->isPet() ? 0 : cinfo->rank;
+    uint32 rank = creature->IsPet() ? 0 : cinfo->rank;
 
     CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(level, cinfo->unit_class);
 
@@ -363,9 +363,9 @@ class Mod_DynamicInstance_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        DDEnable  = ConfigMgr::GetBoolDefault("DynamicDifficulty.Enable", false);
-        DDDungeon = ConfigMgr::GetBoolDefault("DynamicDifficulty.DungeonOnly", true);
-        DDLevel   = ConfigMgr::GetIntDefault("DynamicDifficulty.WorldLevel", DD_MAX_LEVEL);
+        DDEnable  = sConfigMgr->GetBoolDefault("DynamicDifficulty.Enable", false);
+        DDDungeon = sConfigMgr->GetBoolDefault("DynamicDifficulty.DungeonOnly", true);
+        DDLevel   = sConfigMgr->GetIntDefault("DynamicDifficulty.WorldLevel", DD_MAX_LEVEL);
 
         if (!DDEnable)
             return;
@@ -430,7 +430,7 @@ class Mod_DynamicInstance_AllCreatureScript : public AllCreatureScript
         if (!spellProto->MaxLevel)
             return;
             
-        if (creature->isTotem() || creature->isTrigger() || creature->GetCreatureType() == CREATURE_TYPE_CRITTER || creature->isSpiritService())
+        if (creature->IsTotem() || creature->IsTrigger() || creature->GetCreatureType() == CREATURE_TYPE_CRITTER || creature->IsSpiritService())
             return;
             
         /*uint8 level = creature->GetCreatureTemplate()->maxlevel;

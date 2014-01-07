@@ -172,7 +172,12 @@ public:
 
             Map::PlayerList const& players = me->GetMap()->GetPlayers();
             if (!players.isEmpty())
-                sLFGMgr->FinishDungeon(players.begin()->getSource()->GetGroup()->GetGUID(), 287);
+				{
+                if (Group* group = players.begin()->GetSource()->GetGroup())
+                    if (group->isLFGGroup())
+                        sLFGMgr->FinishDungeon(group->GetGUID(), 285);
+              }
+               // sLFGMgr->FinishDungeon(players.begin()->GetSource()->GetGroup()->GetGUID(), 287);
         }
 
         void UpdateAI(uint32 diff)
@@ -277,9 +282,9 @@ class npc_frozen_core : public CreatureScript
 
             void JustDied(Unit* killer)
             {
-                if (me->isSummon())
+                if (me->IsSummon())
                     if (Unit* owner = me->ToTempSummon()->GetSummoner())
-                        if (owner && owner->isAlive())
+                        if (owner && owner->IsAlive())
                             killer->Kill(owner);
             }
         
@@ -355,7 +360,7 @@ public:
 
             if(uiPulverizeTimer < uiDiff)
             {
-                DoCast(me->getVictim(), SPELL_PULVERIZE);
+                DoCastVictim(SPELL_PULVERIZE);
                 uiPulverizeTimer = 10000;
             }
             else uiPulverizeTimer -= uiDiff;
@@ -401,7 +406,7 @@ public:
 
             if(uiBlastTimer < uiDiff)
             {
-                DoCast(me->getVictim(), SPELL_BITTER_BLAST);
+                DoCastVictim(SPELL_BITTER_BLAST);
                 uiBlastTimer = urand(4000, 7000);
             }
             else uiBlastTimer -= uiDiff;
@@ -436,7 +441,7 @@ public:
 
             if(uiBuffedTimer < uiDiff)
             {
-                DoCast(me->getVictim(), SPELL_WIND_BUFFET);
+                DoCastVictim(SPELL_WIND_BUFFET);
                 uiBuffedTimer = 6000;
             }
             else uiBuffedTimer -= uiDiff;

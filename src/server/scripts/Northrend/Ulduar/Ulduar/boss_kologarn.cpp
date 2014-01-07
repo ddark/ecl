@@ -189,7 +189,7 @@ class boss_kologarn : public CreatureScript
 
                 for (uint8 i = 0; i < 2; ++i)   // 2 -> 2 arms
                     if (Unit* arm = vehicle->GetPassenger(i))
-                        if (!arm->isInCombat()) // avoid cyclical activation: His arms are calling Kologarn if they get in combat and he is not.
+                        if (!arm->IsInCombat()) // avoid cyclical activation: His arms are calling Kologarn if they get in combat and he is not.
                             arm->ToCreature()->SetInCombatWithZone();
 
                 me->SetReactState(REACT_AGGRESSIVE);
@@ -287,13 +287,13 @@ class boss_kologarn : public CreatureScript
                     Map::PlayerList const& players = map->GetPlayers();
                     for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
                     {
-                        if (Player* player = itr->getSource())
+                        if (Player* player = itr->GetSource())
                         {
-                            if (player->isDead() || player->HasAura(SPELL_STONE_GRIP_DOT) || player->isGameMaster())
+                            if (player->isDead() || player->HasAura(SPELL_STONE_GRIP_DOT) || player->IsGameMaster())
                                 continue;
 
-                            if (me->getVictim())
-                                if (me->getVictim()->GetGUID() == player->GetGUID())
+                            if (me->GetVictim())
+                                if (me->GetVictim()->GetGUID() == player->GetGUID())
                                     continue;
 
                             float Distance = player->GetDistance(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
@@ -410,7 +410,7 @@ class boss_kologarn : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_MELEE_CHECK:
-                            if (!me->IsWithinMeleeRange(me->getVictim()))
+                            if (!me->IsWithinMeleeRange(me->GetVictim()))
                                 DoCast(SPELL_PETRIFY_BREATH);
                             events.ScheduleEvent(EVENT_MELEE_CHECK, 1*IN_MILLISECONDS);
                             return;
@@ -528,7 +528,7 @@ class npc_kologarn_arm : public CreatureScript
                 me->SetReactState(REACT_AGGRESSIVE);
 
                 Creature* kologarn = me->GetVehicleCreatureBase();
-                if (kologarn && !kologarn->isInCombat())
+                if (kologarn && !kologarn->IsInCombat())
                     kologarn->AI()->AttackStart(who);
             }
 
@@ -636,7 +636,7 @@ class spell_ulduar_stone_grip_cast_target : public SpellScriptLoader
             void FilterTargetsInitial(std::list<WorldObject*>& targets)
             {
                 // Remove "main tank" and non-player targets
-                targets.remove_if (StoneGripTargetSelector(GetCaster()->ToCreature(), GetCaster()->getVictim()));
+                targets.remove_if (StoneGripTargetSelector(GetCaster()->ToCreature(), GetCaster()->GetVictim()));
                 // Maximum affected targets per difficulty mode
                 uint32 maxTargets = GetSpellInfo()->Id == 63981 ? 3 : 1; // 63981 -> 25 man raid
 
@@ -840,11 +840,11 @@ class spell_ulduar_stone_grip : public SpellScriptLoader
                 }
             }
 
-            void OnEnterVehicle(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+           void OnEnterVehicle(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 Player* caster = GetCaster() ? GetCaster()->ToPlayer() : 0;
                 if (caster)
-                    caster->ClearUnitState(UNIT_STATE_ONVEHICLE);
+                    caster->ClearUnitState(UNIT_STATE_IN_FLIGHT);
                 // TODO: Check if this works, but due to the code below, GetCaster() should return the player. 
                 // It appears that this function will be called after entering the "vehicle" arm. 
             }

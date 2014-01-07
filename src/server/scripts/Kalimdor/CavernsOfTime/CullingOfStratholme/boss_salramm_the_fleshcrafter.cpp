@@ -54,9 +54,9 @@ class boss_salramm : public CreatureScript
 public:
     boss_salramm() : CreatureScript("boss_salramm") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_salrammAI (creature);
+        return new boss_salrammAI(creature);
     }
 
     struct boss_salrammAI : public ScriptedAI
@@ -76,7 +76,7 @@ public:
 
         InstanceScript* instance;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
              uiCurseFleshTimer = 30000;  //30s DBM
              uiExplodeGhoulTimer = urand(25000, 28000); //approx 6 sec after summon ghouls
@@ -88,7 +88,7 @@ public:
                  instance->SetData(DATA_SALRAMM_EVENT, NOT_STARTED);
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             Talk(SAY_AGGRO);
 
@@ -96,7 +96,7 @@ public:
                  instance->SetData(DATA_SALRAMM_EVENT, IN_PROGRESS);
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -105,7 +105,7 @@ public:
             //Curse of twisted flesh timer
             if (uiCurseFleshTimer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_CURSE_OF_TWISTED_FLESH);
+                DoCastVictim(SPELL_CURSE_OF_TWISTED_FLESH);
                 uiCurseFleshTimer = 37000;
             } else uiCurseFleshTimer -= diff;
 
@@ -138,7 +138,7 @@ public:
             DoMeleeAttackIfReady();
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             Talk(SAY_DEATH);
 
@@ -146,9 +146,9 @@ public:
                 instance->SetData(DATA_SALRAMM_EVENT, DONE);
         }
 
-        void KilledUnit(Unit* victim)
+        void KilledUnit(Unit* victim) OVERRIDE
         {
-            if (victim == me)
+            if (victim->GetTypeId() != TYPEID_PLAYER)
                 return;
 
             Talk(SAY_SLAY);

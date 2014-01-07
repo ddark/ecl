@@ -471,7 +471,7 @@ class PlayerOrPetCheck
         bool operator() (WorldObject* unit)
         {
             if (unit->GetTypeId() != TYPEID_PLAYER)
-                if (!unit->ToCreature()->isPet())
+                if (!unit->ToCreature()->IsPet())
                     return true;
 
             return false;
@@ -484,7 +484,7 @@ class NoPlayerOrPetCheck
         bool operator() (WorldObject* unit)
         {
             if (unit->GetTypeId() != TYPEID_PLAYER)
-                if (!unit->ToCreature()->isPet())
+                if (!unit->ToCreature()->IsPet())
                     return false;
 
             return true;

@@ -35,22 +35,22 @@ public:
 
     void LoadConfig()
     {
-        RequireGold = (uint32)ConfigMgr::GetIntDefault("Transmogrification.RequireGold", 1);
-        GoldModifier = ConfigMgr::GetFloatDefault("Transmogrification.GoldModifier", 1.0f);
-        GoldCost = (uint32)ConfigMgr::GetIntDefault("Transmogrification.GoldCost", 100000);
+        RequireGold = (uint32)sConfigMgr->GetIntDefault("Transmogrification.RequireGold", 1);
+        GoldModifier = sConfigMgr->GetFloatDefault("Transmogrification.GoldModifier", 1.0f);
+        GoldCost = (uint32)sConfigMgr->GetIntDefault("Transmogrification.GoldCost", 100000);
 
-        RequireToken = ConfigMgr::GetBoolDefault("Transmogrification.RequireToken", false);
-        TokenEntry = (uint32)ConfigMgr::GetIntDefault("Transmogrification.TokenEntry", 49426);
-        TokenAmount = (uint32)ConfigMgr::GetIntDefault("Transmogrification.TokenAmount", 1);
+        RequireToken = sConfigMgr->GetBoolDefault("Transmogrification.RequireToken", false);
+        TokenEntry = (uint32)sConfigMgr->GetIntDefault("Transmogrification.TokenEntry", 49426);
+        TokenAmount = (uint32)sConfigMgr->GetIntDefault("Transmogrification.TokenAmount", 1);
 
-        AllowPoor = ConfigMgr::GetBoolDefault("Transmogrification.AllowPoor", false);
-        AllowCommon = ConfigMgr::GetBoolDefault("Transmogrification.AllowCommon", false);
-        AllowUncommon = ConfigMgr::GetBoolDefault("Transmogrification.AllowUncommon", true);
-        AllowRare = ConfigMgr::GetBoolDefault("Transmogrification.AllowRare", true);
-        AllowEpic = ConfigMgr::GetBoolDefault("Transmogrification.AllowEpic", true);
-        AllowLegendary = ConfigMgr::GetBoolDefault("Transmogrification.AllowLegendary", false);
-        AllowArtifact = ConfigMgr::GetBoolDefault("Transmogrification.AllowArtifact", false);
-        AllowHeirloom = ConfigMgr::GetBoolDefault("Transmogrification.AllowHeirloom", true);
+        AllowPoor = sConfigMgr->GetBoolDefault("Transmogrification.AllowPoor", false);
+        AllowCommon = sConfigMgr->GetBoolDefault("Transmogrification.AllowCommon", false);
+        AllowUncommon = sConfigMgr->GetBoolDefault("Transmogrification.AllowUncommon", true);
+        AllowRare = sConfigMgr->GetBoolDefault("Transmogrification.AllowRare", true);
+        AllowEpic = sConfigMgr->GetBoolDefault("Transmogrification.AllowEpic", true);
+        AllowLegendary = sConfigMgr->GetBoolDefault("Transmogrification.AllowLegendary", false);
+        AllowArtifact = sConfigMgr->GetBoolDefault("Transmogrification.AllowArtifact", false);
+        AllowHeirloom = sConfigMgr->GetBoolDefault("Transmogrification.AllowHeirloom", true);
 
         if(!sObjectMgr->GetItemTemplate(TokenEntry))
         {

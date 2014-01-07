@@ -43,14 +43,14 @@ class Mod_HonorRank_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        HonorRankEnable         = ConfigMgr::GetBoolDefault("HonorRank.Enable", false);
+        HonorRankEnable         = sConfigMgr->GetBoolDefault("HonorRank.Enable", false);
 
         if (!HonorRankEnable)
             return;
 
-        HonorRankCheckKill      = ConfigMgr::GetBoolDefault("HonorRank.Check.Kill", false);
-        HonorRankCheckLogin     = ConfigMgr::GetBoolDefault("HonorRank.Check.Login", false);
-        HonorRankSetNew         = ConfigMgr::GetBoolDefault("HonorRank.SetNew", false);
+        HonorRankCheckKill      = sConfigMgr->GetBoolDefault("HonorRank.Check.Kill", false);
+        HonorRankCheckLogin     = sConfigMgr->GetBoolDefault("HonorRank.Check.Login", false);
+        HonorRankSetNew         = sConfigMgr->GetBoolDefault("HonorRank.SetNew", false);
     }
 };
 

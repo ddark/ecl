@@ -11,7 +11,7 @@ public:
     // Called after the world configuration is (re)loaded.
     void OnConfigLoad(bool /*reload*/)
     {
-        DefaultSpecEnable    = ConfigMgr::GetBoolDefault("DefaultSpec.Enable", false);
+        DefaultSpecEnable    = sConfigMgr->GetBoolDefault("DefaultSpec.Enable", false);
     }
 };
 

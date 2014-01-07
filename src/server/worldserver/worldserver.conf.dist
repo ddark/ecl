@@ -18,6 +18,7 @@
 #    GAME MASTER SETTINGS
 #    VISIBILITY AND DISTANCES
 #    SERVER RATES
+#    STATS LIMITS
 #    AUTO BROADCAST
 #    BATTLEGROUND CONFIG
 #    BATTLEFIELD CONFIG
@@ -148,7 +149,9 @@ BindIP = "0.0.0.0"
 # PERFORMANCE SETTINGS
 #
 #    UseProcessors
-#        Description: Processors mask for Windows based multi-processor systems.
+#        Description: Processors mask for Windows and Linux based multi-processor systems.
+#        Example:     A computer with 2 CPUs:
+#                     1 - 1st CPU only, 2 - 2nd CPU only, 3 - 1st and 2nd CPU, because 1 | 2 is 3
 #        Default:     0  - (Selected by OS)
 #                     1+ - (Bit mask value of selected processors)
 
@@ -156,11 +159,12 @@ UseProcessors = 0
 
 #
 #    ProcessPriority
-#        Description: Process priority setting for Windows based systems.
-#        Default:     1 - (High)
-#                     0 - (Normal)
+#        Description: Process priority setting for Windows and Linux based systems.
+#        Details:     On Linux, a nice value of -15 is used. (requires superuser). On Windows, process is set to HIGH class.
+#        Default:     0 - (Normal)
+#                     1 - (High)
 
-ProcessPriority = 1
+ProcessPriority = 0
 
 #
 #    Compression
@@ -2010,6 +2014,28 @@ Die.Command.Mode = 1
 ###################################################################################################
 
 ###################################################################################################
+# STATS LIMITS
+#
+#    Stats.Limits.Enable
+#        Description: Enable or disable stats system
+#        Default:     0 - Disabled
+
+Stats.Limits.Enable = 0
+
+#
+#    Stats.Limit.[STAT]
+#        Description: Set percentage limit for dodge, parry, block and crit rating
+#        Default:     95.0 (95%)
+
+Stats.Limits.Dodge = 95.0
+Stats.Limits.Parry = 95.0
+Stats.Limits.Block = 95.0
+Stats.Limits.Crit  = 95.0
+
+#
+###################################################################################################
+
+###################################################################################################
 # AUTO BROADCAST
 #
 #    AutoBroadcast.On
@@ -2912,94 +2938,7 @@ ShowMuteInWorld = 1
 ShowBanInWorld = 1
 
 #
- ###################################################################################################
- ################################## BOTS CONFIGURATION ############################################
- ###################################################################################################
- # PLAYERBOT CONFIGURATION
- #
- #    Bot.EnablePlayerBots
- #        Disable the bot command and bot menu
- #        Default: 0 - off
- #                 1 - on
- 
- Bot.EnablePlayerBots = 0
- 
- #    Bot.DebugWhisper
- #        Enable debug output by whispering master
- #        Default: 0 - off
- #                 1 - on
- 
- Bot.DebugWhisper = 0
- 
- #    Bot.FollowDistanceMin
- #    Bot.FollowDistanceMax
- #        Min. and Max. follow distance for bots
- #        Default: 0.5 / 1.0
- 
- Bot.FollowDistanceMin = 0.5
- Bot.FollowDistanceMax = 1.0
- 
- #    Bot.MaxPlayerbots
- #        Limits the number of bots per account (Max 9)
- #        Default: 9
- 
- Bot.MaxPlayerbots = 9
- 
- #    Bot.RestrictBotLevel
- #        Restrict the allowed bot level (Current Max 80)
- #        Default: 80
- 
- Bot.RestrictBotLevel = 80
- 
- #    Bot.Collect.Combat
- #    Bot.Collect.Quest
- #    Bot.Collect.Profession
- #    Bot.Collect.Loot
- #    Bot.Collect.Skin
- #    Bot.Collect.Objects
- #        Enable collection options for after combat, quest items, profession, all loot, skin, or nearby objects
- #                 0 - off
- #        Default: 1 - on
- 
- Bot.Collect.Combat = 1
- Bot.Collect.Quest = 1
- Bot.Collect.Profession = 1
- Bot.Collect.Loot = 1
- Bot.Collect.Skin = 1
- Bot.Collect.Objects = 1
- 
- #    Bot.Collect.DistanceMax
- #        Maximum distance that can be configured for bots to collect objects. Allowing a higher
- #        distance could increase processor usage for object searching.
- #                 1-100
- #        Default: 50
- 
- Bot.Collect.DistanceMax = 50
- 
- #    Bot.Collect.Distance
- #        Default distance that bots will search within for collection.
- #        Default: 25 (cannot be more than DistanceMax)
- 
- Bot.Collect.Distance = 25
- 
- #    Bot.SellGarbage
- #        Allow bots to automatically sell all [GRAY|POOR] quality items as the player activates vendor
- #        Default: 0 - off
- #                 1 - on
- 
- Bot.SellGarbage = 0
- 
- #    Bot.SellAll.LevelDiff
- #         If 'sell all' command is given prior to selling, bots will sell all low level white items.. this number is the number
- #         of levels LOWER than the bots level the Item must be before bot will sell it.
- #         Default: 10 (10 levels lower than the bot) Don't set to 0 or they'll sell everything! *SellGarbage must be set to 1 to use this*
- 
- Bot.SellAll.LevelDiff = 10
- 
- #
- ###################################################################################################
- 
- ###################################################################################################
+###################################################################################################
  # NPCBOT CONFIGURATION
  #
  #     Bot.EnableNpcBots

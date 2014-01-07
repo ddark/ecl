@@ -24,21 +24,21 @@ class Mod_MailHistory_WorldScript : public WorldScript
     // Called after the world configuration is (re)loaded.
     void OnConfigLoad(bool /*reload*/)
     {
-        mailHistoryEnable = ConfigMgr::GetBoolDefault("MailHistory.Enable", false);
+        mailHistoryEnable = sConfigMgr->GetBoolDefault("MailHistory.Enable", false);
         mailHistoryMask = 0;
 
         if (!mailHistoryEnable)
             return;
 
-        if (ConfigMgr::GetBoolDefault("MailHistory.Normal", false))
+        if (sConfigMgr->GetBoolDefault("MailHistory.Normal", false))
             mailHistoryMask += MAIL_HISTORY_NORMAL;
-        if (ConfigMgr::GetBoolDefault("MailHistory.Auction", false))
+        if (sConfigMgr->GetBoolDefault("MailHistory.Auction", false))
             mailHistoryMask += MAIL_HISTORY_AUCTION;
-        if (ConfigMgr::GetBoolDefault("MailHistory.Creature", false))
+        if (sConfigMgr->GetBoolDefault("MailHistory.Creature", false))
             mailHistoryMask += MAIL_HISTORY_CREATURE;
-        if (ConfigMgr::GetBoolDefault("MailHistory.Gameobject", false))
+        if (sConfigMgr->GetBoolDefault("MailHistory.Gameobject", false))
             mailHistoryMask += MAIL_HISTORY_GAMEOBJECT;
-        if (ConfigMgr::GetBoolDefault("MailHistory.Item", false))
+        if (sConfigMgr->GetBoolDefault("MailHistory.Item", false))
             mailHistoryMask += MAIL_HISTORY_ITEM;
     }
 };

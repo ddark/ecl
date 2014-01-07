@@ -53,11 +53,29 @@ enum VehicleSpells
     VEHICLE_SPELL_PARACHUTE                      = 45472
 };
 
+struct PassengerInfo
+{
+    uint64 Guid;
+    bool IsUnselectable;
+
+    void Reset()
+    {
+        Guid = 0;
+        IsUnselectable = false;
+    }
+};
+
 struct VehicleSeat
 {
-    explicit VehicleSeat(VehicleSeatEntry const* seatInfo) : SeatInfo(seatInfo), Passenger(0) {}
+    explicit VehicleSeat(VehicleSeatEntry const* seatInfo) : SeatInfo(seatInfo)
+    {
+        Passenger.Reset();
+    }
+
+    bool IsEmpty() const { return !Passenger.Guid; }
+
     VehicleSeatEntry const* SeatInfo;
-    uint64 Passenger;
+    PassengerInfo Passenger;
 };
 
 struct VehicleAccessory
@@ -83,10 +101,10 @@ protected:
 
 public:
     /// This method transforms supplied transport offsets into global coordinates
-    virtual void CalculatePassengerPosition(float& x, float& y, float& z, float& o) const = 0;
+    virtual void CalculatePassengerPosition(float& x, float& y, float& z, float* o = NULL) const = 0;
 
     /// This method transforms supplied global coordinates into local offsets
-    virtual void CalculatePassengerOffset(float& x, float& y, float& z, float& o) const = 0;
+    virtual void CalculatePassengerOffset(float& x, float& y, float& z, float* o = NULL) const = 0;
 };
 
 #endif

@@ -18,7 +18,7 @@ class Mod_BattlegroundHistory_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        BGHistoryEnable = ConfigMgr::GetBoolDefault("BattlegroundHistory.Enable", false);
+        BGHistoryEnable = sConfigMgr->GetBoolDefault("BattlegroundHistory.Enable", false);
     }
 };
 
@@ -59,13 +59,13 @@ class Mod_BattlegroundHistory_AllBattlegroundScript : public AllBattlegroundScri
             if(itr->second->DamageDone >= totaldamagedone)
             {
                 totaldamagedone = itr->second->DamageDone;
-                damageDonePlayerName = player->GetName();
+                damageDonePlayerName = player->GetName().c_str();
             }
 
             if(itr->second->HealingDone >= totalhealdone)
             {
                 totalhealdone = itr->second->HealingDone;
-                healingDonePlayerName = player->GetName();
+                healingDonePlayerName = player->GetName().c_str();
             }
 
             uint32 playerGuildId = player->GetGuildId();

@@ -84,4 +84,9 @@ enum CrateSpells
     SPELL_CRATES_CREDIT     = 58109,
 };
 
+enum Achievement
+{
+	ACHIEV_CULLING_OF_TIME		= 1817
+};
+
 #endif

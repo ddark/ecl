@@ -96,7 +96,7 @@ class Mod_CustomRewardPvP_WorldScript : public WorldScript
 
     void OnConfigLoad(bool /*reload*/)
     {
-        CustomRewardPvPEnable = ConfigMgr::GetBoolDefault("CustomRewardPvP.Enable", false);
+        CustomRewardPvPEnable = sConfigMgr->GetBoolDefault("CustomRewardPvP.Enable", false);
 
         if (!CustomRewardPvPEnable)
             return;
@@ -220,7 +220,7 @@ class Mod_CustomRewardPvP_PlayerScript : public PlayerScript
                 {
                     for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
                     {
-                        Player* player = itr->getSource();
+                        Player* player = itr->GetSource();
 
                         // for any leave or dead (with not released body) group member at appropriate distance
                         if (player && player->IsAtGroupRewardDistance(killed) && !player->GetCorpse()) {

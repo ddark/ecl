@@ -45,9 +45,9 @@ class boss_amnennar_the_coldbringer : public CreatureScript
 public:
     boss_amnennar_the_coldbringer() : CreatureScript("boss_amnennar_the_coldbringer") { }
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
     {
-        return new boss_amnennar_the_coldbringerAI (creature);
+        return new boss_amnennar_the_coldbringerAI(creature);
     }
 
     struct boss_amnennar_the_coldbringerAI : public ScriptedAI
@@ -61,7 +61,7 @@ public:
         bool Spectrals30;
         bool Hp;
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             AmnenarsWrath_Timer = 8000;
             FrostBolt_Timer = 1000;
@@ -71,17 +71,17 @@ public:
             Hp = false;
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             Talk(SAY_AGGRO);
         }
 
-        void KilledUnit(Unit* /*victim*/)
+        void KilledUnit(Unit* /*victim*/) OVERRIDE
         {
             Talk(SAY_KILL);
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -89,14 +89,14 @@ public:
             //AmnenarsWrath_Timer
             if (AmnenarsWrath_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_AMNENNARSWRATH);
+                DoCastVictim(SPELL_AMNENNARSWRATH);
                 AmnenarsWrath_Timer = 12000;
             } else AmnenarsWrath_Timer -= diff;
 
             //FrostBolt_Timer
             if (FrostBolt_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_FROSTBOLT);
+                DoCastVictim(SPELL_FROSTBOLT);
                 FrostBolt_Timer = 8000;
             } else FrostBolt_Timer -= diff;
 
@@ -109,7 +109,7 @@ public:
             if (!Spectrals60 && HealthBelowPct(60))
             {
                 Talk(SAY_SUMMON60);
-                DoCast(me->getVictim(), SPELL_FROST_SPECTRES);
+                DoCastVictim(SPELL_FROST_SPECTRES);
                 Spectrals60 = true;
             }
 
@@ -122,7 +122,7 @@ public:
             if (!Spectrals30 && HealthBelowPct(30))
             {
                 Talk(SAY_SUMMON30);
-                DoCast(me->getVictim(), SPELL_FROST_SPECTRES);
+                DoCastVictim(SPELL_FROST_SPECTRES);
                 Spectrals30 = true;
             }
 

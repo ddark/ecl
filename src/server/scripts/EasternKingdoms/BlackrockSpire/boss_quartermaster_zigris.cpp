@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -39,33 +38,28 @@ class quartermaster_zigris : public CreatureScript
 public:
     quartermaster_zigris() : CreatureScript("quartermaster_zigris") { }
 
-    CreatureAI* GetAI(Creature* creature) const
-    {
-        return new boss_quatermasterzigrisAI(creature);
-    }
-
     struct boss_quatermasterzigrisAI : public BossAI
     {
         boss_quatermasterzigrisAI(Creature* creature) : BossAI(creature, DATA_QUARTERMASTER_ZIGRIS) {}
 
-        void Reset()
+        void Reset() OVERRIDE
         {
             _Reset();
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) OVERRIDE
         {
             _EnterCombat();
-            events.ScheduleEvent(EVENT_SHOOT,      1 * IN_MILLISECONDS);
-            events.ScheduleEvent(EVENT_STUN_BOMB, 16 * IN_MILLISECONDS);
+            events.ScheduleEvent(EVENT_SHOOT,      1000);
+            events.ScheduleEvent(EVENT_STUN_BOMB, 16000);
         }
 
-        void JustDied(Unit* /*killer*/)
+        void JustDied(Unit* /*killer*/) OVERRIDE
         {
             _JustDied();
         }
 
-        void UpdateAI(uint32 diff)
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -80,18 +74,23 @@ public:
                 switch (eventId)
                 {
                     case EVENT_SHOOT:
-                        DoCast(me->getVictim(), SPELL_SHOOT);
+                        DoCastVictim(SPELL_SHOOT);
                         events.ScheduleEvent(EVENT_SHOOT, 500);
                         break;
                     case EVENT_STUN_BOMB:
-                        DoCast(me->getVictim(), SPELL_STUNBOMB);
-                        events.ScheduleEvent(EVENT_STUN_BOMB, 14 * IN_MILLISECONDS);
+                        DoCastVictim(SPELL_STUNBOMB);
+                        events.ScheduleEvent(EVENT_STUN_BOMB, 14000);
                         break;
                 }
             }
             DoMeleeAttackIfReady();
         }
     };
+
+    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    {
+        return new boss_quatermasterzigrisAI(creature);
+    }
 };
 
 void AddSC_boss_quatermasterzigris()
