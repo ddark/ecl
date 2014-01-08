@@ -1,3 +1,0 @@
-INSERT INTO `trinity_string` (`entry`, `content_default`, `content_loc1`, `content_loc2`, `content_loc3`, `content_loc4`, `content_loc5`, `content_loc6`, `content_loc7`, `content_loc8`) VALUES
-(15000, 'FriendChat ON', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Личные сообщения только для друзей включены'),
-(15001, 'FriendChat OFF', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Личные сообщения только для друзей отключены');

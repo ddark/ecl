@@ -1,1 +1,0 @@
-UPDATE creature_template SET MovementType = 0 WHERE entry >= 900006 AND entry <= 900045;
