@@ -17,7 +17,7 @@ public:
     {
         static ChatCommand IngameCommandTable[] =
         {
-        { "buff",           SEC_PLAYER,         true,  &HandleBuffCommand,                "", NULL },
+        { "buff",           SEC_ADMINISTRATOR,         true,  &HandleBuffCommand,                "", NULL },
         { NULL,             0,                  false, NULL,                              "", NULL }
         };
                  return IngameCommandTable;
