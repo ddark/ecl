@@ -19,12 +19,13 @@
 #include "ScriptedCreature.h"
 #include "halls_of_reflection.h"
 
-enum Texts
+enum Yells
 {
     SAY_AGGRO                                     = 0,
     SAY_SLAY                                      = 1,
-    SAY_DEATH                                     = 2,
-    SAY_CORRUPTED_FLESH                           = 3
+    SAY_CORRUPTED_FLESH_1                         = 2,
+    SAY_WELL_OF_CORRUPTION                        = 3,
+    SAY_DEATH                                     = 4,
 };
 
 enum Spells
@@ -49,7 +50,7 @@ class boss_marwyn : public CreatureScript
 public:
     boss_marwyn() : CreatureScript("boss_marwyn") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const
     {
         return new boss_marwynAI(creature);
     }
@@ -58,40 +59,48 @@ public:
     {
         boss_marwynAI(Creature* creature) : boss_horAI(creature) {}
 
-        void Reset() OVERRIDE
+        void Reset()
         {
             boss_horAI::Reset();
 
             if (instance)
-                instance->SetBossState(DATA_MARWYN_EVENT, NOT_STARTED);
+                instance->SetData(DATA_MARWYN_EVENT, NOT_STARTED);
+        }
+        
+        void JustReachedHome()
+        {
+            instance->SetData(DATA_WAVE_STATE, FAIL);
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/)
         {
             Talk(SAY_AGGRO);
             if (instance)
-                instance->SetBossState(DATA_MARWYN_EVENT, IN_PROGRESS);
+                instance->SetData(DATA_MARWYN_EVENT, IN_PROGRESS);
 
-            events.ScheduleEvent(EVENT_OBLITERATE, 30000);          /// @todo Check timer
+            events.ScheduleEvent(EVENT_OBLITERATE, 30000);          // TODO Check timer
             events.ScheduleEvent(EVENT_WELL_OF_CORRUPTION, 13000);
             events.ScheduleEvent(EVENT_CORRUPTED_FLESH, 20000);
-            events.ScheduleEvent(EVENT_SHARED_SUFFERING, 20000);    /// @todo Check timer
+            // events.ScheduleEvent(EVENT_SHARED_SUFFERING, 20000);    // I don't believe this spell is working properly atm, it will 1 shot a player when it ends
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/)
         {
             Talk(SAY_DEATH);
 
             if (instance)
-                instance->SetBossState(DATA_MARWYN_EVENT, DONE);
+            {
+                instance->SetData(DATA_MARWYN_EVENT, DONE);
+                instance->SetData(DATA_WAVE_STATE, DONE);
+            }
         }
 
-        void KilledUnit(Unit* /*victim*/) OVERRIDE
+        void KilledUnit(Unit* /*victim*/)
         {
             Talk(SAY_SLAY);
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff)
         {
             // Return since we have no target
             if (!UpdateVictim())
@@ -109,11 +118,12 @@ public:
                     events.ScheduleEvent(EVENT_OBLITERATE, 30000);
                     break;
                 case EVENT_WELL_OF_CORRUPTION:
+                    Talk(SAY_WELL_OF_CORRUPTION);
                     DoCast(SPELL_WELL_OF_CORRUPTION);
                     events.ScheduleEvent(EVENT_WELL_OF_CORRUPTION, 13000);
                     break;
                 case EVENT_CORRUPTED_FLESH:
-                    Talk(SAY_CORRUPTED_FLESH);
+                    Talk(SAY_CORRUPTED_FLESH_1);
                     DoCast(SPELL_CORRUPTED_FLESH);
                     events.ScheduleEvent(EVENT_CORRUPTED_FLESH, 20000);
                     break;
