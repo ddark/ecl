@@ -30,7 +30,7 @@ enum
    SPELL_HARVEST_SOUL                  = 70070,
    SPELL_PAIN_AND_SUFFERING            = 74115,
 
-   //Raging ghoul
+   //Raging gnoul
    SPELL_EMERGE_VISUAL                 = 50142,
    SPELL_GHOUL_JUMP                    = 70150,
 
@@ -49,7 +49,7 @@ enum
 
    SAY_LICH_KING_WALL_01              = 5,
    SAY_LICH_KING_WALL_02              = 6,
-   SAY_LICH_KING_GHOUL                = 7,
+   SAY_LICH_KING_GNOUL                = 7,
    SAY_LICH_KING_ABON                 = 8,
    SAY_LICH_KING_WINTER               = 9,
    SAY_LICH_KING_END_DUN              = 10,
@@ -92,6 +92,8 @@ public:
            WipedGroup = false;
            walkSpeed = 0.8f;
            uiWall = 0;
+           if (pInstance->GetData(DATA_FROSWORN_EVENT) == DONE)
+               me->SetHealth(me->GetMaxHealth() * 0.80);
        }
 
        void JustDied(Unit* /*killer*/) { }
@@ -182,13 +184,17 @@ public:
                    break;
                case 1:
                    DoCast(me, SPELL_RAISE_DEAD);
-                   Talk(SAY_LICH_KING_GHOUL);
+                   Talk(SAY_LICH_KING_GNOUL);
                    StepTimer = 7000;
                    ++Step;
                    break;
                case 2:
                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC);
                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE );
+                   // DoCast(me, SPELL_PAIN_AND_SUFFERING); Spell is currently broken, it also does damage to people in front of you.
+                   DoCast(me, SPELL_WINTER);
+                   Talk(SAY_LICH_KING_WINTER);
+                   me->SetSpeed(MOVE_WALK, walkSpeed, true);
                    StepTimer = 1000;
                    ++Step;
                    break;
@@ -199,10 +205,6 @@ public:
                case 4:
                    CallGuard(NPC_RISEN_WITCH_DOCTOR);
                    pInstance->SetData(DATA_ICE_WALL_1, DONE);
-                   // DoCast(me, SPELL_PAIN_AND_SUFFERING); Spell is currently broken, it also does damage to people in front of you.
-                   DoCast(me, SPELL_WINTER);
-                   Talk(SAY_LICH_KING_WINTER);
-                   me->SetSpeed(MOVE_WALK, walkSpeed, true);
                    StepTimer = 100;
                    Step = 0;
                    uiWall = 0;
@@ -217,7 +219,7 @@ public:
            {
                case 0:
                    pInstance->SetData(DATA_SUMMONS, 3);
-                   Talk(SAY_LICH_KING_GHOUL);
+                   Talk(SAY_LICH_KING_GNOUL);
                    DoCast(me, SPELL_RAISE_DEAD);
                    StepTimer = 6000;
                    ++Step;
@@ -242,7 +244,7 @@ public:
                case 0:
                    pInstance->SetData(DATA_SUMMONS, 3);
                    DoCast(me, SPELL_RAISE_DEAD);
-                   Talk(SAY_LICH_KING_GHOUL);
+                   Talk(SAY_LICH_KING_GNOUL);
                    StepTimer = 6000;
                    ++Step;
                    break;
@@ -269,7 +271,7 @@ public:
                case 0:
                    pInstance->SetData(DATA_SUMMONS, 3);
                    DoCast(me, SPELL_RAISE_DEAD);
-                   Talk(SAY_LICH_KING_GHOUL);
+                   Talk(SAY_LICH_KING_GNOUL);
                    StepTimer = 6000;
                    ++Step;
                    break;
@@ -373,101 +375,68 @@ public:
    };
 };
 
-class npc_raging_ghoul : public CreatureScript
+class npc_raging_gnoul : public CreatureScript
 {
 public:
-    npc_raging_ghoul() : CreatureScript("npc_raging_ghoul") { }
+   npc_raging_gnoul() : CreatureScript("npc_raging_gnoul") { }
 
-    struct npc_raging_ghoulAI : public ScriptedAI
-    {
-        npc_raging_ghoulAI(Creature *creature) : ScriptedAI(creature)
-        {
-            instance = (InstanceScript*)creature->GetInstanceScript();
-            me->setActive(true);
-            Reset();
-        }
+   struct npc_raging_gnoulAI : public ScriptedAI
+   {
+       npc_raging_gnoulAI(Creature *creature) : ScriptedAI(creature)
+       {
+           pInstance = (InstanceScript*)creature->GetInstanceScript();
+           me->setActive(true);
+           Reset();
+       }
 
-        InstanceScript* instance;
-        uint32 _emergeTimer;
-        bool _doEmerge;
-        bool _doJump;
-        uint64 _liderGuid;
+       InstanceScript* pInstance;
+       uint32 EmergeTimer;
+       bool Emerge;
+       bool jumped;
+       uint64 uiLiderGUID;
 
-        void Reset()
-        {
-            DoCast(me, SPELL_EMERGE_VISUAL);
-            _emergeTimer = 4000;
-            _doEmerge = false;
-            _doJump = false;
-        }
+       void Reset()
+       {
+           DoCast(me, SPELL_EMERGE_VISUAL);
+           EmergeTimer = 4000;
+           Emerge = false;
+           jumped = false;
+       }
 
-        void JustDied(Unit* /*killer*/)
-        {
-            if (!instance)
+       void JustDied(Unit* /*killer*/)
+       {
+           if(!pInstance)
+               return;
+
+           pInstance->SetData(DATA_SUMMONS, 0);
+       }
+
+       void UpdateAI(uint32 diff)
+       {
+           if (!UpdateVictim())
                 return;
 
-            instance->SetData(DATA_SUMMONS, 0);
-        }
-
-        void AttackStart(Unit* who)
-        {
-            if (!who)
-                return;
-
-            if (_doEmerge == false)
-                return;
-
-            ScriptedAI::AttackStart(who);
-        }
-
-        void UpdateAI(uint32 diff)
-        {
-            if (!instance)
-                return;
-
-            if (instance->GetData(DATA_LICHKING_EVENT) == IN_PROGRESS)
+            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 50.0f))
             {
-                _liderGuid = instance->GetData64(DATA_ESCAPE_LIDER);
-                Creature* lider = ((Creature*)Unit::GetUnit((*me), _liderGuid));
-
-                if (_doEmerge != true)
+                if (!jumped && me->IsWithinDistInMap(target, 30.0f) && !me->IsWithinDistInMap(target, 5.0f))
                 {
-                    if (_emergeTimer < diff)
-                    {
-                        _doEmerge = true;
-                        _liderGuid = instance->GetData64(DATA_ESCAPE_LIDER);
-                        if (lider)
-                        {
-                            DoResetThreat();                           
-                            me->GetMotionMaster()->Clear();
-                            me->GetMotionMaster()->MoveChase(lider);
-                        }
-                   }
-                   else
-                       _emergeTimer -= diff;
+                    jumped = true;
+                    DoCast(target, SPELL_GHOUL_JUMP);
                 }
+           }
+           
+           if (pInstance->GetData(DATA_LICHKING_EVENT) == FAIL || pInstance->GetData(DATA_LICHKING_EVENT) == NOT_STARTED)
+               me->DespawnOrUnsummon();
 
-                if (Unit *target = SelectTarget(SELECT_TARGET_RANDOM, 0, 50.0f))
-                {
-                    if (!_doJump && me->IsWithinDistInMap(target, 30.0f) && !me->IsWithinDistInMap(target, 5.0f))
-                    {
-                        _doJump = true;
-                        DoCast(target, SPELL_GHOUL_JUMP);
-                    }
-                }
-            }
-            else
-                if (instance->GetData(DATA_LICHKING_EVENT) == FAIL || instance->GetData(DATA_LICHKING_EVENT) == NOT_STARTED)
-                    me->DespawnOrUnsummon();
+           DoMeleeAttackIfReady();
+       }
+   };
 
-            DoMeleeAttackIfReady();
-        }
-    };
+   CreatureAI* GetAI(Creature* creature) const
+   {
+       return new npc_raging_gnoulAI(creature);
+   }
 
-    CreatureAI* GetAI(Creature* creature) const
-    {
-        return new npc_raging_ghoulAI(creature);
-    }
 };
 
 class npc_risen_witch_doctor : public CreatureScript
@@ -538,7 +507,7 @@ public:
                        if(Creature* pLider = ((Creature*)Unit::GetUnit((*me), uiLiderGUID)))
                        {
                            DoResetThreat();
-                           //me->AI()->AttackStart(pLider);
+                           me->AI()->AttackStart(pLider);
                            me->GetMotionMaster()->Clear();
                            me->GetMotionMaster()->MoveChase(pLider);
                        }
@@ -623,7 +592,7 @@ public:
                    if(Creature* pLider = ((Creature*)Unit::GetUnit((*me), uiLiderGUID)))
                    {
                        DoResetThreat();
-                       //me->AI()->AttackStart(pLider);
+                       me->AI()->AttackStart(pLider);
                        me->GetMotionMaster()->Clear();
                        me->GetMotionMaster()->MoveChase(pLider);
                    }
@@ -634,23 +603,17 @@ public:
                    if(Unit *target = SelectTarget(SELECT_TARGET_TOPAGGRO))
                        DoCast(target, SPELL_ABON_STRIKE);
                    uiStrikeTimer = urand(7000, 9000);
-               } 
-               else
-                   uiStrikeTimer -= diff;
+               } else uiStrikeTimer -= diff;
 
                if (uiVomitTimer < diff)
                {
                    if(Unit *target = SelectTarget(SELECT_TARGET_TOPAGGRO))
                        DoCast(target, SPELL_VOMIT_SPRAY);
                    uiVomitTimer = urand(15000, 20000);
-               } 
-               else 
-                   uiVomitTimer -= diff;
+               } else uiVomitTimer -= diff;
            }
-           else
-               if (pInstance->GetData(DATA_LICHKING_EVENT) == FAIL || pInstance->GetData(DATA_LICHKING_EVENT) == NOT_STARTED)
-                   me->DespawnOrUnsummon();
-
+           else if (pInstance->GetData(DATA_LICHKING_EVENT) == FAIL || pInstance->GetData(DATA_LICHKING_EVENT) == NOT_STARTED)
+               me->DespawnOrUnsummon();
            DoMeleeAttackIfReady();
        }
 
@@ -669,10 +632,10 @@ public:
    }
 };
 
-void AddSC_boss_the_lich_king_hor()
+void AddSC_boss_lich_king_hr()
 {
    new boss_lich_king_hor();
-   new npc_raging_ghoul();
+   new npc_raging_gnoul();
    new npc_risen_witch_doctor();
    new npc_abon();
 }
