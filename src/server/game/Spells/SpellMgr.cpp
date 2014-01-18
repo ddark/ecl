@@ -3759,6 +3759,11 @@ void SpellMgr::LoadSpellInfoCorrections()
             case 72405: // Broken Frostmourne
                 spellInfo->Effects[EFFECT_1].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_200_YARDS); // 200yd
                 break;
+			case 68645: // Rocket Pack! Hack untill movejump will be implemented properly.
+				spellInfo->Effects[EFFECT_0].Effect = SPELL_EFFECT_KNOCK_BACK_DEST;
+				spellInfo->Effects[EFFECT_0].MiscValue = -250;
+                spellInfo->Effects[EFFECT_0].BasePoints = 150; 
+				break;
             // ENDOF ICECROWN CITADEL SPELLS
             //
             // RUBY SANCTUM SPELLS
