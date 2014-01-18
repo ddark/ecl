@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2014 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -39,6 +39,11 @@ enum Data
     DATA_TEAM_IN_INSTANCE                       = 6,
     DATA_FROSTMOURNE                            = 7,
     DATA_FROSTWORN_DOOR                         = 8,
+    DATA_ESCAPE_EVENT                           = 9,
+    DATA_ESCAPE_LEADER                          = 10,
+    DATA_SUMMONS                                = 11,
+    DATA_ICEWALL                                = 12,
+    DATA_CAVE_IN                                = 13
 };
 
 enum Creatures
@@ -67,6 +72,10 @@ enum Creatures
     NPC_BARTLETT                                  = 37182, // High Captain Justin Bartlett
     NPC_KORM                                      = 37833, // Sky-Reaver Korm Blackscar
     NPC_ICE_WALL                                  = 37014, // Ice Wall Target
+
+    NPC_RAGING_GNOUL                              = 36940,
+    NPC_RISEN_WITCH_DOCTOR                        = 36941,
+    NPC_ABON                                      = 37069
 };
 
 enum GameObjects
@@ -86,10 +95,10 @@ enum GameObjects
     GO_ORGRIM_HAMMER                              = 201599,
     GO_PORTAL                                     = 202079,
 
-    GO_CAPTAIN_CHEST_1                            = 202212, //3145
-    GO_CAPTAIN_CHEST_2                            = 201710, //30357
-    GO_CAPTAIN_CHEST_3                            = 202337, //3246
-    GO_CAPTAIN_CHEST_4                            = 202336, //3333
+    GO_CAPTAIN_CHEST_HORDE_NORMAL                 = 202212, //3145
+    GO_CAPTAIN_CHEST_ALLIANCE_NORMAL              = 201710, //30357
+    GO_CAPTAIN_CHEST_HORDE_HEROIC                 = 202337, //3246
+    GO_CAPTAIN_CHEST_ALLIANCE_HEROIC              = 202336, //3333
 };
 
 enum HorWorldStates
@@ -102,6 +111,8 @@ enum HorWorldStates
 enum Actions
 {
     ACTION_ENTER_COMBAT,
+    ACTION_START_ESCAPING,
+    ACTION_WALL_BROKEN
 };
 
 enum TrashGeneralSpells
@@ -138,7 +149,7 @@ struct boss_horAI : ScriptedAI
         me->SetVisible(false);
         me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_IMMUNE_TO_NPC);
         me->SetReactState(REACT_PASSIVE);
-        if (instance->GetData(DATA_WAVE_COUNT) != NOT_STARTED)
+        if (instance && instance->GetData(DATA_WAVE_COUNT) != NOT_STARTED)
             instance->ProcessEvent(0, EVENT_DO_WIPE);
     }
 
