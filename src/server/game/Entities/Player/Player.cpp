@@ -17,7 +17,7 @@
  */
 
 #include "../../../scripts/Custom/Transmogrification.h"
-#include "../../../scripts/Custom/TransmogDisplayVendorConf.h"
+//#include "../../../scripts/Custom/TransmogDisplayVendorConf.h"
 #include "AnticheatMgr.h"
 #include "Player.h"
 #include "AccountMgr.h"
@@ -13360,8 +13360,8 @@ void Player::SetVisibleItemSlot(uint8 slot, Item* pItem)
     if (pItem)
     {
         // custom
-		if (uint32 fakeEntry = TransmogDisplayVendorMgr::GetFakeEntry(pItem->GetGUIDLow()))
-            SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + (slot * 2), fakeEntry);
+		//if (uint32 fakeEntry = TransmogDisplayVendorMgr::GetFakeEntry(pItem->GetGUIDLow()))
+           // SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + (slot * 2), fakeEntry);
         if (pItem->GetFakeEntry())
             SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + (slot * 2), pItem->GetFakeEntry());
         else
@@ -13497,7 +13497,7 @@ void Player::MoveItemFromInventory(uint8 bag, uint8 slot, bool update)
     if (Item* it = GetItemByPos(bag, slot))
     {
         it->DeleteFakeFromDB(it->GetGUIDLow()); // custom
-		TransmogDisplayVendorMgr::DeleteFakeFromDB(it->GetGUIDLow()); // custom
+		//TransmogDisplayVendorMgr::DeleteFakeFromDB(it->GetGUIDLow()); // custom
         ItemRemovedQuestCheck(it->GetEntry(), it->GetCount());
         RemoveItem(bag, slot, update);
         it->SetNotRefundable(this, false);
@@ -22363,11 +22363,11 @@ bool Player::BuyItemFromVendorSlot(uint64 vendorguid, uint32 vendorslot, uint32 
         return false;
     }
 
-    if(creature->GetScriptName() == "NPC_TransmogDisplayVendor")
-    {
-        TransmogDisplayVendorMgr::HandleTransmogrify(this, creature, vendorslot, item);
-        return false;
-    }
+    //if(creature->GetScriptName() == "NPC_TransmogDisplayVendor")
+  //  {
+   //     TransmogDisplayVendorMgr::HandleTransmogrify(this, creature, vendorslot, item);
+    //    return false;
+   // }
 
     VendorItemData const* vItems = creature->GetVendorItems();
     if (!vItems || vItems->Empty())
