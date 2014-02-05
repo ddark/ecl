@@ -693,7 +693,7 @@ void AddSC_outdoorpvp_zm();
 // player
 void AddSC_chat_log();
 
-//void AddSC_NPC_TransmogDisplayVendor();
+void AddSC_NPC_TransmogDisplayVendor();
 #endif
 
 void AddScripts()
@@ -1441,7 +1441,7 @@ void AddCustomScripts()
 	AddSC_GuildHouse();
 	AddSC_npc_gurubashi_theme();
 	AddSC_npc_change();
-	//AddSC_NPC_TransmogDisplayVendor();
+	AddSC_NPC_TransmogDisplayVendor();
 	// Fast Arena Start
 	AddSC_npc_all();
     AddSC_fast_arena_start();
