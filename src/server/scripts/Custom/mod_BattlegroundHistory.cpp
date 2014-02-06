@@ -59,13 +59,13 @@ class Mod_BattlegroundHistory_AllBattlegroundScript : public AllBattlegroundScri
             if(itr->second->DamageDone >= totaldamagedone)
             {
                 totaldamagedone = itr->second->DamageDone;
-                damageDonePlayerName = player->GetName().c_str();
+                damageDonePlayerName = player->GetName();
             }
 
             if(itr->second->HealingDone >= totalhealdone)
             {
                 totalhealdone = itr->second->HealingDone;
-                healingDonePlayerName = player->GetName().c_str();
+                healingDonePlayerName = player->GetName();
             }
 
             uint32 playerGuildId = player->GetGuildId();

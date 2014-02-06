@@ -295,7 +295,7 @@ void BattlegroundQueue::RemovePlayer(uint64 guid, bool decreaseInvitedCount)
     {
         std::string playerName = "Unknown";
         if (Player* player = ObjectAccessor::FindPlayer(guid))
-            playerName = player->GetName().c_str();
+            playerName = player->GetName();
         TC_LOG_ERROR(LOG_FILTER_BATTLEGROUND, "BattlegroundQueue: couldn't find player %s (GUID: %u)", playerName.c_str(), GUID_LOPART(guid));
         return;
     }

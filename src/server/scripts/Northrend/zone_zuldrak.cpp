@@ -375,7 +375,7 @@ public:
                                 if (!player)
                                     return;
 
-                                std::string sText = ("The grand Amphitheater of Anguish awaits, " + std::string(player->GetName().c_str()) + ". Remember, once a battle starts you have to stay in the area. WIN OR DIE!");
+                                std::string sText = ("The grand Amphitheater of Anguish awaits, " + std::string(player->GetName()) + ". Remember, once a battle starts you have to stay in the area. WIN OR DIE!");
 
                                 me->MonsterSay(sText.c_str(), LANG_UNIVERSAL, 0);
                                 uiTimer = 5000;
@@ -387,7 +387,7 @@ public:
                                if (!player)
                                    return;
 
-                                std::string sText = ("Prepare to make you stand, " + std::string(player->GetName().c_str()) + "! Get in the Amphitheater and stand ready! Remember, you and your opponent must stay in the arena at all times or you will be disqualified!");
+                                std::string sText = ("Prepare to make you stand, " + std::string(player->GetName()) + "! Get in the Amphitheater and stand ready! Remember, you and your opponent must stay in the arena at all times or you will be disqualified!");
                                 me->MonsterSay(sText.c_str(), LANG_UNIVERSAL, 0);
                                 uiTimer = 3000;
                                 uiPhase = 8;
@@ -403,7 +403,7 @@ public:
                                 if (!player)
                                     return;
 
-                                std::string sText = ("Here we are once again, ladies and gentlemen. The epic struggle between life and death in the Amphitheater of Anguish! For this round we have " + std::string(player->GetName().c_str()) + " versus the hulking jormungar, Yg... Yggd? Yggdoze? Who comes up with these names?! " + std::string(player->GetName()) + " versus big worm!");
+                                std::string sText = ("Here we are once again, ladies and gentlemen. The epic struggle between life and death in the Amphitheater of Anguish! For this round we have " + std::string(player->GetName()) + " versus the hulking jormungar, Yg... Yggd? Yggdoze? Who comes up with these names?! " + std::string(player->GetName()) + " versus big worm!");
                                 me->MonsterYell(sText.c_str(), LANG_UNIVERSAL, 0);
                                 uiTimer = 10000;
                                 uiPhase = 10;
@@ -424,7 +424,7 @@ public:
                             if (!player)
                                 return;
 
-                            std::string sText = ("Prepare to make you stand, " + std::string(player->GetName().c_str()) + "! Get in the Amphitheater and stand ready! Remember, you and your opponent must stay in the arena at all times or you will be disqualified!");
+                            std::string sText = ("Prepare to make you stand, " + std::string(player->GetName()) + "! Get in the Amphitheater and stand ready! Remember, you and your opponent must stay in the arena at all times or you will be disqualified!");
                             me->MonsterSay(sText.c_str(), LANG_UNIVERSAL, 0);
                             uiTimer = 5000;
                             uiPhase = 13;

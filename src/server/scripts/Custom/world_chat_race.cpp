@@ -5,7 +5,7 @@
 
 std::string GetNameLink(Player* player)
 {
-	std::string name = player->GetName().c_str();
+	std::string name = player->GetName();
 	std::string color;
 	switch(player->getClass()) 
 	{

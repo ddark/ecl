@@ -2005,7 +2005,7 @@ bool ObjectMgr::GetPlayerNameByGUID(uint64 guid, std::string& name) const
     // prevent DB access for online player
     if (Player* player = ObjectAccessor::FindPlayer(guid))
     {
-        name = player->GetName().c_str();
+        name = player->GetName();
         return true;
     }
 

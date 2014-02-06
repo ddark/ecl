@@ -545,7 +545,7 @@ void bot_minion_ai::RezGroup(uint32 REZZ, Player* gPlayer)
             if (tPlayer != master)
             {
                 std::string rezstr = "Rezzing ";
-                rezstr += tPlayer->GetName().c_str();
+                rezstr += tPlayer->GetName();
                 me->MonsterWhisper(rezstr.c_str(), master->GetGUID());
             }
             rezz_cd = 60;
