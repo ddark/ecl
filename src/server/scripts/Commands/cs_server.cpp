@@ -116,10 +116,10 @@ public:
         uint32 updateTime           = sWorld->GetUpdateTime();
 
        // handler->SendSysMessage(_FULLVERSION);
-		handler->PSendSysMessage("Core: BlackWing Core 3.3.5a");
+		handler->PSendSysMessage("Core: Dk Core 3.3.5a");
         handler->PSendSysMessage("Rev: 22.01.2014");
-		handler->PSendSysMessage("Tdb: rev.51");
-		handler->PSendSysMessage("UP: 23.01.2014");
+		handler->PSendSysMessage("Tdb: rev.52");
+		handler->PSendSysMessage("UP: 04.04.2014");
         handler->PSendSysMessage(LANG_CONNECTED_PLAYERS, playersNum, maxPlayersNum);
         handler->PSendSysMessage(LANG_CONNECTED_USERS, activeClientsNum, maxActiveClientsNum, queuedClientsNum, maxQueuedClientsNum);
         handler->PSendSysMessage(LANG_UPTIME, uptime.c_str());
