@@ -901,50 +901,30 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     }
 
     // Check that Key and account name are the same on client and server
-uint32 t = 0;
-uint32 seed = m_Seed;
-TC_LOG_DEBUG(LOG_FILTER_NETWORKIO,"HandleAuthSession(B):LIHO>> account: name=%s clientSeed=%u seed=%u t=%u",
-                    account.c_str(),
-                    clientSeed,
-                    seed,
-                    t);
+    uint32 t = 0;
+    uint32 seed = m_Seed;
 
-sha.UpdateData (account);
-sha.UpdateData ((uint8 *) & t, 4);
-sha.UpdateData ((uint8 *) & clientSeed, 4);
-sha.UpdateData ((uint8 *) & seed, 4);
-sha.UpdateBigNumbers (&k, NULL);
-sha.Finalize();
+    sha.UpdateData(account);
+    sha.UpdateData((uint8*)&t, 4);
+    sha.UpdateData((uint8*)&clientSeed, 4);
+    sha.UpdateData((uint8*)&seed, 4);
+    sha.UpdateBigNumbers(&k, NULL);
+    sha.Finalize();
 
-std::string address = GetRemoteAddress();
-uint8 *shadigest = sha.GetDigest();
+    std::string address = GetRemoteAddress();
 
-if ( memcmp(sha.GetDigest(),digest,20) )
-{
-    packet.Initialize (SMSG_AUTH_RESPONSE, 1);
-    packet << uint8 (AUTH_FAILED);
+    if (memcmp(sha.GetDigest(), digest, 20))
+    {
+        SendAuthResponseError(AUTH_FAILED);
+        TC_LOG_ERROR(LOG_FILTER_NETWORKIO, "WorldSocket::HandleAuthSession: Authentication failed for account: %u ('%s') address: %s", id, account.c_str(), address.c_str());
+        return -1;
+    }
 
-    SendPacket (packet);
-    // psycho debug output by LihO
-    TC_LOG_DEBUG(LOG_FILTER_NETWORKIO,"HandleAuthSession(F):LIHO>> account: name=%s clientSeed=%u seed=%u t=%u\ndigest=%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X\nshadig=%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X",
-                    account.c_str(),
-                    clientSeed,
-                    seed,
-                    t,
-                    digest[0],digest[1],digest[2],digest[3],digest[4],digest[5],digest[6],digest[7],digest[8],digest[9],digest[10],digest[11],digest[12],digest[13],digest[14],digest[15],digest[16],digest[17],digest[18],digest[19],
-                    *(shadigest + 0),*(shadigest + 1),*(shadigest + 2),*(shadigest + 3),*(shadigest + 4),*(shadigest + 5),*(shadigest + 6),*(shadigest + 7),*(shadigest + 8),*(shadigest + 9),*(shadigest + 10),*(shadigest + 11),*(shadigest + 12),*(shadigest + 13),*(shadigest + 14),*(shadigest + 15),*(shadigest + 16),*(shadigest + 17),*(shadigest + 18),*(shadigest + 19));
-    return -1;
-}else{
-    TC_LOG_DEBUG(LOG_FILTER_NETWORKIO,"HandleAuthSession(S):LIHO>> account: name=%s clientSeed=%u seed=%u t=%u\ndigest=%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X\nshadig=%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X",
-                    account.c_str(),
-                    clientSeed,
-                    seed,
-                    t,
-                    digest[0],digest[1],digest[2],digest[3],digest[4],digest[5],digest[6],digest[7],digest[8],digest[9],digest[10],digest[11],digest[12],digest[13],digest[14],digest[15],digest[16],digest[17],digest[18],digest[19],
-                    *(shadigest + 0),*(shadigest + 1),*(shadigest + 2),*(shadigest + 3),*(shadigest + 4),*(shadigest + 5),*(shadigest + 6),*(shadigest + 7),*(shadigest + 8),*(shadigest + 9),*(shadigest + 10),*(shadigest + 11),*(shadigest + 12),*(shadigest + 13),*(shadigest + 14),*(shadigest + 15),*(shadigest + 16),*(shadigest + 17),*(shadigest + 18),*(shadigest + 19));
-}
+    TC_LOG_DEBUG(LOG_FILTER_NETWORKIO, "WorldSocket::HandleAuthSession: Client '%s' authenticated successfully from %s.",
+        account.c_str(),
+        address.c_str());
+
     // Check if this user is by any chance a recruiter
-	//TC_LOG_DEBUG(LOG_FILTER_NETWORKIO,
     stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_RECRUITER);
 
     stmt->setUInt32(0, id);

@@ -22,7 +22,6 @@
 #include "WorldPacket.h"
 #include "MoveSplineInit.h"
 #include "MoveSpline.h"
-#include "MovementGenerator.h"
 
 void HomeMovementGenerator<Creature>::DoInitialize(Creature* owner)
 {
@@ -50,11 +49,9 @@ void HomeMovementGenerator<Creature>::_setTargetLocation(Creature* owner)
         return;
 
     Movement::MoveSplineInit init(owner);
-    float x = owner->GetPositionX();
-    float y = owner->GetPositionY();
-    float z = owner->GetPositionZ();
-    float o = owner->GetOrientation();
-    if (owner->GetMotionMaster()->empty())
+    float x, y, z, o;
+    // at apply we can select more nice return points base at current movegen
+    if (owner->GetMotionMaster()->empty() || !owner->GetMotionMaster()->top()->GetResetPosition(owner, x, y, z))
     {
         owner->GetHomePosition(x, y, z, o);
         init.SetFacing(o);
