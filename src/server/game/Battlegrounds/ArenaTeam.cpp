@@ -100,7 +100,7 @@ bool ArenaTeam::AddMember(uint64 playerGuid)
     if (player)
     {
         playerClass = player->getClass();
-        playerName = player->GetName().c_str();
+        playerName = player->GetName();
     }
     else
     {

@@ -2739,7 +2739,7 @@ public:
             player = handler->getSelectedPlayer();
             if (player) //prevent crash with creature as target
             {
-                name = player->GetName().c_str();
+                name = player->GetName();
                 normalizePlayerName(name);
             }
         }
@@ -2812,7 +2812,7 @@ public:
         {
             player = handler->getSelectedPlayer();
             if (player)
-                name = player->GetName().c_str();
+                name = player->GetName();
         }
 
         if (player)

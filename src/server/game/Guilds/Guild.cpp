@@ -586,7 +586,7 @@ void Guild::BankTab::SendText(Guild const* guild, WorldSession* session) const
 // Member
 void Guild::Member::SetStats(Player* player)
 {
-    m_name      = player->GetName().c_str();
+    m_name      = player->GetName();
     m_level     = player->getLevel();
     m_class     = player->getClass();
     m_zoneId    = player->GetZoneId();
@@ -1559,7 +1559,7 @@ void Guild::HandleInviteMember(WorldSession* session, std::string const& name)
     _LogEvent(GUILD_EVENT_LOG_INVITE_PLAYER, player->GetGUIDLow(), pInvitee->GetGUIDLow());
 
     WorldPacket data(SMSG_GUILD_INVITE, 8 + 10);              // Guess size
-    data << player->GetName().c_str();
+    data << player->GetName();
     data << m_name;
     pInvitee->GetSession()->SendPacket(&data);
     TC_LOG_DEBUG(LOG_FILTER_GUILD, "SMSG_GUILD_INVITE [%s]", pInvitee->GetName().c_str());
@@ -2228,7 +2228,7 @@ bool Guild::AddMember(uint64 guid, uint8 rankId)
         player->SetRank(rankId);
         member->SetStats(player);
         SendLoginInfo(player->GetSession());
-        name = player->GetName().c_str();
+        name = player->GetName();
     }
     else
     {
