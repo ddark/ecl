@@ -296,7 +296,7 @@ bool Group::AddLeaderInvite(Player* player)
         return false;
 
     m_leaderGuid = player->GetGUID();
-    m_leaderName = player->GetName();
+    m_leaderName = player->GetName().c_str();
     return true;
 }
 
@@ -360,7 +360,7 @@ bool Group::AddMember(Player* player)
 
     MemberSlot member;
     member.guid      = player->GetGUID();
-    member.name      = player->GetName();
+    member.name      = player->GetName().c_str();
     member.group     = subGroup;
     member.flags     = 0;
     member.roles     = 0;
