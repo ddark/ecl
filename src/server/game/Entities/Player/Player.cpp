@@ -17156,7 +17156,7 @@ void Player::KilledMonster(CreatureTemplate const* cInfo, uint64 guid)
             KilledMonsterCredit(cInfo->KillCredit[i], 0);
 }
 
-void Player::KilledMonsterCredit(uint32 entry, uint64 guid)
+void Player::KilledMonsterCredit(uint32 entry, uint64 guid /*= 0*/)
 {
     uint16 addkillcount = 1;
     uint32 real_entry = entry;
@@ -23687,10 +23687,10 @@ void Player::ApplyEquipCooldown(Item* pItem)
         if (spellData.SpellTrigger != ITEM_SPELLTRIGGER_ON_USE)
             continue;
 
-        //! Don't replace longer cooldowns by equip cooldown if we have any.
+        // Don't replace longer cooldowns by equip cooldown if we have any.
         SpellCooldowns::iterator itr = m_spellCooldowns.find(spellData.SpellId);
         if (itr != m_spellCooldowns.end() && itr->second.itemid == pItem->GetEntry() && itr->second.end > time(NULL) + 30)
-            break;
+            continue;
 
         AddSpellCooldown(spellData.SpellId, pItem->GetEntry(), time(NULL) + 30);
 
