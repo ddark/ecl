@@ -3129,6 +3129,7 @@ void Spell::cancel()
             CancelGlobalCooldown();
             if (m_caster->GetTypeId() == TYPEID_PLAYER)
                 m_caster->ToPlayer()->RestoreSpellMods(this);
+            // no break
         case SPELL_STATE_DELAYED:
             SendInterrupted(0);
             SendCastResult(SPELL_FAILED_INTERRUPTED);
