@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -33,27 +33,25 @@ class quest_commandscript : public CommandScript
 public:
     quest_commandscript() : CommandScript("quest_commandscript") { }
 
-    ChatCommand* GetCommands() const OVERRIDE
+    std::vector<ChatCommand> GetCommands() const override
     {
-        static ChatCommand questCommandTable[] =
+        static std::vector<ChatCommand> questCommandTable =
         {
-            { "add",            SEC_ADMINISTRATOR,  false, &HandleQuestAdd,                    "", NULL },
-            { "complete",       SEC_ADMINISTRATOR,  false, &HandleQuestComplete,               "", NULL },
-            { "remove",         SEC_ADMINISTRATOR,  false, &HandleQuestRemove,                 "", NULL },
-            { "reward",         SEC_ADMINISTRATOR,  false, &HandleQuestReward,                 "", NULL },
-            { NULL,             SEC_PLAYER,         false, NULL,                               "", NULL }
+            { "add",      rbac::RBAC_PERM_COMMAND_QUEST_ADD,      false, &HandleQuestAdd,      "" },
+            { "complete", rbac::RBAC_PERM_COMMAND_QUEST_COMPLETE, false, &HandleQuestComplete, "" },
+            { "remove",   rbac::RBAC_PERM_COMMAND_QUEST_REMOVE,   false, &HandleQuestRemove,   "" },
+            { "reward",   rbac::RBAC_PERM_COMMAND_QUEST_REWARD,   false, &HandleQuestReward,   "" },
         };
-        static ChatCommand commandTable[] =
+        static std::vector<ChatCommand> commandTable =
         {
-            { "quest",          SEC_ADMINISTRATOR,  false, NULL,                  "", questCommandTable },
-            { NULL,             SEC_PLAYER,         false, NULL,                               "", NULL }
+            { "quest", rbac::RBAC_PERM_COMMAND_QUEST,  false, NULL, "", questCommandTable },
         };
         return commandTable;
     }
 
     static bool HandleQuestAdd(ChatHandler* handler, const char* args)
     {
-        Player* player = handler->getSelectedPlayer();
+        Player* player = handler->getSelectedPlayerOrSelf();
         if (!player)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -67,7 +65,7 @@ public:
         if (!cId)
             return false;
 
-        uint32 entry = atol(cId);
+        uint32 entry = atoul(cId);
 
         Quest const* quest = sObjectMgr->GetQuestTemplate(entry);
 
@@ -91,12 +89,7 @@ public:
 
         // ok, normal (creature/GO starting) quest
         if (player->CanAddQuest(quest, true))
-        {
-            player->AddQuest(quest, NULL);
-
-            if (player->CanCompleteQuest(entry))
-                player->CompleteQuest(entry);
-        }
+            player->AddQuestAndCheckCompletion(quest, NULL);
 
         return true;
     }
@@ -117,7 +110,7 @@ public:
         if (!cId)
             return false;
 
-        uint32 entry = atol(cId);
+        uint32 entry = atoul(cId);
 
         Quest const* quest = sObjectMgr->GetQuestTemplate(entry);
 
@@ -147,8 +140,10 @@ public:
             }
         }
 
-        player->RemoveActiveQuest(entry);
+        player->RemoveActiveQuest(entry, false);
         player->RemoveRewardedQuest(entry);
+
+        sScriptMgr->OnQuestStatusChange(player, entry);
 
         handler->SendSysMessage(LANG_COMMAND_QUEST_REMOVED);
         return true;
@@ -156,7 +151,7 @@ public:
 
     static bool HandleQuestComplete(ChatHandler* handler, const char* args)
     {
-        Player* player = handler->getSelectedPlayer();
+        Player* player = handler->getSelectedPlayerOrSelf();
         if (!player)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -170,7 +165,7 @@ public:
         if (!cId)
             return false;
 
-        uint32 entry = atol(cId);
+        uint32 entry = atoul(cId);
 
         Quest const* quest = sObjectMgr->GetQuestTemplate(entry);
 
@@ -201,28 +196,21 @@ public:
             }
         }
 
-        // All creature/GO slain/casted (not required, but otherwise it will display "Creature slain 0/10")
+        // All creature/GO slain/cast (not required, but otherwise it will display "Creature slain 0/10")
         for (uint8 i = 0; i < QUEST_OBJECTIVES_COUNT; ++i)
         {
             int32 creature = quest->RequiredNpcOrGo[i];
-            uint32 creaturecount = quest->RequiredNpcOrGoCount[i];
+            uint32 creatureCount = quest->RequiredNpcOrGoCount[i];
 
-            if (uint32 spell_id = quest->RequiredSpellCast[i])
+            if (creature > 0)
             {
-                for (uint16 z = 0; z < creaturecount; ++z)
-                    player->CastedCreatureOrGO(creature, 0, spell_id);
-            }
-            else if (creature > 0)
-            {
-                if (CreatureTemplate const* cInfo = sObjectMgr->GetCreatureTemplate(creature))
-                    for (uint16 z = 0; z < creaturecount; ++z)
-                        player->KilledMonster(cInfo, 0);
+                if (CreatureTemplate const* creatureInfo = sObjectMgr->GetCreatureTemplate(creature))
+                    for (uint16 z = 0; z < creatureCount; ++z)
+                        player->KilledMonster(creatureInfo, ObjectGuid::Empty);
             }
             else if (creature < 0)
-            {
-                for (uint16 z = 0; z < creaturecount; ++z)
-                    player->CastedCreatureOrGO(creature, 0, 0);
-            }
+                for (uint16 z = 0; z < creatureCount; ++z)
+                    player->KillCreditGO(creature);
         }
 
         // If the quest requires reputation to complete
@@ -250,6 +238,17 @@ public:
         if (ReqOrRewMoney < 0)
             player->ModifyMoney(-ReqOrRewMoney);
 
+        if (sWorld->getBoolConfig(CONFIG_QUEST_ENABLE_QUEST_TRACKER)) // check if Quest Tracker is enabled
+        {
+            // prepare Quest Tracker datas
+            PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_QUEST_TRACK_GM_COMPLETE);
+            stmt->setUInt32(0, quest->GetQuestId());
+            stmt->setUInt32(1, player->GetGUID().GetCounter());
+
+            // add to Quest Tracker
+            CharacterDatabase.Execute(stmt);
+        }
+
         player->CompleteQuest(entry);
         return true;
     }
@@ -270,7 +269,7 @@ public:
         if (!cId)
             return false;
 
-        uint32 entry = atol(cId);
+        uint32 entry = atoul(cId);
 
         Quest const* quest = sObjectMgr->GetQuestTemplate(entry);
 

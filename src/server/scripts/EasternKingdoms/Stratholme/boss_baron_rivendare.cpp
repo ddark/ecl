@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -66,16 +66,26 @@ class boss_baron_rivendare : public CreatureScript
 public:
     boss_baron_rivendare() : CreatureScript("boss_baron_rivendare") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new boss_baron_rivendareAI(creature);
+        return GetInstanceAI<boss_baron_rivendareAI>(creature);
     }
 
     struct boss_baron_rivendareAI : public ScriptedAI
     {
         boss_baron_rivendareAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             instance = me->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            ShadowBolt_Timer = 5000;
+            Cleave_Timer = 8000;
+            MortalStrike_Timer = 12000;
+            //        RaiseDead_Timer = 30000;
+            SummonSkeletons_Timer = 34000;
         }
 
         InstanceScript* instance;
@@ -86,37 +96,33 @@ public:
         //    uint32 RaiseDead_Timer;
         uint32 SummonSkeletons_Timer;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            ShadowBolt_Timer = 5000;
-            Cleave_Timer = 8000;
-            MortalStrike_Timer = 12000;
-            //        RaiseDead_Timer = 30000;
-            SummonSkeletons_Timer = 34000;
-            if (instance && instance->GetData(TYPE_RAMSTEIN) == DONE)
+            Initialize();
+            if (instance->GetData(TYPE_RAMSTEIN) == DONE)
                 instance->SetData(TYPE_BARON, NOT_STARTED);
         }
 
-        void AttackStart(Unit* who) OVERRIDE
+        void AttackStart(Unit* who) override
         {
-            if (instance)//can't use entercombat(), boss' dmg aura sets near players in combat, before entering the room's door
+            //can't use entercombat(), boss' dmg aura sets near players in combat, before entering the room's door
+            if (instance->GetData(TYPE_BARON) == NOT_STARTED)
                 instance->SetData(TYPE_BARON, IN_PROGRESS);
             ScriptedAI::AttackStart(who);
         }
 
-        void JustSummoned(Creature* summoned) OVERRIDE
+        void JustSummoned(Creature* summoned) override
         {
             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
                 summoned->AI()->AttackStart(target);
         }
 
-         void JustDied(Unit* /*killer*/) OVERRIDE
-         {
-             if (instance)
-                 instance->SetData(TYPE_BARON, DONE);
-         }
+        void JustDied(Unit* /*killer*/) override
+        {
+            instance->SetData(TYPE_BARON, DONE);
+        }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             if (!UpdateVictim())
                 return;
@@ -135,14 +141,14 @@ public:
             {
                 DoCastVictim(SPELL_CLEAVE);
                 //13 seconds until we should cast this again
-                Cleave_Timer = 7000 + (rand()%10000);
+                Cleave_Timer = 7000 + (rand32() % 10000);
             } else Cleave_Timer -= diff;
 
             //MortalStrike
             if (MortalStrike_Timer <= diff)
             {
                 DoCastVictim(SPELL_MORTALSTRIKE);
-                MortalStrike_Timer = 10000 + (rand()%15000);
+                MortalStrike_Timer = 10000 + (rand32() % 15000);
             } else MortalStrike_Timer -= diff;
 
             //RaiseDead

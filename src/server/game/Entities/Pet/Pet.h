@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -32,21 +32,21 @@ struct PetSpell
     PetSpellType type;
 };
 
-typedef UNORDERED_MAP<uint32, PetSpell> PetSpellMap;
+typedef std::unordered_map<uint32, PetSpell> PetSpellMap;
 typedef std::vector<uint32> AutoSpellList;
 
 class Player;
 
-class Pet : public Guardian
+class TC_GAME_API Pet : public Guardian
 {
     public:
         explicit Pet(Player* owner, PetType type = MAX_PET_TYPE);
         virtual ~Pet();
 
-        void AddToWorld();
-        void RemoveFromWorld();
+        void AddToWorld() override;
+        void RemoveFromWorld() override;
 
-        void SetDisplayId(uint32 modelId);
+        void SetDisplayId(uint32 modelId) override;
 
         PetType getPetType() const { return m_petType; }
         void setPetType(PetType type) { m_petType = type; }
@@ -55,21 +55,21 @@ class Pet : public Guardian
 
         bool IsPermanentPetFor(Player* owner) const;        // pet have tab in character windows and set UNIT_FIELD_PETNUMBER
 
-        bool Create(uint32 guidlow, Map* map, uint32 phaseMask, uint32 Entry, uint32 pet_number);
+        bool Create(ObjectGuid::LowType guidlow, Map* map, uint32 phaseMask, uint32 Entry, uint32 pet_number);
         bool CreateBaseAtCreature(Creature* creature);
         bool CreateBaseAtCreatureInfo(CreatureTemplate const* cinfo, Unit* owner);
         bool CreateBaseAtTamed(CreatureTemplate const* cinfo, Map* map, uint32 phaseMask);
         bool LoadPetFromDB(Player* owner, uint32 petentry = 0, uint32 petnumber = 0, bool current = false);
-        bool isBeingLoaded() const { return m_loading;}
+        bool IsLoading() const override { return m_loading;}
         void SavePetToDB(PetSaveMode mode);
         void Remove(PetSaveMode mode, bool returnreagent = false);
-        static void DeleteFromDB(uint32 guidlow);
+        static void DeleteFromDB(ObjectGuid::LowType guidlow);
 
-        void setDeathState(DeathState s);                   // overwrite virtual Creature::setDeathState and Unit::setDeathState
-        void Update(uint32 diff);                           // overwrite virtual Creature::Update and Unit::Update
+        void setDeathState(DeathState s) override;                   // overwrite virtual Creature::setDeathState and Unit::setDeathState
+        void Update(uint32 diff) override;                           // overwrite virtual Creature::Update and Unit::Update
 
-        uint8 GetPetAutoSpellSize() const { return m_autospells.size(); }
-        uint32 GetPetAutoSpellOnPos(uint8 pos) const
+        uint8 GetPetAutoSpellSize() const override { return m_autospells.size(); }
+        uint32 GetPetAutoSpellOnPos(uint8 pos) const override
         {
             if (pos >= m_autospells.size())
                 return 0;
@@ -95,12 +95,12 @@ class Pet : public Guardian
         void UpdateMaxHealth();
         void UpdateMaxPower(Powers power);
         void UpdateAttackPowerAndDamage(bool ranged = false);
-        void UpdateDamagePhysical(WeaponAttackType attType);
+        void UpdateDamagePhysical(WeaponAttackType attType) override;
         */
 
         void ToggleAutocast(SpellInfo const* spellInfo, bool apply);
 
-        bool HasSpell(uint32 spell) const;
+        bool HasSpell(uint32 spell) const override;
 
         void LearnPetPassives();
         void CastPetAuras(bool current);
@@ -108,7 +108,6 @@ class Pet : public Guardian
         bool IsPetAura(Aura const* aura);
 
         void _LoadSpellCooldowns();
-        void _SaveSpellCooldowns(SQLTransaction& trans);
         void _LoadAuras(uint32 timediff);
         void _SaveAuras(SQLTransaction& trans);
         void _LoadSpells();
@@ -121,7 +120,6 @@ class Pet : public Guardian
         bool unlearnSpell(uint32 spell_id, bool learn_prev, bool clear_ab = true);
         bool removeSpell(uint32 spell_id, bool learn_prev, bool clear_ab = true);
         void CleanupActionBar();
-        virtual void ProhibitSpellSchool(SpellSchoolMask idSchoolMask, uint32 unTimeMs);
 
         PetSpellMap     m_spells;
         AutoSpellList   m_autospells;
@@ -129,11 +127,11 @@ class Pet : public Guardian
         void InitPetCreateSpells();
 
         bool resetTalents();
-        static void resetTalentsForAllPetsOf(Player* owner, Pet* online_pet = NULL);
+        static void resetTalentsForAllPetsOf(Player* owner, Pet* online_pet = nullptr);
         void InitTalentForLevel();
 
-        uint8 GetMaxTalentPointsForLevel(uint8 level);
-        uint8 GetFreeTalentPoints() { return GetByteValue(UNIT_FIELD_BYTES_1, 1); }
+        uint8 GetMaxTalentPointsForLevel(uint8 level) const;
+        uint8 GetFreeTalentPoints() const { return GetByteValue(UNIT_FIELD_BYTES_1, 1); }
         void SetFreeTalentPoints(uint8 points) { SetByteValue(UNIT_FIELD_BYTES_1, 1, points); }
 
         uint32  m_usedTalentCount;
@@ -154,18 +152,18 @@ class Pet : public Guardian
         int32   m_duration;                                 // time until unsummon (used mostly for summoned guardians and not used for controlled pets)
         uint64  m_auraRaidUpdateMask;
         bool    m_loading;
-        uint32  m_regenTimer;
+        uint32  m_focusRegenTimer;
 
         DeclinedName *m_declinedname;
 
     private:
-        void SaveToDB(uint32, uint8, uint32)                // override of Creature::SaveToDB     - must not be called
+        void SaveToDB(uint32, uint8, uint32) override                // override of Creature::SaveToDB     - must not be called
         {
-            ASSERT(false);
+            ABORT();
         }
-        void DeleteFromDB()                                 // override of Creature::DeleteFromDB - must not be called
+        void DeleteFromDB() override                                 // override of Creature::DeleteFromDB - must not be called
         {
-            ASSERT(false);
+            ABORT();
         }
 };
 #endif

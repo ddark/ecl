@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -60,10 +60,10 @@ void LoadFromDB()
         }
         while (result->NextRow());
 
-        TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, ">> Loaded %u known addons in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+        TC_LOG_INFO("server.loading", ">> Loaded %u known addons in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
     }
     else
-        TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, ">> Loaded 0 known addons. DB table `addons` is empty!");
+        TC_LOG_INFO("server.loading", ">> Loaded 0 known addons. DB table `addons` is empty!");
 
     oldMSTime = getMSTime();
     result = CharacterDatabase.Query("SELECT id, name, version, UNIX_TIMESTAMP(timestamp) FROM banned_addons");
@@ -92,7 +92,7 @@ void LoadFromDB()
         }
         while (result->NextRow());
 
-        TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, ">> Loaded %u banned addons in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+        TC_LOG_INFO("server.loading", ">> Loaded %u banned addons in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
     }
 }
 

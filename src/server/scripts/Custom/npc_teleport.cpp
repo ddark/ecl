@@ -1,18 +1,23 @@
-/**
+/*
+ * Copyright (C) 20??-2008 Wilibald09
+ * Copyright (C) 2011-2015 ArkCORE <http://www.arkania.net/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
- * @File : npc_teleport.cpp
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
  *
- * @Authors : Wilibald09
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * @Date : 19/08/2008
- *
- * @Version : 1.2
- *
- **/
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
-
-
-#include "ScriptPCH.h"
+#include "ScriptMgr.h"
 #include "sc_npc_teleport.h"
 #include <sstream>
 
@@ -27,7 +32,7 @@
 #define SPELL_ID_PASSIVE_RESURRECTION_SICKNESS  15007
 #define SPELL_VISUAL_TELEPORT   35517
 
-#define NB_ITEM_PAGE            10
+#define NB_ITEM_PAGE            15
 #define MSG_CAT                 100000
 #define MSG_DEST                100001
 
@@ -35,9 +40,7 @@
 #define PREV_PAGE               "<- [Previous Page]"
 #define MAIN_MENU               "<= [Main Menu]"
 
-
 using namespace nsNpcTel;
-
 
 namespace
 {
@@ -59,10 +62,10 @@ namespace
         uint32 SizeStr = Str.length();
 
         if (SizeStr > 4)
-            Str = Str.insert(Str.length()-4, "po");
+            Str = Str.insert(Str.length()-4, "g");
         if (SizeStr > 2)
-            Str = Str.insert(Str.length()-2, "pa");
-        Str += "pc";
+            Str = Str.insert(Str.length()-2, "s");
+        Str += "c";
 
         return Str;
     }
@@ -78,41 +81,53 @@ namespace
     // Display categories
     void AffichCat(Player * const player, Creature * const creature)
     {
+        uint8 loc = player->GetSession()->GetSessionDbcLocale();
+
         if (PageC[player] > 0)
-            player->ADD_GOSSIP_ITEM(7, PREV_PAGE, GOSSIP_PREV_PAGEC, 0);
+            AddGossipItemFor(player, 7, PREV_PAGE, GOSSIP_PREV_PAGEC, 0);
 
         VCatDest_t i (PageC[player] * NB_ITEM_PAGE);
         for ( ; i < TabCatDest.size() && i < (NB_ITEM_PAGE * (PageC[player] + 1)); ++i)
         {
             if (TabCatDest[i].IsAllowedToTeleport(player))
-                player->ADD_GOSSIP_ITEM(7, TabCatDest[i].GetName(player->IsGameMaster()).c_str(), GOSSIP_SHOW_DEST, i);
+                AddGossipItemFor(player, 3, TabCatDest[i].GetName(loc, player->IsGameMaster()).c_str(), GOSSIP_SHOW_DEST, i); //book categorie
         }
 
         if (i < TabCatDest.size())
-            player->ADD_GOSSIP_ITEM(7, NEXT_PAGE, GOSSIP_NEXT_PAGEC, 0);
+            AddGossipItemFor(player, 7, NEXT_PAGE, GOSSIP_NEXT_PAGEC, 0);
 
-        player->SEND_GOSSIP_MENU(MSG_CAT, creature->GetGUID());
+        SendGossipMenuFor(player, MSG_CAT, creature);
     }
 
     // Display destination categories
     void AffichDest(Player * const player, Creature * const creature)
     {
+        uint8 loc = player->GetSession()->GetSessionDbcLocale();
+
         if (PageD[player] > 0)
-            player->ADD_GOSSIP_ITEM(7, PREV_PAGE, GOSSIP_PREV_PAGED, 0);
+            AddGossipItemFor(player,7, PREV_PAGE, GOSSIP_PREV_PAGED, 0);
 
         CatDest::VDest_t i (PageD[player] * NB_ITEM_PAGE);
         for ( ; i < TabCatDest[Cat[player]].size() && i < (NB_ITEM_PAGE * (PageD[player] + 1)); ++i)
         {
-            player->ADD_GOSSIP_ITEM(5, TabCatDest[Cat[player]].GetDest(i).m_name.c_str(), GOSSIP_TELEPORT, i);
+            std::string icon = TabCatDest[Cat[player]].GetDest(i).m_icon;
+            std::string size = TabCatDest[Cat[player]].GetDest(i).m_size;
+			std::string colour = TabCatDest[Cat[player]].GetDest(i).m_colour;
+            std::string name = TabCatDest[Cat[player]].GetDest(i).m_name[loc];
+            if (name.length() == 0)
+                name = TabCatDest[Cat[player]].GetDest(i).m_name[0];
+                //name = "|TInterface/ICONS/"+icon+":"+size+":"+size+"|t "+name;
+				name = "|TInterface/ICONS/"+icon+":"+size+":"+ size+"|t|cff"+colour+""+name;
+            AddGossipItemFor(player, 2, name.c_str(), GOSSIP_TELEPORT, i); //taxi destination
         }
 
         if (i < TabCatDest[Cat[player]].size())
-            player->ADD_GOSSIP_ITEM(7, NEXT_PAGE, GOSSIP_NEXT_PAGED, 0);
+            AddGossipItemFor(player, 7, NEXT_PAGE, GOSSIP_NEXT_PAGED, 0);
 
         if (CatDest::CountOfCategoryAllowedBy(player) > 1)
-            player->ADD_GOSSIP_ITEM(7, MAIN_MENU, GOSSIP_MAIN_MENU, 0);
+            AddGossipItemFor(player, 7, MAIN_MENU, GOSSIP_MAIN_MENU, 0);
 
-        player->SEND_GOSSIP_MENU(MSG_DEST, creature->GetGUID());
+        SendGossipMenuFor(player,MSG_DEST, creature);
     }
 
     // Verification before teleportation
@@ -122,15 +137,21 @@ namespace
 
         if (player->getLevel() < dest.m_level && !player->IsGameMaster())
         {
-            std::string msg ("You do not have the required level. This destination requires level " + ConvertStr(dest.m_level) + ".");
-            creature->MonsterWhisper(msg.c_str(), player->GetGUID());
+            LocaleConstant loc_idx = player->GetSession()->GetSessionDbLocaleIndex();
+            char const* text = sObjectMgr->GetTrinityString(8000, loc_idx);
+            std::string msg(text + (" " + ConvertStr(dest.m_level) + "."));
+
+            creature->Whisper(msg.c_str(), LANG_UNIVERSAL, player);
             return;
         }
 
         if (player->GetMoney() < dest.m_cost && !player->IsGameMaster())
         {
-            std::string msg ("You do not have enough money. The price for teleportation is " + ConvertMoney(dest.m_cost) + ".");
-            creature->MonsterWhisper(msg.c_str(), player->GetGUID());
+            LocaleConstant loc_idx = player->GetSession()->GetSessionDbLocaleIndex();
+            char const* text = sObjectMgr->GetTrinityString(8001, loc_idx);
+            std::string msg(text + (" " + ConvertMoney(dest.m_cost) + "."));
+
+            creature->Whisper(msg.c_str(), LANG_UNIVERSAL, player);
             return;
         }
 
@@ -141,10 +162,10 @@ namespace
     }
 }
 
-class npc_teleport : public CreatureScript
+class npc_teleport_gossip : public CreatureScript
 {
 public:
-    npc_teleport() : CreatureScript("npc_teleport") {}
+    npc_teleport_gossip() : CreatureScript("npc_teleport") {}
 
 bool OnGossipHello(Player *player, Creature *creature)
 {
@@ -152,8 +173,12 @@ bool OnGossipHello(Player *player, Creature *creature)
 
     if(player->IsInCombat())
     {
-        player->CLOSE_GOSSIP_MENU();
-        creature->MonsterWhisper("You are in combat. Come back later", player->GetGUID());
+        CloseGossipMenuFor(player);
+
+        LocaleConstant loc_idx = player->GetSession()->GetSessionDbLocaleIndex();
+        char const* text = sObjectMgr->GetTrinityString(8002, loc_idx);
+        creature->Whisper(text, LANG_UNIVERSAL, player);
+
         return true;
     }
     AffichCat(player, creature);
@@ -202,8 +227,8 @@ bool OnGossipSelect(Player *player, Creature *creature, uint32 sender, uint32 pa
 
       // Teleportation
       case GOSSIP_TELEPORT:
-        player->CLOSE_GOSSIP_MENU();
-        if(player->HasAura(SPELL_ID_PASSIVE_RESURRECTION_SICKNESS,0)) {
+        CloseGossipMenuFor(player);
+        if(player->HasAura(SPELL_ID_PASSIVE_RESURRECTION_SICKNESS)) {
             creature->CastSpell(player,38588,false); // Healing effect
             player->RemoveAurasDueToSpell(SPELL_ID_PASSIVE_RESURRECTION_SICKNESS);
         }
@@ -215,8 +240,20 @@ bool OnGossipSelect(Player *player, Creature *creature, uint32 sender, uint32 pa
 }
 };
 
+class npc_teleport_load : public WorldScript
+{
+public:
+    npc_teleport_load() : WorldScript("npc_teleport") {}
+
+    void OnStartup() override
+    {
+        LoadNpcTele();
+    }
+};
+
 void AddSC_npc_teleport()
 {
-    new npc_teleport;
+    new npc_teleport_gossip;
+    new npc_teleport_load;
 }
 // End of TeleNPC2

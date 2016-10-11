@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -19,6 +19,22 @@
 #ifndef DBCENUMS_H
 #define DBCENUMS_H
 
+#pragma pack(push, 1)
+
+struct DBCPosition2D
+{
+    float X;
+    float Y;
+};
+
+struct DBCPosition3D
+{
+    float X;
+    float Y;
+    float Z;
+};
+
+#pragma pack(pop)
 enum LevelLimit
 {
     // Client expected level limitation, like as used in DBC item max levels for "until max player level"
@@ -91,9 +107,9 @@ enum AchievementCriteriaFlags
 {
     ACHIEVEMENT_CRITERIA_FLAG_SHOW_PROGRESS_BAR = 0x00000001,         // Show progress as bar
     ACHIEVEMENT_CRITERIA_FLAG_HIDDEN            = 0x00000002,         // Not show criteria in client
-    ACHIEVEMENT_CRITERIA_FLAG_UNK3              = 0x00000004,         // BG related??
-    ACHIEVEMENT_CRITERIA_FLAG_UNK4              = 0x00000008,         //
-    ACHIEVEMENT_CRITERIA_FLAG_UNK5              = 0x00000010,         // not used
+    ACHIEVEMENT_CRITERIA_FLAG_FAIL_ACHIEVEMENT  = 0x00000004,         // BG related??
+    ACHIEVEMENT_CRITERIA_FLAG_RESET_ON_START    = 0x00000008,         //
+    ACHIEVEMENT_CRITERIA_FLAG_IS_DATE           = 0x00000010,         // not used
     ACHIEVEMENT_CRITERIA_FLAG_MONEY_COUNTER     = 0x00000020          // Displays counter as money
 };
 
@@ -174,7 +190,7 @@ enum AchievementCriteriaTypes
     ACHIEVEMENT_CRITERIA_TYPE_SPECIAL_PVP_KILL              = 70,
     ACHIEVEMENT_CRITERIA_TYPE_FISH_IN_GAMEOBJECT            = 72,
     /// @todo 73: Achievements 1515, 1241, 1103 (Name: Mal'Ganis)
-    ACHIEVEMENT_CRITERIA_TYPE_EARNED_PVP_TITLE              = 74, /// @todo title id is not mentioned in dbc
+    ACHIEVEMENT_CRITERIA_TYPE_ON_LOGIN                      = 74,
     ACHIEVEMENT_CRITERIA_TYPE_LEARN_SKILLLINE_SPELLS        = 75,
     ACHIEVEMENT_CRITERIA_TYPE_WIN_DUEL                      = 76,
     ACHIEVEMENT_CRITERIA_TYPE_LOSE_DUEL                     = 77,
@@ -201,7 +217,7 @@ enum AchievementCriteriaTypes
     ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_HIT_DEALT             = 101,
     ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_HIT_RECEIVED          = 102,
     ACHIEVEMENT_CRITERIA_TYPE_TOTAL_DAMAGE_RECEIVED         = 103,
-    ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_HEAL_CASTED           = 104,
+    ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_HEAL_CAST             = 104,
     ACHIEVEMENT_CRITERIA_TYPE_TOTAL_HEALING_RECEIVED        = 105,
     ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_HEALING_RECEIVED      = 106,
     ACHIEVEMENT_CRITERIA_TYPE_QUEST_ABANDONED               = 107,
@@ -224,35 +240,35 @@ enum AchievementCategory
 
 enum AreaFlags
 {
-    AREA_FLAG_UNK0             = 0x00000001,                // Unknown
-    AREA_FLAG_UNK1             = 0x00000002,                // Razorfen Downs, Naxxramas and Acherus: The Ebon Hold (3.3.5a)
-    AREA_FLAG_UNK2             = 0x00000004,                // Only used for areas on map 571 (development before)
-    AREA_FLAG_SLAVE_CAPITAL    = 0x00000008,                // city and city subsones
-    AREA_FLAG_UNK3             = 0x00000010,                // can't find common meaning
-    AREA_FLAG_SLAVE_CAPITAL2   = 0x00000020,                // slave capital city flag?
-    AREA_FLAG_ALLOW_DUELS      = 0x00000040,                // allow to duel here
-    AREA_FLAG_ARENA            = 0x00000080,                // arena, both instanced and world arenas
-    AREA_FLAG_CAPITAL          = 0x00000100,                // main capital city flag
-    AREA_FLAG_CITY             = 0x00000200,                // only for one zone named "City" (where it located?)
-    AREA_FLAG_OUTLAND          = 0x00000400,                // expansion zones? (only Eye of the Storm not have this flag, but have 0x00004000 flag)
-    AREA_FLAG_SANCTUARY        = 0x00000800,                // sanctuary area (PvP disabled)
-    AREA_FLAG_NEED_FLY         = 0x00001000,                // Respawn alive at the graveyard without corpse
-    AREA_FLAG_UNUSED1          = 0x00002000,                // Unused in 3.3.5a
-    AREA_FLAG_OUTLAND2         = 0x00004000,                // expansion zones? (only Circle of Blood Arena not have this flag, but have 0x00000400 flag)
-    AREA_FLAG_OUTDOOR_PVP      = 0x00008000,                // pvp objective area? (Death's Door also has this flag although it's no pvp object area)
-    AREA_FLAG_ARENA_INSTANCE   = 0x00010000,                // used by instanced arenas only
-    AREA_FLAG_UNUSED2          = 0x00020000,                // Unused in 3.3.5a
-    AREA_FLAG_CONTESTED_AREA   = 0x00040000,                // On PvP servers these areas are considered contested, even though the zone it is contained in is a Horde/Alliance territory.
-    AREA_FLAG_UNK6             = 0x00080000,                // Valgarde and Acherus: The Ebon Hold
-    AREA_FLAG_LOWLEVEL         = 0x00100000,                // used for some starting areas with area_level <= 15
-    AREA_FLAG_TOWN             = 0x00200000,                // small towns with Inn
-    AREA_FLAG_UNK7             = 0x00400000,                // Warsong Hold, Acherus: The Ebon Hold, New Agamand Inn, Vengeance Landing Inn, Sunreaver Pavilion (Something to do with team?)
-    AREA_FLAG_UNK8             = 0x00800000,                // Valgarde, Acherus: The Ebon Hold, Westguard Inn, Silver Covenant Pavilion (Something to do with team?)
-    AREA_FLAG_WINTERGRASP      = 0x01000000,                // Wintergrasp and it's subzones
-    AREA_FLAG_INSIDE           = 0x02000000,                // used for determinating spell related inside/outside questions in Map::IsOutdoors
-    AREA_FLAG_OUTSIDE          = 0x04000000,                // used for determinating spell related inside/outside questions in Map::IsOutdoors
-    AREA_FLAG_WINTERGRASP_2    = 0x08000000,                // Can Hearth And Resurrect From Area
-    AREA_FLAG_NO_FLY_ZONE      = 0x20000000                 // Marks zones where you cannot fly
+    AREA_FLAG_UNK0               = 0x00000001,                // Unknown
+    AREA_FLAG_UNK1               = 0x00000002,                // Razorfen Downs, Naxxramas and Acherus: The Ebon Hold (3.3.5a)
+    AREA_FLAG_UNK2               = 0x00000004,                // Only used for areas on map 571 (development before)
+    AREA_FLAG_SLAVE_CAPITAL      = 0x00000008,                // city and city subsones
+    AREA_FLAG_UNK3               = 0x00000010,                // can't find common meaning
+    AREA_FLAG_SLAVE_CAPITAL2     = 0x00000020,                // slave capital city flag?
+    AREA_FLAG_ALLOW_DUELS        = 0x00000040,                // allow to duel here
+    AREA_FLAG_ARENA              = 0x00000080,                // arena, both instanced and world arenas
+    AREA_FLAG_CAPITAL            = 0x00000100,                // main capital city flag
+    AREA_FLAG_CITY               = 0x00000200,                // only for one zone named "City" (where it located?)
+    AREA_FLAG_OUTLAND            = 0x00000400,                // expansion zones? (only Eye of the Storm not have this flag, but have 0x00004000 flag)
+    AREA_FLAG_SANCTUARY          = 0x00000800,                // sanctuary area (PvP disabled)
+    AREA_FLAG_NEED_FLY           = 0x00001000,                // Respawn alive at the graveyard without corpse
+    AREA_FLAG_UNUSED1            = 0x00002000,                // Unused in 3.3.5a
+    AREA_FLAG_OUTLAND2           = 0x00004000,                // expansion zones? (only Circle of Blood Arena not have this flag, but have 0x00000400 flag)
+    AREA_FLAG_OUTDOOR_PVP        = 0x00008000,                // pvp objective area? (Death's Door also has this flag although it's no pvp object area)
+    AREA_FLAG_ARENA_INSTANCE     = 0x00010000,                // used by instanced arenas only
+    AREA_FLAG_UNUSED2            = 0x00020000,                // Unused in 3.3.5a
+    AREA_FLAG_CONTESTED_AREA     = 0x00040000,                // On PvP servers these areas are considered contested, even though the zone it is contained in is a Horde/Alliance territory.
+    AREA_FLAG_UNK4               = 0x00080000,                // Valgarde and Acherus: The Ebon Hold
+    AREA_FLAG_LOWLEVEL           = 0x00100000,                // used for some starting areas with area_level <= 15
+    AREA_FLAG_TOWN               = 0x00200000,                // small towns with Inn
+    AREA_FLAG_REST_ZONE_HORDE    = 0x00400000,                // Instead of using areatriggers, the zone will act as one for Horde players (Warsong Hold, Acherus: The Ebon Hold, New Agamand Inn, Vengeance Landing Inn, Sunreaver Pavilion, etc)
+    AREA_FLAG_REST_ZONE_ALLIANCE = 0x00800000,                // Instead of using areatriggers, the zone will act as one for Alliance players (Valgarde, Acherus: The Ebon Hold, Westguard Inn, Silver Covenant Pavilion, etc)
+    AREA_FLAG_WINTERGRASP        = 0x01000000,                // Wintergrasp and it's subzones
+    AREA_FLAG_INSIDE             = 0x02000000,                // used for determinating spell related inside/outside questions in Map::IsOutdoors
+    AREA_FLAG_OUTSIDE            = 0x04000000,                // used for determinating spell related inside/outside questions in Map::IsOutdoors
+    AREA_FLAG_WINTERGRASP_2      = 0x08000000,                // Can Hearth And Resurrect From Area
+    AREA_FLAG_NO_FLY_ZONE        = 0x20000000                 // Marks zones where you cannot fly
 };
 
 enum Difficulty
@@ -319,10 +335,15 @@ enum MapTypes                                               // Lua_IsInInstance
     MAP_ARENA           = 4                                 // arena
 };
 
+enum MapFlags
+{
+    MAP_FLAG_DYNAMIC_DIFFICULTY = 0x100
+};
+
 enum AbilytyLearnType
 {
-    ABILITY_LEARNED_ON_GET_PROFESSION_SKILL     = 1,
-    ABILITY_LEARNED_ON_GET_RACE_OR_CLASS_SKILL  = 2
+    SKILL_LINE_ABILITY_LEARNED_ON_SKILL_VALUE  = 1, // Spell state will update depending on skill value
+    SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN  = 2  // Spell will be learned/removed together with entire skill
 };
 
 enum ItemEnchantmentType
@@ -344,15 +365,20 @@ enum ItemLimitCategoryMode
     ITEM_LIMIT_CATEGORY_MODE_EQUIP      = 1                       // limit applied to amount equipped items (including used gems)
 };
 
-enum TotemCategoryType
+enum SkillRaceClassInfoFlags
 {
-    TOTEM_CATEGORY_TYPE_KNIFE           = 1,
-    TOTEM_CATEGORY_TYPE_TOTEM           = 2,
-    TOTEM_CATEGORY_TYPE_ROD             = 3,
-    TOTEM_CATEGORY_TYPE_PICK            = 21,
-    TOTEM_CATEGORY_TYPE_STONE           = 22,
-    TOTEM_CATEGORY_TYPE_HAMMER          = 23,
-    TOTEM_CATEGORY_TYPE_SPANNER         = 24
+    SKILL_FLAG_NO_SKILLUP_MESSAGE       = 0x2,
+    SKILL_FLAG_ALWAYS_MAX_VALUE         = 0x10,
+    SKILL_FLAG_UNLEARNABLE              = 0x20,     // Skill can be unlearned
+    SKILL_FLAG_INCLUDE_IN_SORT          = 0x80,     // Spells belonging to a skill with this flag will additionally compare skill ids when sorting spellbook in client
+    SKILL_FLAG_NOT_TRAINABLE            = 0x100,
+    SKILL_FLAG_MONO_VALUE               = 0x400     // Skill always has value 1 - clientside display flag, real value can be different
+};
+
+enum SpellCategoryFlags
+{
+    SPELL_CATEGORY_FLAG_COOLDOWN_SCALES_WITH_WEAPON_SPEED   = 0x01, // unused
+    SPELL_CATEGORY_FLAG_COOLDOWN_STARTS_ON_EVENT            = 0x04
 };
 
 // SummonProperties.dbc, col 1
@@ -385,6 +411,17 @@ enum SummonPropFlags
     SUMMON_PROP_FLAG_UNK14           = 0x00002000,          // Guides, player follows
     SUMMON_PROP_FLAG_UNK15           = 0x00004000,          // Force of Nature, Shadowfiend, Feral Spirit, Summon Water Elemental
     SUMMON_PROP_FLAG_UNK16           = 0x00008000           // Light/Dark Bullet, Soul/Fiery Consumption, Twisted Visage, Twilight Whelp. Phase related?
+};
+
+enum TotemCategoryType
+{
+    TOTEM_CATEGORY_TYPE_KNIFE           = 1,
+    TOTEM_CATEGORY_TYPE_TOTEM           = 2,
+    TOTEM_CATEGORY_TYPE_ROD             = 3,
+    TOTEM_CATEGORY_TYPE_PICK            = 21,
+    TOTEM_CATEGORY_TYPE_STONE           = 22,
+    TOTEM_CATEGORY_TYPE_HAMMER          = 23,
+    TOTEM_CATEGORY_TYPE_SPANNER         = 24
 };
 
 enum VehicleSeatFlags
@@ -431,6 +468,7 @@ enum VehicleSeatFlagsB
     VEHICLE_SEAT_FLAG_B_EJECTABLE                = 0x00000020,           // ejectable
     VEHICLE_SEAT_FLAG_B_USABLE_FORCED_2          = 0x00000040,
     VEHICLE_SEAT_FLAG_B_USABLE_FORCED_3          = 0x00000100,
+    VEHICLE_SEAT_FLAG_B_KEEP_PET                 = 0x00020000,
     VEHICLE_SEAT_FLAG_B_USABLE_FORCED_4          = 0x02000000,
     VEHICLE_SEAT_FLAG_B_CAN_SWITCH               = 0x04000000,
     VEHICLE_SEAT_FLAG_B_VEHICLE_PLAYERFRAME_UI   = 0x80000000            // Lua_UnitHasVehiclePlayerFrameUI - actually checked for flagsb &~ 0x80000000

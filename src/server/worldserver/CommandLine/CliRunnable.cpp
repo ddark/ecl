@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -23,27 +23,22 @@
 #include "Common.h"
 #include "ObjectMgr.h"
 #include "World.h"
-#include "WorldSession.h"
 #include "Configuration/Config.h"
 
-#include "AccountMgr.h"
-#include "Chat.h"
 #include "CliRunnable.h"
-#include "Language.h"
 #include "Log.h"
-#include "MapManager.h"
-#include "Player.h"
 #include "Util.h"
 
 #if PLATFORM != PLATFORM_WINDOWS
 #include <readline/readline.h>
 #include <readline/history.h>
+#include "Chat.h"
 
 char* command_finder(const char* text, int state)
 {
-    static int idx, len;
+    static size_t idx, len;
     const char* ret;
-    ChatCommand* cmd = ChatHandler::getCommandTable();
+    std::vector<ChatCommand> const& cmd = ChatHandler::getCommandTable();
 
     if (!state)
     {
@@ -51,20 +46,19 @@ char* command_finder(const char* text, int state)
         len = strlen(text);
     }
 
-    while ((ret = cmd[idx].Name))
+    while (idx < cmd.size())
     {
+        ret = cmd[idx].Name;
         if (!cmd[idx].AllowConsole)
         {
-            idx++;
+            ++idx;
             continue;
         }
 
-        idx++;
+        ++idx;
         //printf("Checking %s \n", cmd[idx].Name);
         if (strncmp(ret, text, len) == 0)
             return strdup(ret);
-        if (cmd[idx].Name == NULL)
-            break;
     }
 
     return ((char*)NULL);
@@ -131,10 +125,10 @@ int kb_hit_return()
 #endif
 
 /// %Thread start
-void CliRunnable::run()
+void CliThread()
 {
     ///- Display the list of available CLI functions then beep
-    //TC_LOG_INFO(LOG_FILTER_WORLDSERVER, "");
+    //TC_LOG_INFO("server.worldserver", "");
 #if PLATFORM != PLATFORM_WINDOWS
     rl_attempted_completion_function = cli_completion;
     rl_event_hook = cli_hook_func;
@@ -175,6 +169,8 @@ void CliRunnable::run()
             {
 #if PLATFORM == PLATFORM_WINDOWS
                 printf("TC>");
+#else
+                free(command_str);
 #endif
                 continue;
             }
@@ -184,6 +180,8 @@ void CliRunnable::run()
             {
 #if PLATFORM == PLATFORM_WINDOWS
                 printf("TC>");
+#else
+                free(command_str);
 #endif
                 continue;
             }
@@ -192,6 +190,7 @@ void CliRunnable::run()
             sWorld->QueueCliCommand(new CliCommandHolder(NULL, command.c_str(), &utf8print, &commandFinished));
 #if PLATFORM != PLATFORM_WINDOWS
             add_history(command.c_str());
+            free(command_str);
 #endif
         }
         else if (feof(stdin))

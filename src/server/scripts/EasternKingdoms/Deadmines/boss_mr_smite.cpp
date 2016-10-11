@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -25,17 +25,25 @@ EndScriptData */
 #include "ScriptedCreature.h"
 #include "deadmines.h"
 
-enum Spels
+enum Spells
 {
     SPELL_TRASH             = 3391,
     SPELL_SMITE_STOMP       = 6432,
     SPELL_SMITE_SLAM        = 6435,
-    SPELL_NIMBLE_REFLEXES   = 6264,
+    SPELL_NIMBLE_REFLEXES   = 6264
+};
 
+enum Equips
+{
     EQUIP_SWORD             = 5191,
-    EQUIP_MACE              = 7230,
+    EQUIP_AXE               = 5196,
+    EQUIP_MACE              = 7230
+};
 
-    SAY_AGGRO               = 0,
+enum Texts
+{
+    SAY_PHASE_1             = 2,
+    SAY_PHASE_2             = 3
 };
 
 class boss_mr_smite : public CreatureScript
@@ -43,16 +51,31 @@ class boss_mr_smite : public CreatureScript
 public:
     boss_mr_smite() : CreatureScript("boss_mr_smite") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new boss_mr_smiteAI(creature);
+        return GetInstanceAI<boss_mr_smiteAI>(creature);
     }
 
     struct boss_mr_smiteAI : public ScriptedAI
     {
         boss_mr_smiteAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             instance = creature->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            uiTrashTimer = urand(5000, 9000);
+            uiSlamTimer = 9000;
+            uiNimbleReflexesTimer = urand(15500, 31600);
+
+            uiHealth = 0;
+
+            uiPhase = 0;
+            uiTimer = 0;
+
+            uiIsMoving = false;
         }
 
         InstanceScript* instance;
@@ -66,23 +89,19 @@ public:
         uint32 uiPhase;
         uint32 uiTimer;
 
-        void Reset() OVERRIDE
+        bool uiIsMoving;
+
+        void Reset() override
         {
-            uiTrashTimer = urand(5000, 9000);
-            uiSlamTimer = 9000;
-            uiNimbleReflexesTimer = urand(15500, 31600);
-
-            uiHealth = 0;
-
-            uiPhase = 0;
-            uiTimer = 0;
+            Initialize();
 
             SetEquipmentSlots(false, EQUIP_SWORD, EQUIP_UNEQUIP, EQUIP_NO_CHANGE);
+            me->SetStandState(UNIT_STAND_STATE_STAND);
+            me->SetReactState(REACT_AGGRESSIVE);
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         {
-           Talk(SAY_AGGRO);
         }
 
         bool bCheckChances()
@@ -94,45 +113,58 @@ public:
                 return true;
         }
 
-        void UpdateAI(uint32 uiDiff) OVERRIDE
+        void UpdateAI(uint32 uiDiff) override
         {
             if (!UpdateVictim())
                 return;
 
-        /*START ACID-AI*/
-            if (uiTrashTimer <= uiDiff)
+            if (!uiIsMoving) // halt abilities in between phases
             {
-                if (bCheckChances())
-                    DoCast(me, SPELL_TRASH);
-                uiTrashTimer = urand(6000, 15500);
-            } else uiTrashTimer -= uiDiff;
+                if (uiTrashTimer <= uiDiff)
+                {
+                    if (bCheckChances())
+                        DoCast(me, SPELL_TRASH);
+                    uiTrashTimer = urand(6000, 15500);
+                }
+                else uiTrashTimer -= uiDiff;
 
-            if (uiSlamTimer <= uiDiff)
-            {
-                if (bCheckChances())
-                    DoCastVictim(SPELL_SMITE_SLAM);
-                uiSlamTimer = 11000;
-            } else uiSlamTimer -= uiDiff;
+                if (uiSlamTimer <= uiDiff)
+                {
+                    if (bCheckChances())
+                        DoCastVictim(SPELL_SMITE_SLAM);
+                    uiSlamTimer = 11000;
+                }
+                else uiSlamTimer -= uiDiff;
 
-            if (uiNimbleReflexesTimer <= uiDiff)
-            {
-                if (bCheckChances())
-                    DoCast(me, SPELL_NIMBLE_REFLEXES);
-                uiNimbleReflexesTimer = urand(27300, 60100);
-            } else uiNimbleReflexesTimer -= uiDiff;
-        /*END ACID-AI*/
+                if (uiNimbleReflexesTimer <= uiDiff)
+                {
+                    if (bCheckChances())
+                        DoCast(me, SPELL_NIMBLE_REFLEXES);
+                    uiNimbleReflexesTimer = urand(27300, 60100);
+                }
+                else uiNimbleReflexesTimer -= uiDiff;
+            }
 
             if ((uiHealth == 0 && !HealthAbovePct(66)) || (uiHealth == 1 && !HealthAbovePct(33)))
             {
                 ++uiHealth;
                 DoCastAOE(SPELL_SMITE_STOMP, false);
                 SetCombatMovement(false);
-                if (instance)
-                    if (GameObject* go = GameObject::GetGameObject(*me, instance->GetData64(DATA_SMITE_CHEST)))
-                    {
-                        me->GetMotionMaster()->Clear();
-                        me->GetMotionMaster()->MovePoint(1, go->GetPositionX() - 3.0f, go->GetPositionY(), go->GetPositionZ());
-                    }
+                me->AttackStop();
+                me->InterruptNonMeleeSpells(false);
+                me->SetReactState(REACT_PASSIVE);
+                uiTimer = 2500;
+                uiPhase = 1;
+
+                switch (uiHealth)
+                {
+                    case 1:
+                        Talk(SAY_PHASE_1);
+                        break;
+                    case 2:
+                        Talk(SAY_PHASE_2);
+                        break;
+                }
             }
 
             if (uiPhase)
@@ -142,21 +174,36 @@ public:
                     switch (uiPhase)
                     {
                         case 1:
-                            me->HandleEmoteCommand(EMOTE_STATE_KNEEL); //dosen't work?
-                            uiTimer = 1000;
-                            uiPhase = 2;
+                        {
+                            if (uiIsMoving)
+                                break;
+
+                            if (GameObject* go = ObjectAccessor::GetGameObject(*me, instance->GetGuidData(DATA_SMITE_CHEST)))
+                            {
+                                me->GetMotionMaster()->Clear();
+                                me->GetMotionMaster()->MovePoint(1, go->GetPositionX() - 1.5f, go->GetPositionY() + 1.4f, go->GetPositionZ());
+                                uiIsMoving = true;
+                            }
                             break;
+                        }
                         case 2:
                             if (uiHealth == 1)
-                                SetEquipmentSlots(false, EQUIP_SWORD, EQUIP_SWORD, EQUIP_NO_CHANGE);
+                                SetEquipmentSlots(false, EQUIP_AXE, EQUIP_AXE, EQUIP_NO_CHANGE);
                             else
                                 SetEquipmentSlots(false, EQUIP_MACE, EQUIP_UNEQUIP, EQUIP_NO_CHANGE);
                             uiTimer = 500;
                             uiPhase = 3;
                             break;
                         case 3:
+                            me->SetStandState(UNIT_STAND_STATE_STAND);
+                            uiTimer = 750;
+                            uiPhase = 4;
+                            break;
+                        case 4:
+                            me->SetReactState(REACT_AGGRESSIVE);
                             SetCombatMovement(true);
                             me->GetMotionMaster()->MoveChase(me->GetVictim(), me->m_CombatDistance);
+                            uiIsMoving = false;
                             uiPhase = 0;
                             break;
                     }
@@ -166,13 +213,16 @@ public:
             DoMeleeAttackIfReady();
         }
 
-        void MovementInform(uint32 uiType, uint32 /*uiId*/) OVERRIDE
+        void MovementInform(uint32 uiType, uint32 /*uiId*/) override
         {
             if (uiType != POINT_MOTION_TYPE)
                 return;
 
-            uiTimer = 1500;
-            uiPhase = 1;
+            me->SetFacingTo(5.47f);
+            me->SetStandState(UNIT_STAND_STATE_KNEEL);
+
+            uiTimer = 2000;
+            uiPhase = 2;
         }
     };
 };

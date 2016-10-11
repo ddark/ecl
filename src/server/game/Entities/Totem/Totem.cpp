@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -17,11 +17,10 @@
  */
 
 #include "Totem.h"
-#include "Log.h"
 #include "Group.h"
-#include "ObjectMgr.h"
 #include "Opcodes.h"
 #include "Player.h"
+#include "SpellHistory.h"
 #include "SpellMgr.h"
 #include "SpellInfo.h"
 #include "WorldPacket.h"
@@ -109,11 +108,11 @@ void Totem::UnSummon(uint32 msTime)
     RemoveAurasDueToSpell(GetSpell(), GetGUID());
 
     // clear owner's totem slot
-    for (int i = SUMMON_SLOT_TOTEM; i < MAX_TOTEM_SLOT; ++i)
+    for (uint8 i = SUMMON_SLOT_TOTEM; i < MAX_TOTEM_SLOT; ++i)
     {
         if (GetOwner()->m_SummonSlot[i] == GetGUID())
         {
-            GetOwner()->m_SummonSlot[i] = 0;
+            GetOwner()->m_SummonSlot[i].Clear();
             break;
         }
     }
@@ -130,7 +129,7 @@ void Totem::UnSummon(uint32 msTime)
         owner->SendAutoRepeatCancel(this);
 
         if (SpellInfo const* spell = sSpellMgr->GetSpellInfo(GetUInt32Value(UNIT_CREATED_BY_SPELL)))
-            owner->SendCooldownEvent(spell, 0, NULL, false);
+            GetSpellHistory()->SendCooldownEvent(spell, 0, nullptr, false);
 
         if (Group* group = owner->GetGroup())
         {
@@ -142,6 +141,10 @@ void Totem::UnSummon(uint32 msTime)
             }
         }
     }
+
+    // any totem unsummon look like as totem kill, req. for proper animation
+    if (IsAlive())
+        setDeathState(DEAD);
 
     AddObjectToRemoveList();
 }

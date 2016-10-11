@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #define _CRT_SECURE_NO_DEPRECATE
 
 #include "loadlib.h"
@@ -20,28 +38,26 @@ FileLoader::~FileLoader()
     free();
 }
 
-bool FileLoader::loadFile(char *filename, bool log)
+bool FileLoader::loadFile(std::string const& fileName, bool log)
 {
     free();
-    MPQFile mf(filename);
+    MPQFile mf(fileName.c_str());
     if(mf.isEof())
     {
         if (log)
-            printf("No such file %s\n", filename);
+            printf("No such file %s\n", fileName.c_str());
         return false;
     }
 
     data_size = mf.getSize();
 
     data = new uint8 [data_size];
-    if (data)
-    {
-        mf.read(data, data_size);
-        mf.close();
-        if (prepareLoadedData())
-            return true;
-    }
-    printf("Error loading %s", filename);
+    mf.read(data, data_size);
+    mf.close();
+    if (prepareLoadedData())
+        return true;
+
+    printf("Error loading %s", fileName.c_str());
     mf.close();
     free();
     return false;

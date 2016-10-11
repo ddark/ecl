@@ -1,21 +1,26 @@
-/**
+/*
+ * Copyright (C) 20??-2008 Wilibald09
+ * Copyright (C) 2011-2015 ArkCORE <http://www.arkania.net/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
- * @File : sc_npc_teleport.h
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
  *
- * @Authors : Wilibald09
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * @Date : 19/08/2008
- *
- * @Version : 1.2
- *
- **/
-
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef SC_NPC_TELEPORT_H
 #define SC_NPC_TELEPORT_H
 
 #include <vector>
-
 
 namespace nsNpcTel
 {
@@ -50,41 +55,56 @@ namespace nsNpcTel
     // Structure representing the destinations
     struct Dest
     {
-        std::string m_name;
+        std::string m_icon;
+        std::string m_size;
+        std::string m_colour;
+        std::string m_name[9];
         float       m_X, m_Y, m_Z, m_orient;
         uint16      m_map;
         uint8       m_level;
         uint32      m_cost;
     };
 
+    struct CatValue
+    {
+        uint32 catid;
+        nsNpcTel::Flag flag;
+        uint64 data0;
+        uint32 data1;
+    };
+
+    struct CatName
+    {
+        std::string icon;
+        std::string size;
+        std::string colour;
+        std::string name[9];
+    };
+
     // Class representing the categories of destinations
     class CatDest
     {
-      public:
+    public:
 
         typedef std::vector<Dest> VDest;
         typedef VDest::size_type  VDest_t;
 
-        CatDest(const uint32 &id, const std::string &name,
-                const Flag &flag, const uint64 &data0, const uint32 &data1);
+        CatDest(const CatValue cat, const CatName catname);
 
-        void   AddDest  (const Dest &item)       { m_TabDest.push_back(item); }
-        Dest   GetDest  (const uint32 &id) const { return m_TabDest[id]; }
-        uint32 GetCatID (void)             const { return m_id; }
-        uint32 size     (void)             const { return m_TabDest.size(); }
+        void   AddDest(const Dest &item)       { m_TabDest.push_back(item); }
+        Dest   GetDest(const uint32 &id) const { return m_TabDest[id]; }
+        uint32 GetCatID(void)             const { return m_catvalue.catid; }
+        uint32 size(void)             const { return m_TabDest.size(); }
 
-        std::string GetName(const bool IsGM = false)    const;
+        std::string GetName(const uint8 loc /* = 0 */, const bool IsGM = false)    const;
         bool IsAllowedToTeleport(Player * const player) const;
 
         static uint32 CountOfCategoryAllowedBy(Player * const player);
 
-      private:
+    private:
 
-        uint32      m_id;
-        std::string m_name;
-        Flag        m_flag;
-        uint64      m_data0;
-        uint32      m_data1;
+        CatValue m_catvalue;
+        CatName m_catname;
         VDest       m_TabDest;
     };
 
@@ -116,7 +136,6 @@ namespace nsNpcTel
             uint32  m_PageId;
         };
 
-
       public:
 
         typedef std::vector<Instance> VInst;
@@ -127,7 +146,6 @@ namespace nsNpcTel
         Instance &   operator () (Player * const player);
         uint32 operator [] (Player * const player) const;
 
-
       private:
 
         VInst m_TabInstance;
@@ -137,8 +155,7 @@ namespace nsNpcTel
     typedef VCatDest::size_type   VCatDest_t;
 
     // Verification of data integrity
-    bool IsValidData(const uint32 &cat,   const Flag &flag,
-                     const uint64 &data0, const uint32 &data1);
+    bool IsValidData(const CatValue cat);
 
     extern VCatDest TabCatDest;
 }

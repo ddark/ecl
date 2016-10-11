@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,24 +15,50 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DEF_AZJOL_NERUB_H
-#define DEF_AZJOL_NERUB_H
+#ifndef AZJOL_NERUB_H_
+#define AZJOL_NERUB_H_
 
-enum Data64
+#define DataHeader           "AN"
+
+uint32 const EncounterCount = 3;
+
+enum DataTypes
 {
-    DATA_KRIKTHIR_THE_GATEWATCHER,
-    DATA_HADRONOX,
-    DATA_ANUBARAK,
+    // Encounter States/Boss GUIDs
+    DATA_KRIKTHIR                   = 0,
+    DATA_HADRONOX                   = 1,
+    DATA_ANUBARAK                   = 2,
+
+    // Additional Data
+    DATA_WATCHER_NARJIL,
     DATA_WATCHER_GASHRA,
     DATA_WATCHER_SILTHIK,
-    DATA_WATCHER_NARJIL
+    DATA_ANUBARAK_WALL
 };
 
-enum Data
+enum CreatureIds
 {
-    DATA_KRIKTHIR_THE_GATEWATCHER_EVENT,
-    DATA_HADRONOX_EVENT,
-    DATA_ANUBARAK_EVENT
+    NPC_KRIKTHIR                    = 28684,
+    NPC_HADRONOX                    = 28921,
+    NPC_ANUBARAK                    = 29120,
+
+    NPC_WATCHER_NARJIL              = 28729,
+    NPC_WATCHER_GASHRA              = 28730,
+    NPC_WATCHER_SILTHIK             = 28731
 };
 
-#endif
+// These are passed as -action to AI's DoAction to differentiate between them and boss scripts' own actions
+enum InstanceActions
+{
+    ACTION_GATEWATCHER_GREET        = 1
+};
+
+enum GameObjectIds
+{
+    GO_KRIKTHIR_DOOR                = 192395,
+    GO_ANUBARAK_DOOR_1              = 192396,
+    GO_ANUBARAK_DOOR_2              = 192397,
+    GO_ANUBARAK_DOOR_3              = 192398
+};
+
+#endif // AZJOL_NERUB_H_

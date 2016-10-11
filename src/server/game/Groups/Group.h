@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -28,7 +28,6 @@
 class Battlefield;
 class Battleground;
 class Creature;
-class GroupReference;
 class InstanceSave;
 class Map;
 class Player;
@@ -82,13 +81,15 @@ enum GroupMemberAssignment
 
 enum GroupType
 {
-    GROUPTYPE_NORMAL = 0x00,
-    GROUPTYPE_BG     = 0x01,
-    GROUPTYPE_RAID   = 0x02,
-    GROUPTYPE_BGRAID = GROUPTYPE_BG | GROUPTYPE_RAID,       // mask
-    GROUPTYPE_UNK1   = 0x04,
-    GROUPTYPE_LFG    = 0x08
+    GROUPTYPE_NORMAL         = 0x00,
+    GROUPTYPE_BG             = 0x01,
+    GROUPTYPE_RAID           = 0x02,
+    GROUPTYPE_BGRAID         = GROUPTYPE_BG | GROUPTYPE_RAID, // mask
+    GROUPTYPE_LFG_RESTRICTED = 0x04, // Script_HasLFGRestrictions()
+    GROUPTYPE_LFG            = 0x08,
     // 0x10, leave/change group?, I saw this flag when leaving group and after leaving BG while in group
+    // GROUPTYPE_ONE_PERSON_PARTY   = 0x20, 4.x Script_IsOnePersonParty()
+    // GROUPTYPE_EVERYONE_ASSISTANT = 0x40  4.x Script_IsEveryoneAssistant()
 };
 
 enum GroupUpdateFlags
@@ -125,18 +126,18 @@ static const uint8 GroupUpdateLength[GROUP_UPDATE_FLAGS_COUNT] = { 0, 2, 2, 2, 1
 class Roll : public LootValidatorRef
 {
     public:
-        Roll(uint64 _guid, LootItem const& li);
+        Roll(ObjectGuid _guid, LootItem const& li);
         ~Roll();
         void setLoot(Loot* pLoot);
         Loot* getLoot();
-        void targetObjectBuildLink();
+        void targetObjectBuildLink() override;
 
-        uint64 itemGUID;
+        ObjectGuid itemGUID;
         uint32 itemid;
         int32  itemRandomPropId;
         uint32 itemRandomSuffix;
         uint8 itemCount;
-        typedef std::map<uint64, RollVote> PlayerVote;
+        typedef std::map<ObjectGuid, RollVote> PlayerVote;
         PlayerVote playerVote;                              //vote position correspond with player position (in group)
         uint8 totalPlayersRolling;
         uint8 totalNeed;
@@ -152,17 +153,17 @@ struct InstanceGroupBind
     bool perm;
     /* permanent InstanceGroupBinds exist if the leader has a permanent
        PlayerInstanceBind for the same instance. */
-    InstanceGroupBind() : save(NULL), perm(false) {}
+    InstanceGroupBind() : save(NULL), perm(false) { }
 };
 
 /** request member stats checken **/
 /// @todo uninvite people that not accepted invite
-class Group
+class TC_GAME_API Group
 {
     public:
         struct MemberSlot
         {
-            uint64      guid;
+            ObjectGuid  guid;
             std::string name;
             uint8       group;
             uint8       flags;
@@ -171,7 +172,7 @@ class Group
         typedef std::list<MemberSlot> MemberSlotList;
         typedef MemberSlotList::const_iterator member_citerator;
 
-        typedef UNORDERED_MAP< uint32 /*mapId*/, InstanceGroupBind> BoundInstancesMap;
+        typedef std::unordered_map< uint32 /*mapId*/, InstanceGroupBind> BoundInstancesMap;
     protected:
         typedef MemberSlotList::iterator member_witerator;
         typedef std::set<Player*> InvitesList;
@@ -185,20 +186,22 @@ class Group
         // group manipulation methods
         bool   Create(Player* leader);
         void   LoadGroupFromDB(Field* field);
-        void   LoadMemberFromDB(uint32 guidLow, uint8 memberFlags, uint8 subgroup, uint8 roles);
+        void   LoadMemberFromDB(ObjectGuid::LowType guidLow, uint8 memberFlags, uint8 subgroup, uint8 roles);
         bool   AddInvite(Player* player);
         void   RemoveInvite(Player* player);
         void   RemoveAllInvites();
         bool   AddLeaderInvite(Player* player);
         bool   AddMember(Player* player);
-        bool   RemoveMember(uint64 guid, const RemoveMethod &method = GROUP_REMOVEMETHOD_DEFAULT, uint64 kicker = 0, const char* reason = NULL);
-        void   ChangeLeader(uint64 guid);
+        bool   RemoveMember(ObjectGuid guid, const RemoveMethod &method = GROUP_REMOVEMETHOD_DEFAULT, ObjectGuid kicker = ObjectGuid::Empty, const char* reason = NULL);
+        void   ChangeLeader(ObjectGuid guid);
+ static void   ConvertLeaderInstancesToGroup(Player* player, Group* group, bool switchLeader);
         void   SetLootMethod(LootMethod method);
-        void   SetLooterGuid(uint64 guid);
+        void   SetLooterGuid(ObjectGuid guid);
+        void   SetMasterLooterGuid(ObjectGuid guid);
         void   UpdateLooterGuid(WorldObject* pLootedObject, bool ifneed = false);
         void   SetLootThreshold(ItemQualities threshold);
-        void   Disband(bool hideDestroy=false);
-        void   SetLfgRoles(uint64 guid, const uint8 roles);
+        void   Disband(bool hideDestroy = false);
+        void   SetLfgRoles(ObjectGuid guid, uint8 roles);
 
         // properties accessories
         bool IsFull() const;
@@ -207,27 +210,28 @@ class Group
         bool isBGGroup()   const;
         bool isBFGroup()   const;
         bool IsCreated()   const;
-        uint64 GetLeaderGUID() const;
-        uint64 GetGUID() const;
-        uint32 GetLowGUID() const;
+        ObjectGuid GetLeaderGUID() const;
+        ObjectGuid GetGUID() const;
+        ObjectGuid::LowType GetLowGUID() const;
         const char * GetLeaderName() const;
         LootMethod GetLootMethod() const;
-        uint64 GetLooterGuid() const;
+        ObjectGuid GetLooterGuid() const;
+        ObjectGuid GetMasterLooterGuid() const;
         ItemQualities GetLootThreshold() const;
 
-        uint32 GetDbStoreId() const { return m_dbStoreId; };
+        uint32 GetDbStoreId() const { return m_dbStoreId; }
 
         // member manipulation methods
-        bool IsMember(uint64 guid) const;
-        bool IsLeader(uint64 guid) const;
-        uint64 GetMemberGUID(const std::string& name);
-        bool IsAssistant(uint64 guid) const;
+        bool IsMember(ObjectGuid guid) const;
+        bool IsLeader(ObjectGuid guid) const;
+        ObjectGuid GetMemberGUID(const std::string& name);
+        bool IsAssistant(ObjectGuid guid) const;
 
-        Player* GetInvited(uint64 guid) const;
+        Player* GetInvited(ObjectGuid guid) const;
         Player* GetInvited(const std::string& name) const;
 
-        bool SameSubGroup(uint64 guid1, uint64 guid2) const;
-        bool SameSubGroup(uint64 guid1, MemberSlot const* slot2) const;
+        bool SameSubGroup(ObjectGuid guid1, ObjectGuid guid2) const;
+        bool SameSubGroup(ObjectGuid guid1, MemberSlot const* slot2) const;
         bool SameSubGroup(Player const* member1, Player const* member2) const;
         bool HasFreeSlotSubGroup(uint8 subgroup) const;
 
@@ -236,7 +240,7 @@ class Group
         GroupReference const* GetFirstMember() const { return m_memberMgr.getFirst(); }
         uint32 GetMembersCount() const { return m_memberSlots.size(); }
 
-        uint8 GetMemberGroup(uint64 guid) const;
+        uint8 GetMemberGroup(ObjectGuid guid) const;
 
         void ConvertToLFG();
         void ConvertToRaid();
@@ -245,10 +249,9 @@ class Group
         void SetBattlefieldGroup(Battlefield* bf);
         GroupJoinBattlegroundResult CanJoinBattlegroundQueue(Battleground const* bgOrTemplate, BattlegroundQueueTypeId bgQueueTypeId, uint32 MinPlayerCount, uint32 MaxPlayerCount, bool isRated, uint32 arenaSlot);
 
-        void ChangeMembersGroup(uint64 guid, uint8 group);
-        void ChangeMembersGroup(Player* player, uint8 group);
-        void SetTargetIcon(uint8 id, uint64 whoGuid, uint64 targetGuid);
-        void SetGroupMemberFlag(uint64 guid, bool apply, GroupMemberFlags flag);
+        void ChangeMembersGroup(ObjectGuid guid, uint8 group);
+        void SetTargetIcon(uint8 id, ObjectGuid whoGuid, ObjectGuid targetGuid);
+        void SetGroupMemberFlag(ObjectGuid guid, bool apply, GroupMemberFlags flag);
         void RemoveUniqueGroupMemberFlag(GroupMemberFlags flag);
 
         Difficulty GetDifficulty(bool isRaid) const;
@@ -264,10 +267,24 @@ class Group
         //void SendInit(WorldSession* session);
         void SendTargetIconList(WorldSession* session);
         void SendUpdate();
-        void SendUpdateToPlayer(uint64 playerGUID, MemberSlot* slot = NULL);
+        void SendUpdateToPlayer(ObjectGuid playerGUID, MemberSlot* slot = NULL);
         void UpdatePlayerOutOfRange(Player* player);
-                                                            // ignore: GUID of player that will be ignored
-        void BroadcastPacket(WorldPacket* packet, bool ignorePlayersInBGRaid, int group = -1, uint64 ignore = 0);
+
+        template<class Worker>
+        void BroadcastWorker(Worker& worker)
+        {
+            for (GroupReference* itr = GetFirstMember(); itr != nullptr; itr = itr->next())
+                worker(itr->GetSource());
+        }
+
+        template<class Worker>
+        void BroadcastWorker(Worker const& worker) const
+        {
+            for (GroupReference const* itr = GetFirstMember(); itr != nullptr; itr = itr->next())
+                worker(itr->GetSource());
+        }
+
+        void BroadcastPacket(WorldPacket* packet, bool ignorePlayersInBGRaid, int group = -1, ObjectGuid ignoredPlayer = ObjectGuid::Empty);
         void BroadcastReadyCheck(WorldPacket* packet);
         void OfflineReadyCheck();
 
@@ -278,23 +295,23 @@ class Group
         bool isRollLootActive() const;
         void SendLootStartRoll(uint32 CountDown, uint32 mapid, const Roll &r);
         void SendLootStartRollToPlayer(uint32 countDown, uint32 mapId, Player* p, bool canNeed, Roll const& r);
-        void SendLootRoll(uint64 SourceGuid, uint64 TargetGuid, uint8 RollNumber, uint8 RollType, const Roll &r);
-        void SendLootRollWon(uint64 SourceGuid, uint64 TargetGuid, uint8 RollNumber, uint8 RollType, const Roll &r);
+        void SendLootRoll(ObjectGuid SourceGuid, ObjectGuid TargetGuid, uint8 RollNumber, uint8 RollType, const Roll &r);
+        void SendLootRollWon(ObjectGuid SourceGuid, ObjectGuid TargetGuid, uint8 RollNumber, uint8 RollType, const Roll &r);
         void SendLootAllPassed(Roll const& roll);
         void SendLooter(Creature* creature, Player* pLooter);
         void GroupLoot(Loot* loot, WorldObject* pLootedObject);
         void NeedBeforeGreed(Loot* loot, WorldObject* pLootedObject);
         void MasterLoot(Loot* loot, WorldObject* pLootedObject);
-        Rolls::iterator GetRoll(uint64 Guid);
+        Rolls::iterator GetRoll(ObjectGuid Guid);
         void CountTheRoll(Rolls::iterator roll);
-        void CountRollVote(uint64 playerGUID, uint64 Guid, uint8 Choise);
+        void CountRollVote(ObjectGuid playerGUID, ObjectGuid Guid, uint8 Choise);
         void EndRoll(Loot* loot);
 
         // related to disenchant rolls
         void ResetMaxEnchantingLevel();
 
         void LinkMember(GroupReference* pRef);
-        void DelinkMember(uint64 guid);
+        void DelinkMember(ObjectGuid guid);
 
         InstanceGroupBind* BindToInstance(InstanceSave* save, bool permanent, bool load = false);
         void UnbindInstance(uint32 mapid, uint8 difficulty, bool unload = false);
@@ -307,16 +324,13 @@ class Group
         // FG: evil hacks
         void BroadcastGroupUpdate(void);
 
-        //Bot
-        uint64 const *GetTargetIcons() const { return m_targetIcons; }
-
     protected:
-        bool _setMembersGroup(uint64 guid, uint8 group);
+        bool _setMembersGroup(ObjectGuid guid, uint8 group);
         void _homebindIfInstance(Player* player);
 
         void _initRaidSubGroupsCounter();
-        member_citerator _getMemberCSlot(uint64 Guid) const;
-        member_witerator _getMemberWSlot(uint64 Guid);
+        member_citerator _getMemberCSlot(ObjectGuid Guid) const;
+        member_witerator _getMemberWSlot(ObjectGuid Guid);
         void SubGroupCounterIncrease(uint8 subgroup);
         void SubGroupCounterDecrease(uint8 subgroup);
         void ToggleGroupMemberFlag(member_witerator slot, uint8 flag, bool apply);
@@ -324,21 +338,22 @@ class Group
         MemberSlotList      m_memberSlots;
         GroupRefManager     m_memberMgr;
         InvitesList         m_invitees;
-        uint64              m_leaderGuid;
+        ObjectGuid          m_leaderGuid;
         std::string         m_leaderName;
         GroupType           m_groupType;
         Difficulty          m_dungeonDifficulty;
         Difficulty          m_raidDifficulty;
         Battleground*       m_bgGroup;
         Battlefield*        m_bfGroup;
-        uint64              m_targetIcons[TARGETICONCOUNT];
+        ObjectGuid          m_targetIcons[TARGETICONCOUNT];
         LootMethod          m_lootMethod;
         ItemQualities       m_lootThreshold;
-        uint64              m_looterGuid;
+        ObjectGuid          m_looterGuid;
+        ObjectGuid          m_masterLooterGuid;
         Rolls               RollId;
         BoundInstancesMap   m_boundInstances[MAX_DIFFICULTY];
         uint8*              m_subGroupsCounts;
-        uint64              m_guid;
+        ObjectGuid          m_guid;
         uint32              m_counter;                      // used only in SMSG_GROUP_LIST
         uint32              m_maxEnchantingLevel;
         uint32              m_dbStoreId;                    // Represents the ID used in database (Can be reused by other groups if group was disbanded)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -53,7 +53,7 @@ class boss_shirrak_the_dead_watcher : public CreatureScript
 public:
     boss_shirrak_the_dead_watcher() : CreatureScript("boss_shirrak_the_dead_watcher") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new boss_shirrak_the_dead_watcherAI(creature);
     }
@@ -62,6 +62,16 @@ public:
     {
         boss_shirrak_the_dead_watcherAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
+        }
+
+        void Initialize()
+        {
+            Inhibitmagic_Timer = 0;
+            Attractmagic_Timer = 28000;
+            Carnivorousbite_Timer = 10000;
+            FocusFire_Timer = 17000;
+            FocusedTargetGUID.Clear();
         }
 
         uint32 Inhibitmagic_Timer;
@@ -69,21 +79,17 @@ public:
         uint32 Carnivorousbite_Timer;
         uint32 FocusFire_Timer;
 
-        uint64 FocusedTargetGUID;
+        ObjectGuid FocusedTargetGUID;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            Inhibitmagic_Timer = 0;
-            Attractmagic_Timer = 28000;
-            Carnivorousbite_Timer = 10000;
-            FocusFire_Timer = 17000;
-            FocusedTargetGUID = 0;
+            Initialize();
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         { }
 
-        void JustSummoned(Creature* summoned) OVERRIDE
+        void JustSummoned(Creature* summoned) override
         {
             if (summoned && summoned->GetEntry() == NPC_FOCUS_FIRE)
             {
@@ -92,22 +98,21 @@ public:
                 summoned->SetLevel(me->getLevel());
                 summoned->AddUnitState(UNIT_STATE_ROOT);
 
-                if (Unit* pFocusedTarget = Unit::GetUnit(*me, FocusedTargetGUID))
+                if (Unit* pFocusedTarget = ObjectAccessor::GetUnit(*me, FocusedTargetGUID))
                     summoned->AI()->AttackStart(pFocusedTarget);
             }
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             //Inhibitmagic_Timer
             if (Inhibitmagic_Timer <= diff)
             {
                 float dist;
-                Map* map = me->GetMap();
-                Map::PlayerList const &PlayerList = map->GetPlayers();
+                Map::PlayerList const &PlayerList = me->GetMap()->GetPlayers();
                 for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
                     if (Player* i_pl = i->GetSource())
-                        if (i_pl->IsAlive() && (dist = i_pl->IsWithinDist(me, 45)))
+                        if (i_pl->IsAlive() && (dist = i_pl->GetDistance(me)) < 45)
                         {
                             i_pl->RemoveAurasDueToSpell(SPELL_INHIBITMAGIC);
                             me->AddAura(SPELL_INHIBITMAGIC, i_pl);
@@ -118,7 +123,7 @@ public:
                             if (dist < 15)
                                 me->AddAura(SPELL_INHIBITMAGIC, i_pl);
                         }
-                Inhibitmagic_Timer = 3000+(rand()%1000);
+                Inhibitmagic_Timer = 3000 + (rand32() % 1000);
             } else Inhibitmagic_Timer -= diff;
 
             //Return since we have no target
@@ -149,9 +154,9 @@ public:
                 {
                     FocusedTargetGUID = target->GetGUID();
                     me->SummonCreature(NPC_FOCUS_FIRE, target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN, 5500);
-                    Talk(EMOTE_FOCUSED, FocusedTargetGUID);
+                    Talk(EMOTE_FOCUSED, target);
                 }
-                FocusFire_Timer = 15000+(rand()%5000);
+                FocusFire_Timer = 15000 + (rand32() % 5000);
             } else FocusFire_Timer -= diff;
 
             DoMeleeAttackIfReady();
@@ -165,7 +170,7 @@ class npc_focus_fire : public CreatureScript
 public:
     npc_focus_fire() : CreatureScript("npc_focus_fire") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_focus_fireAI(creature);
     }
@@ -174,21 +179,27 @@ public:
     {
         npc_focus_fireAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
+        }
+
+        void Initialize()
+        {
+            FieryBlast_Timer = 3000 + (rand32() % 1000);
+            fiery1 = fiery2 = true;
         }
 
         uint32 FieryBlast_Timer;
         bool fiery1, fiery2;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            FieryBlast_Timer = 3000+(rand()%1000);
-            fiery1 = fiery2 = true;
+            Initialize();
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         { }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             //Return since we have no target
             if (!UpdateVictim())

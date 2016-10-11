@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -36,38 +36,35 @@ class ticket_commandscript : public CommandScript
 public:
     ticket_commandscript() : CommandScript("ticket_commandscript") { }
 
-    ChatCommand* GetCommands() const
+    std::vector<ChatCommand> GetCommands() const override
     {
-        static ChatCommand ticketResponseCommandTable[] =
+        static std::vector<ChatCommand> ticketResponseCommandTable =
         {
-            { "append",         SEC_MODERATOR,      true,  &HandleGMTicketResponseAppendCommand,    "", NULL },
-            { "appendln",       SEC_MODERATOR,      true,  &HandleGMTicketResponseAppendLnCommand,  "", NULL },
-            { NULL,             0,                  false, NULL,                                    "", NULL }
+            { "append",   rbac::RBAC_PERM_COMMAND_TICKET_RESPONSE_APPEND,   true,  &HandleGMTicketResponseAppendCommand,   "" },
+            { "appendln", rbac::RBAC_PERM_COMMAND_TICKET_RESPONSE_APPENDLN, true,  &HandleGMTicketResponseAppendLnCommand, "" },
         };
-        static ChatCommand ticketCommandTable[] =
+        static std::vector<ChatCommand> ticketCommandTable =
         {
-            { "assign",         SEC_GAMEMASTER,     true,  &HandleGMTicketAssignToCommand,          "", NULL },
-            { "close",          SEC_MODERATOR,      true,  &HandleGMTicketCloseByIdCommand,         "", NULL },
-            { "closedlist",     SEC_MODERATOR,      true,  &HandleGMTicketListClosedCommand,        "", NULL },
-            { "comment",        SEC_MODERATOR,      true,  &HandleGMTicketCommentCommand,           "", NULL },
-            { "complete",       SEC_MODERATOR,      true,  &HandleGMTicketCompleteCommand,          "", NULL },
-            { "delete",         SEC_ADMINISTRATOR,  true,  &HandleGMTicketDeleteByIdCommand,        "", NULL },
-            { "escalate",       SEC_MODERATOR,      true,  &HandleGMTicketEscalateCommand,          "", NULL },
-            { "escalatedlist",  SEC_GAMEMASTER,     true,  &HandleGMTicketListEscalatedCommand,     "", NULL },
-            { "list",           SEC_MODERATOR,      true,  &HandleGMTicketListCommand,              "", NULL },
-            { "onlinelist",     SEC_MODERATOR,      true,  &HandleGMTicketListOnlineCommand,        "", NULL },
-            { "reset",          SEC_ADMINISTRATOR,  true,  &HandleGMTicketResetCommand,             "", NULL },
-            { "response",       SEC_MODERATOR,      true,  NULL,                                    "", ticketResponseCommandTable },
-            { "togglesystem",   SEC_ADMINISTRATOR,  true,  &HandleToggleGMTicketSystem,             "", NULL },
-            { "unassign",       SEC_GAMEMASTER,     true,  &HandleGMTicketUnAssignCommand,          "", NULL },
-            { "viewid",         SEC_MODERATOR,      true,  &HandleGMTicketGetByIdCommand,           "", NULL },
-            { "viewname",       SEC_MODERATOR,      true,  &HandleGMTicketGetByNameCommand,         "", NULL },
-            { NULL,             0,                  false, NULL,                                    "", NULL }
+            { "assign",        rbac::RBAC_PERM_COMMAND_TICKET_ASSIGN,        true, &HandleGMTicketAssignToCommand,          "" },
+            { "close",         rbac::RBAC_PERM_COMMAND_TICKET_CLOSE,         true, &HandleGMTicketCloseByIdCommand,         "" },
+            { "closedlist",    rbac::RBAC_PERM_COMMAND_TICKET_CLOSEDLIST,    true, &HandleGMTicketListClosedCommand,        "" },
+            { "comment",       rbac::RBAC_PERM_COMMAND_TICKET_COMMENT,       true, &HandleGMTicketCommentCommand,           "" },
+            { "complete",      rbac::RBAC_PERM_COMMAND_TICKET_COMPLETE,      true, &HandleGMTicketCompleteCommand,          "" },
+            { "delete",        rbac::RBAC_PERM_COMMAND_TICKET_DELETE,        true, &HandleGMTicketDeleteByIdCommand,        "" },
+            { "escalate",      rbac::RBAC_PERM_COMMAND_TICKET_ESCALATE,      true, &HandleGMTicketEscalateCommand,          "" },
+            { "escalatedlist", rbac::RBAC_PERM_COMMAND_TICKET_ESCALATEDLIST, true, &HandleGMTicketListEscalatedCommand,     "" },
+            { "list",          rbac::RBAC_PERM_COMMAND_TICKET_LIST,          true, &HandleGMTicketListCommand,              "" },
+            { "onlinelist",    rbac::RBAC_PERM_COMMAND_TICKET_ONLINELIST,    true, &HandleGMTicketListOnlineCommand,        "" },
+            { "reset",         rbac::RBAC_PERM_COMMAND_TICKET_RESET,         true, &HandleGMTicketResetCommand,             "" },
+            { "response",      rbac::RBAC_PERM_COMMAND_TICKET_RESPONSE,      true, NULL,              "", ticketResponseCommandTable },
+            { "togglesystem",  rbac::RBAC_PERM_COMMAND_TICKET_TOGGLESYSTEM,  true, &HandleToggleGMTicketSystem,             "" },
+            { "unassign",      rbac::RBAC_PERM_COMMAND_TICKET_UNASSIGN,      true, &HandleGMTicketUnAssignCommand,          "" },
+            { "viewid",        rbac::RBAC_PERM_COMMAND_TICKET_VIEWID,        true, &HandleGMTicketGetByIdCommand,           "" },
+            { "viewname",      rbac::RBAC_PERM_COMMAND_TICKET_VIEWNAME,      true, &HandleGMTicketGetByNameCommand,         "" },
         };
-        static ChatCommand commandTable[] =
+        static std::vector<ChatCommand> commandTable =
         {
-            { "ticket",         SEC_MODERATOR,      false, NULL,                                    "", ticketCommandTable },
-            { NULL,             0,                  false, NULL,                                    "", NULL }
+            { "ticket", rbac::RBAC_PERM_COMMAND_TICKET, false, NULL, "", ticketCommandTable },
         };
         return commandTable;
     }
@@ -95,10 +92,10 @@ public:
             return true;
         }
 
-        uint64 targetGuid = sObjectMgr->GetPlayerGUIDByName(target);
+        ObjectGuid targetGuid = sObjectMgr->GetPlayerGUIDByName(target);
         uint32 accountId = sObjectMgr->GetPlayerAccountIdByGUID(targetGuid);
         // Target must exist and have administrative rights
-        if (!AccountMgr::HasPermission(accountId, RBAC_PERM_COMMANDS_BE_ASSIGNED_TICKET, realmID))
+        if (!AccountMgr::HasPermission(accountId, rbac::RBAC_PERM_COMMANDS_BE_ASSIGNED_TICKET, realm.Id.Realm))
         {
             handler->SendSysMessage(LANG_COMMAND_TICKETASSIGNERROR_A);
             return true;
@@ -113,7 +110,7 @@ public:
 
         // If assigned to different player other than current, leave
         //! Console can override though
-        Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : NULL;
+        Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
         if (player && ticket->IsAssignedNotTo(player->GetGUID()))
         {
             handler->PSendSysMessage(LANG_COMMAND_TICKETALREADYASSIGNED, ticket->GetId(), target.c_str());
@@ -122,11 +119,11 @@ public:
 
         // Assign ticket
         SQLTransaction trans = SQLTransaction(NULL);
-        ticket->SetAssignedTo(targetGuid, AccountMgr::IsAdminAccount(AccountMgr::GetSecurity(accountId, realmID)));
+        ticket->SetAssignedTo(targetGuid, AccountMgr::IsAdminAccount(AccountMgr::GetSecurity(accountId, realm.Id.Realm)));
         ticket->SaveToDB(trans);
         sTicketMgr->UpdateLastChange();
 
-        std::string msg = ticket->FormatMessageString(*handler, NULL, target.c_str(), NULL, NULL);
+        std::string msg = ticket->FormatMessageString(*handler, NULL, target.c_str(), NULL, NULL, NULL);
         handler->SendGlobalGMSysMessage(msg.c_str());
         return true;
     }
@@ -146,28 +143,25 @@ public:
 
         // Ticket should be assigned to the player who tries to close it.
         // Console can override though
-        Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : NULL;
+        Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
         if (player && ticket->IsAssignedNotTo(player->GetGUID()))
         {
             handler->PSendSysMessage(LANG_COMMAND_TICKETCANNOTCLOSE, ticket->GetId());
             return true;
         }
 
-        sTicketMgr->CloseTicket(ticket->GetId(), player ? player->GetGUID() : -1);
+        sTicketMgr->ResolveAndCloseTicket(ticket->GetId(), player ? player->GetGUID() : ObjectGuid(uint64(0)));
         sTicketMgr->UpdateLastChange();
 
-        std::string msg = ticket->FormatMessageString(*handler, player ? player->GetName().c_str() : "Console", NULL, NULL, NULL);
+        std::string msg = ticket->FormatMessageString(*handler, player ? player->GetName().c_str() : "Console", NULL, NULL, NULL, NULL);
         handler->SendGlobalGMSysMessage(msg.c_str());
 
         // Inform player, who submitted this ticket, that it is closed
         if (Player* submitter = ticket->GetPlayer())
         {
-            if (submitter->IsInWorld())
-            {
-                WorldPacket data(SMSG_GMTICKET_DELETETICKET, 4);
-                data << uint32(GMTICKET_RESPONSE_TICKET_DELETED);
-                submitter->GetSession()->SendPacket(&data);
-            }
+            WorldPacket data(SMSG_GMTICKET_DELETETICKET, 4);
+            data << uint32(GMTICKET_RESPONSE_TICKET_DELETED);
+            submitter->GetSession()->SendPacket(&data);
         }
         return true;
     }
@@ -193,7 +187,7 @@ public:
 
         // Cannot comment ticket assigned to someone else
         //! Console excluded
-        Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : NULL;
+        Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
         if (player && ticket->IsAssignedNotTo(player->GetGUID()))
         {
             handler->PSendSysMessage(LANG_COMMAND_TICKETALREADYASSIGNED, ticket->GetId());
@@ -205,7 +199,12 @@ public:
         ticket->SaveToDB(trans);
         sTicketMgr->UpdateLastChange();
 
-        std::string msg = ticket->FormatMessageString(*handler, NULL, ticket->GetAssignedToName().c_str(), NULL, NULL);
+        std::string msg = [&] {
+            std::string const assignedName = ticket->GetAssignedToName();
+            return ticket->FormatMessageString(*handler, nullptr,
+                assignedName.empty() ? nullptr : assignedName.c_str(), nullptr, nullptr, nullptr);
+        }();
+
         msg += handler->PGetParseString(LANG_COMMAND_TICKETLISTADDCOMMENT, player ? player->GetName().c_str() : "Console", comment);
         handler->SendGlobalGMSysMessage(msg.c_str());
 
@@ -223,7 +222,9 @@ public:
         if (!*args)
             return false;
 
-        uint32 ticketId = atoi(args);
+        char* ticketIdStr = strtok((char*)args, " ");
+        uint32 ticketId = atoi(ticketIdStr);
+
         GmTicket* ticket = sTicketMgr->GetTicket(ticketId);
         if (!ticket || ticket->IsClosed() || ticket->IsCompleted())
         {
@@ -231,14 +232,34 @@ public:
             return true;
         }
 
+        char* response = strtok(NULL, "\n");
+        if (response)
+        {
+            // Cannot add response to ticket, assigned to someone else
+            //! Console excluded
+            Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
+            if (player && ticket->IsAssignedNotTo(player->GetGUID()))
+            {
+                handler->PSendSysMessage(LANG_COMMAND_TICKETALREADYASSIGNED, ticket->GetId());
+                return true;
+            }
+
+            ticket->AppendResponse(response);
+        }
+
         if (Player* player = ticket->GetPlayer())
-            if (player->IsInWorld())
-                ticket->SendResponse(player->GetSession());
+            ticket->SendResponse(player->GetSession());
+
+        Player* gm = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
 
         SQLTransaction trans = SQLTransaction(NULL);
+        ticket->SetResolvedBy(gm ? gm->GetGUID() : ObjectGuid(uint64(0)));
         ticket->SetCompleted();
         ticket->SaveToDB(trans);
 
+        std::string msg = ticket->FormatMessageString(*handler, NULL, NULL,
+            NULL, NULL, handler->GetSession() ? handler->GetSession()->GetPlayer()->GetName().c_str() : "Console");
+        handler->SendGlobalGMSysMessage(msg.c_str());
         sTicketMgr->UpdateLastChange();
         return true;
     }
@@ -262,7 +283,7 @@ public:
             return true;
         }
 
-        std::string msg = ticket->FormatMessageString(*handler, NULL, NULL, NULL, handler->GetSession() ? handler->GetSession()->GetPlayer()->GetName().c_str() : "Console");
+        std::string msg = ticket->FormatMessageString(*handler, NULL, NULL, NULL, handler->GetSession() ? handler->GetSession()->GetPlayer()->GetName().c_str() : "Console", NULL);
         handler->SendGlobalGMSysMessage(msg.c_str());
 
         sTicketMgr->RemoveTicket(ticket->GetId());
@@ -270,13 +291,10 @@ public:
 
         if (Player* player = ticket->GetPlayer())
         {
-            if (player->IsInWorld())
-            {
-                // Force abandon ticket
-                WorldPacket data(SMSG_GMTICKET_DELETETICKET, 4);
-                data << uint32(GMTICKET_RESPONSE_TICKET_DELETED);
-                player->GetSession()->SendPacket(&data);
-            }
+            // Force abandon ticket
+            WorldPacket data(SMSG_GMTICKET_DELETETICKET, 4);
+            data << uint32(GMTICKET_RESPONSE_TICKET_DELETED);
+            player->GetSession()->SendPacket(&data);
         }
 
         return true;
@@ -298,8 +316,7 @@ public:
         ticket->SetEscalatedStatus(TICKET_IN_ESCALATION_QUEUE);
 
         if (Player* player = ticket->GetPlayer())
-            if (player->IsInWorld())
-                sTicketMgr->SendTicket(player->GetSession(), ticket);
+            sTicketMgr->SendTicket(player->GetSession(), ticket);
 
         sTicketMgr->UpdateLastChange();
         return true;
@@ -369,13 +386,13 @@ public:
         // Get security level of player, whom this ticket is assigned to
         uint32 security = SEC_PLAYER;
         Player* assignedPlayer = ticket->GetAssignedPlayer();
-        if (assignedPlayer && assignedPlayer->IsInWorld())
+        if (assignedPlayer)
             security = assignedPlayer->GetSession()->GetSecurity();
         else
         {
-            uint64 guid = ticket->GetAssignedToGUID();
+            ObjectGuid guid = ticket->GetAssignedToGUID();
             uint32 accountId = sObjectMgr->GetPlayerAccountIdByGUID(guid);
-            security = AccountMgr::GetSecurity(accountId, realmID);
+            security = AccountMgr::GetSecurity(accountId, realm.Id.Realm);
         }
 
         // Check security
@@ -394,7 +411,7 @@ public:
         sTicketMgr->UpdateLastChange();
 
         std::string msg = ticket->FormatMessageString(*handler, NULL, assignedTo.c_str(),
-            handler->GetSession() ? handler->GetSession()->GetPlayer()->GetName().c_str() : "Console", NULL);
+            handler->GetSession() ? handler->GetSession()->GetPlayer()->GetName().c_str() : "Console", NULL, NULL);
         handler->SendGlobalGMSysMessage(msg.c_str());
 
         return true;
@@ -431,8 +448,8 @@ public:
             return false;
 
         // Detect target's GUID
-        uint64 guid = 0;
-        if (Player* player = sObjectAccessor->FindPlayerByName(name))
+        ObjectGuid guid;
+        if (Player* player = ObjectAccessor::FindPlayerByName(name))
             guid = player->GetGUID();
         else
             guid = sObjectMgr->GetPlayerGUIDByName(name);
@@ -481,7 +498,7 @@ public:
 
         // Cannot add response to ticket, assigned to someone else
         //! Console excluded
-        Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : NULL;
+        Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
         if (player && ticket->IsAssignedNotTo(player->GetGUID()))
         {
             handler->PSendSysMessage(LANG_COMMAND_TICKETALREADYASSIGNED, ticket->GetId());

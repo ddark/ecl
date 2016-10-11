@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -58,7 +58,7 @@ enum Misc
     MAX_TEMPEST_MINIONS         = 4
 };
 
-struct Position TempestMinions[MAX_TEMPEST_MINIONS] =
+Position const TempestMinions[MAX_TEMPEST_MINIONS] =
 {
     {-203.980103f, -281.287720f, 91.650223f, 1.598807f},
     {-233.489410f, -281.139282f, 91.652412f, 1.598807f},
@@ -80,7 +80,7 @@ class boss_emalon : public CreatureScript
             {
             }
 
-            void Reset() OVERRIDE
+            void Reset() override
             {
                 _Reset();
 
@@ -88,7 +88,7 @@ class boss_emalon : public CreatureScript
                     me->SummonCreature(NPC_TEMPEST_MINION, TempestMinions[i], TEMPSUMMON_CORPSE_DESPAWN, 0);
             }
 
-            void JustSummoned(Creature* summoned) OVERRIDE
+            void JustSummoned(Creature* summoned) override
             {
                 BossAI::JustSummoned(summoned);
 
@@ -97,13 +97,13 @@ class boss_emalon : public CreatureScript
                     summoned->AI()->AttackStart(me->GetVictim());
             }
 
-            void EnterCombat(Unit* who) OVERRIDE
+            void EnterCombat(Unit* who) override
             {
                 if (!summons.empty())
                 {
-                    for (std::list<uint64>::const_iterator itr = summons.begin(); itr != summons.end(); ++itr)
+                    for (SummonList::const_iterator itr = summons.begin(); itr != summons.end(); ++itr)
                     {
-                        Creature* minion = Unit::GetCreature(*me, *itr);
+                        Creature* minion = ObjectAccessor::GetCreature(*me, *itr);
                         if (minion && minion->IsAlive() && !minion->GetVictim() && minion->AI())
                             minion->AI()->AttackStart(who);
                     }
@@ -117,7 +117,7 @@ class boss_emalon : public CreatureScript
                 _EnterCombat();
             }
 
-            void UpdateAI(uint32 diff) OVERRIDE
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -143,7 +143,7 @@ class boss_emalon : public CreatureScript
                         case EVENT_OVERCHARGE:
                             if (!summons.empty())
                             {
-                                Creature* minion = Unit::GetCreature(*me, Trinity::Containers::SelectRandomContainerElement(summons));
+                                Creature* minion = ObjectAccessor::GetCreature(*me, Trinity::Containers::SelectRandomContainerElement(summons));
                                 if (minion && minion->IsAlive())
                                 {
                                     minion->CastSpell(me, SPELL_OVERCHARGED, true);
@@ -160,13 +160,16 @@ class boss_emalon : public CreatureScript
                         default:
                             break;
                     }
+
+                    if (me->HasUnitState(UNIT_STATE_CASTING))
+                        return;
                 }
 
                 DoMeleeAttackIfReady();
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const OVERRIDE
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_emalonAI(creature);
         }
@@ -184,18 +187,24 @@ class npc_tempest_minion : public CreatureScript
         {
             npc_tempest_minionAI(Creature* creature) : ScriptedAI(creature)
             {
+                Initialize();
                 instance = creature->GetInstanceScript();
             }
 
-            void Reset() OVERRIDE
+            void Initialize()
             {
-                events.Reset();
                 OverchargedTimer = 0;
             }
 
-            void JustDied(Unit* /*killer*/) OVERRIDE
+            void Reset() override
             {
-                if (Creature* emalon = Unit::GetCreature(*me, instance ? instance->GetData64(DATA_EMALON) : 0))
+                events.Reset();
+                Initialize();
+            }
+
+            void JustDied(Unit* /*killer*/) override
+            {
+                if (Creature* emalon = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_EMALON)))
                 {
                     if (emalon->IsAlive())
                     {
@@ -205,19 +214,19 @@ class npc_tempest_minion : public CreatureScript
                 }
             }
 
-            void EnterCombat(Unit* who) OVERRIDE
+            void EnterCombat(Unit* who) override
             {
                 DoZoneInCombat();
                 events.ScheduleEvent(EVENT_SHOCK, 20000);
 
-                if (Creature* pEmalon = Unit::GetCreature(*me, instance ? instance->GetData64(DATA_EMALON) : 0))
+                if (Creature* pEmalon = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_EMALON)))
                 {
                     if (!pEmalon->GetVictim() && pEmalon->AI())
                         pEmalon->AI()->AttackStart(who);
                 }
             }
 
-            void UpdateAI(uint32 diff) OVERRIDE
+            void UpdateAI(uint32 diff) override
             {
                 //Return since we have no target
                 if (!UpdateVictim())
@@ -266,9 +275,9 @@ class npc_tempest_minion : public CreatureScript
             uint32 OverchargedTimer;
         };
 
-        CreatureAI* GetAI(Creature* creature) const OVERRIDE
+        CreatureAI* GetAI(Creature* creature) const override
         {
-            return new npc_tempest_minionAI(creature);
+            return GetInstanceAI<npc_tempest_minionAI>(creature);
         }
 };
 

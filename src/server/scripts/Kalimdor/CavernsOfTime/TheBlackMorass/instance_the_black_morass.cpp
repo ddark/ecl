@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -37,7 +37,7 @@ enum Misc
     RIFT_BOSS                         = 1
 };
 
-inline uint32 RandRiftBoss() { return ((rand()%2) ? NPC_RIFT_KEEPER : NPC_RIFT_LORD); }
+inline uint32 RandRiftBoss() { return ((rand32() % 2) ? NPC_RIFT_KEEPER : NPC_RIFT_LORD); }
 
 float PortalLocation[4][4]=
 {
@@ -73,14 +73,18 @@ class instance_the_black_morass : public InstanceMapScript
 public:
     instance_the_black_morass() : InstanceMapScript("instance_the_black_morass", 269) { }
 
-    InstanceScript* GetInstanceScript(InstanceMap* map) const OVERRIDE
+    InstanceScript* GetInstanceScript(InstanceMap* map) const override
     {
         return new instance_the_black_morass_InstanceMapScript(map);
     }
 
     struct instance_the_black_morass_InstanceMapScript : public InstanceScript
     {
-        instance_the_black_morass_InstanceMapScript(Map* map) : InstanceScript(map) { }
+        instance_the_black_morass_InstanceMapScript(Map* map) : InstanceScript(map)
+        {
+            SetHeaders(DataHeader);
+            Clear();
+        }
 
         uint32 m_auiEncounter[EncounterCount];
 
@@ -89,14 +93,8 @@ public:
         uint8  mRiftWaveCount;
         uint8  mRiftWaveId;
 
-        uint64 _medivhGUID;
+        ObjectGuid _medivhGUID;
         uint8  _currentRiftId;
-
-        void Initialize()
-        {
-            _medivhGUID         = 0;
-            Clear();
-        }
 
         void Clear()
         {
@@ -117,7 +115,7 @@ public:
             DoUpdateWorldState(WORLD_STATE_BM_RIFT, 0);
         }
 
-        bool IsEncounterInProgress() const
+        bool IsEncounterInProgress() const override
         {
             if (GetData(TYPE_MEDIVH) == IN_PROGRESS)
                 return true;
@@ -125,7 +123,7 @@ public:
             return false;
         }
 
-        void OnPlayerEnter(Player* player)
+        void OnPlayerEnter(Player* player) override
         {
             if (GetData(TYPE_MEDIVH) == IN_PROGRESS)
                 return;
@@ -133,7 +131,7 @@ public:
             player->SendUpdateWorldState(WORLD_STATE_BM, 0);
         }
 
-        void OnCreatureCreate(Creature* creature)
+        void OnCreatureCreate(Creature* creature) override
         {
             if (creature->GetEntry() == NPC_MEDIVH)
                 _medivhGUID = creature->GetGUID();
@@ -165,7 +163,7 @@ public:
             }
         }
 
-        void SetData(uint32 type, uint32 data) OVERRIDE
+        void SetData(uint32 type, uint32 data) override
         {
             switch (type)
             {
@@ -193,16 +191,16 @@ public:
                 {
                     if (data == IN_PROGRESS)
                     {
-                        TC_LOG_DEBUG(LOG_FILTER_TSCR, "Instance The Black Morass: Starting event.");
+                        TC_LOG_DEBUG("scripts", "Instance The Black Morass: Starting event.");
                         InitWorldState();
                         m_auiEncounter[1] = IN_PROGRESS;
-                        Events.ScheduleEvent(EVENT_NEXT_PORTAL, 15000);
+                        ScheduleEventNextPortal(15000);
                     }
 
                     if (data == DONE)
                     {
                         //this may be completed further out in the post-event
-                        TC_LOG_DEBUG(LOG_FILTER_TSCR, "Instance The Black Morass: Event completed.");
+                        TC_LOG_DEBUG("scripts", "Instance The Black Morass: Event completed.");
                         Map::PlayerList const& players = instance->GetPlayers();
 
                         if (!players.isEmpty())
@@ -228,7 +226,7 @@ public:
                 if (data == SPECIAL)
                 {
                     if (mRiftPortalCount < 7)
-                        Events.ScheduleEvent(EVENT_NEXT_PORTAL, 5000);
+                        ScheduleEventNextPortal(5000);
                 }
                 else
                     m_auiEncounter[1] = data;
@@ -236,7 +234,7 @@ public:
             }
         }
 
-        uint32 GetData(uint32 type) const OVERRIDE
+        uint32 GetData(uint32 type) const override
         {
             switch (type)
             {
@@ -252,12 +250,12 @@ public:
             return 0;
         }
 
-        uint64 GetData64(uint32 data) const OVERRIDE
+        ObjectGuid GetGuidData(uint32 data) const override
         {
             if (data == DATA_MEDIVH)
                 return _medivhGUID;
 
-            return 0;
+            return ObjectGuid::Empty;
         }
 
         Creature* SummonedPortalBoss(Creature* me)
@@ -267,10 +265,9 @@ public:
             if (entry == RIFT_BOSS)
                 entry = RandRiftBoss();
 
-            TC_LOG_DEBUG(LOG_FILTER_TSCR, "Instance The Black Morass: Summoning rift boss entry %u.", entry);
+            TC_LOG_DEBUG("scripts", "Instance The Black Morass: Summoning rift boss entry %u.", entry);
 
-            Position pos;
-            me->GetRandomNearPosition(pos, 10.0f);
+            Position pos = me->GetRandomNearPosition(10.0f);
 
             //normalize Z-level if we can, if rift is not at ground level.
             pos.m_positionZ = std::max(me->GetMap()->GetHeight(pos.m_positionX, pos.m_positionY, MAX_HEIGHT), me->GetMap()->GetWaterLevel(pos.m_positionX, pos.m_positionY));
@@ -278,7 +275,7 @@ public:
             if (Creature* summon = me->SummonCreature(entry, pos, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 600000))
                 return summon;
 
-            TC_LOG_DEBUG(LOG_FILTER_TSCR, "Instance The Black Morass: What just happened there? No boss, no loot, no fun...");
+            TC_LOG_DEBUG("scripts", "Instance The Black Morass: What just happened there? No boss, no loot, no fun...");
             return NULL;
         }
 
@@ -291,7 +288,7 @@ public:
                 if (tmp >= _currentRiftId)
                     ++tmp;
 
-                TC_LOG_DEBUG(LOG_FILTER_TSCR, "Instance The Black Morass: Creating Time Rift at locationId %i (old locationId was %u).", tmp, _currentRiftId);
+                TC_LOG_DEBUG("scripts", "Instance The Black Morass: Creating Time Rift at locationId %i (old locationId was %u).", tmp, _currentRiftId);
 
                 _currentRiftId = tmp;
 
@@ -317,7 +314,7 @@ public:
             }
         }
 
-        void Update(uint32 diff)
+        void Update(uint32 diff) override
         {
             if (m_auiEncounter[1] != IN_PROGRESS)
                 return;
@@ -336,8 +333,14 @@ public:
                 ++mRiftPortalCount;
                 DoUpdateWorldState(WORLD_STATE_BM_RIFT, mRiftPortalCount);
                 DoSpawnPortal();
-                Events.ScheduleEvent(EVENT_NEXT_PORTAL, RiftWaves[GetRiftWaveId()].NextPortalTime);
+                ScheduleEventNextPortal(RiftWaves[GetRiftWaveId()].NextPortalTime);
             }
+        }
+
+        void ScheduleEventNextPortal(uint32 nextPortalTime)
+        {
+            if (nextPortalTime > 0)
+                Events.RescheduleEvent(EVENT_NEXT_PORTAL, nextPortalTime);
         }
 
         protected:

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -84,10 +84,20 @@ class npc_av_marshal_or_warmaster : public CreatureScript
 
         struct npc_av_marshal_or_warmasterAI : public ScriptedAI
         {
-            npc_av_marshal_or_warmasterAI(Creature* creature) : ScriptedAI(creature) { }
-
-            void Reset() OVERRIDE
+            npc_av_marshal_or_warmasterAI(Creature* creature) : ScriptedAI(creature)
             {
+                Initialize();
+            }
+
+            void Initialize()
+            {
+                _hasAura = false;
+            }
+
+            void Reset() override
+            {
+                Initialize();
+
                 events.Reset();
                 events.ScheduleEvent(EVENT_CHARGE_TARGET, urand(2 * IN_MILLISECONDS, 12 * IN_MILLISECONDS));
                 events.ScheduleEvent(EVENT_CLEAVE, urand(1 * IN_MILLISECONDS, 11 * IN_MILLISECONDS));
@@ -95,16 +105,14 @@ class npc_av_marshal_or_warmaster : public CreatureScript
                 events.ScheduleEvent(EVENT_WHIRLWIND, urand(5 * IN_MILLISECONDS, 20 * IN_MILLISECONDS));
                 events.ScheduleEvent(EVENT_ENRAGE, urand(5 * IN_MILLISECONDS, 20 * IN_MILLISECONDS));
                 events.ScheduleEvent(EVENT_CHECK_RESET, 5000);
-
-                _hasAura = false;
             }
 
-            void JustRespawned() OVERRIDE
+            void JustRespawned() override
             {
                 Reset();
             }
 
-            void UpdateAI(uint32 diff) OVERRIDE
+            void UpdateAI(uint32 diff) override
             {
                 // I have a feeling this isn't blizzlike, but owell, I'm only passing by and cleaning up.
                 if (!_hasAura)
@@ -160,6 +168,8 @@ class npc_av_marshal_or_warmaster : public CreatureScript
                             break;
                         }
                     }
+                    if (me->HasUnitState(UNIT_STATE_CASTING))
+                        return;
                 }
 
                 DoMeleeAttackIfReady();
@@ -170,7 +180,7 @@ class npc_av_marshal_or_warmaster : public CreatureScript
             bool _hasAura;
         };
 
-        CreatureAI* GetAI(Creature* creature) const OVERRIDE
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_av_marshal_or_warmasterAI(creature);
         }

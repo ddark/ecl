@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -59,9 +59,9 @@ public:
     {
         boss_aeonusAI(Creature* creature) : BossAI(creature, TYPE_AEONUS) { }
 
-        void Reset() OVERRIDE {}
+        void Reset() override { }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         {
             events.ScheduleEvent(EVENT_SANDBREATH, urand(15000, 30000));
             events.ScheduleEvent(EVENT_TIMESTOP, urand(10000, 15000));
@@ -70,7 +70,7 @@ public:
             Talk(SAY_AGGRO);
         }
 
-        void MoveInLineOfSight(Unit* who) OVERRIDE
+        void MoveInLineOfSight(Unit* who) override
 
         {
             //Despawn Time Keeper
@@ -86,61 +86,62 @@ public:
             ScriptedAI::MoveInLineOfSight(who);
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/) override
         {
             Talk(SAY_DEATH);
 
-             if (instance)
-             {
-                 instance->SetData(TYPE_RIFT, DONE);
-                 instance->SetData(TYPE_MEDIVH, DONE); // FIXME: later should be removed
-             }
+            instance->SetData(TYPE_RIFT, DONE);
+            instance->SetData(TYPE_MEDIVH, DONE); // FIXME: later should be removed
         }
 
-        void KilledUnit(Unit* /*victim*/) OVERRIDE
+        void KilledUnit(Unit* who) override
         {
-            Talk(SAY_SLAY);
+            if (who->GetTypeId() == TYPEID_PLAYER)
+                Talk(SAY_SLAY);
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             //Return since we have no target
             if (!UpdateVictim())
                 return;
 
-                events.Update(diff);
+            events.Update(diff);
+
+            if (me->HasUnitState(UNIT_STATE_CASTING))
+                return;
+
+            while (uint32 eventId = events.ExecuteEvent())
+            {
+                switch (eventId)
+                {
+                    case EVENT_SANDBREATH:
+                        DoCastVictim(SPELL_SAND_BREATH);
+                        events.ScheduleEvent(EVENT_SANDBREATH, urand(15000, 25000));
+                        break;
+                    case EVENT_TIMESTOP:
+                        DoCastVictim(SPELL_TIME_STOP);
+                        events.ScheduleEvent(EVENT_TIMESTOP, urand(20000, 35000));
+                        break;
+                    case EVENT_FRENZY:
+                         Talk(EMOTE_FRENZY);
+                         DoCast(me, SPELL_ENRAGE);
+                        events.ScheduleEvent(EVENT_FRENZY, urand(20000, 35000));
+                        break;
+                    default:
+                        break;
+                }
 
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
-
-                while (uint32 eventId = events.ExecuteEvent())
-                {
-                    switch (eventId)
-                    {
-                        case EVENT_SANDBREATH:
-                            DoCastVictim(SPELL_SAND_BREATH);
-                            events.ScheduleEvent(EVENT_SANDBREATH, urand(15000, 25000));
-                            break;
-                        case EVENT_TIMESTOP:
-                            DoCastVictim(SPELL_TIME_STOP);
-                            events.ScheduleEvent(EVENT_TIMESTOP, urand(20000, 35000));
-                            break;
-                        case EVENT_FRENZY:
-                             Talk(EMOTE_FRENZY);
-                             DoCast(me, SPELL_ENRAGE);
-                            events.ScheduleEvent(EVENT_FRENZY, urand(20000, 35000));
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                DoMeleeAttackIfReady();
+            }
+            DoMeleeAttackIfReady();
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new boss_aeonusAI(creature);
+        return GetInstanceAI<boss_aeonusAI>(creature);
     }
 };
 

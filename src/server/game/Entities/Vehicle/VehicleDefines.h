@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -44,7 +44,8 @@ enum VehicleFlags
     VEHICLE_FLAG_FULLSPEEDPITCHING               = 0x00000020,           // Sets MOVEFLAG2_FULLSPEEDPITCHING
     VEHICLE_FLAG_CUSTOM_PITCH                    = 0x00000040,           // If set use pitchMin and pitchMax from DBC, otherwise pitchMin = -pi/2, pitchMax = pi/2
     VEHICLE_FLAG_ADJUST_AIM_ANGLE                = 0x00000400,           // Lua_IsVehicleAimAngleAdjustable
-    VEHICLE_FLAG_ADJUST_AIM_POWER                = 0x00000800            // Lua_IsVehicleAimPowerAdjustable
+    VEHICLE_FLAG_ADJUST_AIM_POWER                = 0x00000800,           // Lua_IsVehicleAimPowerAdjustable
+    VEHICLE_FLAG_FIXED_POSITION                  = 0x00200000            // Used for cannons, when they should be rooted
 };
 
 enum VehicleSpells
@@ -55,12 +56,12 @@ enum VehicleSpells
 
 struct PassengerInfo
 {
-    uint64 Guid;
+    ObjectGuid Guid;
     bool IsUnselectable;
 
     void Reset()
     {
-        Guid = 0;
+        Guid.Clear();
         IsUnselectable = false;
     }
 };
@@ -72,7 +73,7 @@ struct VehicleSeat
         Passenger.Reset();
     }
 
-    bool IsEmpty() const { return !Passenger.Guid; }
+    bool IsEmpty() const { return Passenger.Guid.IsEmpty(); }
 
     VehicleSeatEntry const* SeatInfo;
     PassengerInfo Passenger;
@@ -81,9 +82,9 @@ struct VehicleSeat
 struct VehicleAccessory
 {
     VehicleAccessory(uint32 entry, int8 seatId, bool isMinion, uint8 summonType, uint32 summonTime) :
-        AccessoryEntry(entry), IsMinion(isMinion), SummonTime(summonTime), SeatId(seatId), SummonedType(summonType) {}
+        AccessoryEntry(entry), IsMinion(isMinion), SummonTime(summonTime), SeatId(seatId), SummonedType(summonType) { }
     uint32 AccessoryEntry;
-    uint32 IsMinion;
+    bool IsMinion;
     uint32 SummonTime;
     int8 SeatId;
     uint8 SummonedType;
@@ -105,6 +106,31 @@ public:
 
     /// This method transforms supplied global coordinates into local offsets
     virtual void CalculatePassengerOffset(float& x, float& y, float& z, float* o = NULL) const = 0;
+
+protected:
+    static void CalculatePassengerPosition(float& x, float& y, float& z, float* o, float transX, float transY, float transZ, float transO)
+    {
+        float inx = x, iny = y, inz = z;
+        if (o)
+            *o = Position::NormalizeOrientation(transO + *o);
+
+        x = transX + inx * std::cos(transO) - iny * std::sin(transO);
+        y = transY + iny * std::cos(transO) + inx * std::sin(transO);
+        z = transZ + inz;
+    }
+
+    static void CalculatePassengerOffset(float& x, float& y, float& z, float* o, float transX, float transY, float transZ, float transO)
+    {
+        if (o)
+            *o = Position::NormalizeOrientation(*o - transO);
+
+        z -= transZ;
+        y -= transY;    // y = searchedY * std::cos(o) + searchedX * std::sin(o)
+        x -= transX;    // x = searchedX * std::cos(o) + searchedY * std::sin(o + pi)
+        float inx = x, iny = y;
+        y = (iny - inx * std::tan(transO)) / (std::cos(transO) + std::sin(transO) * std::tan(transO));
+        x = (inx + iny * std::tan(transO)) / (std::cos(transO) + std::sin(transO) * std::tan(transO));
+    }
 };
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -88,47 +88,45 @@ Position const PosMoveOnSpawn[1] =
 
 class boss_arlokk : public CreatureScript
 {
-    public: boss_arlokk() : CreatureScript("boss_arlokk") {}
+    public: boss_arlokk() : CreatureScript("boss_arlokk") { }
 
         struct boss_arlokkAI : public BossAI
         {
-            boss_arlokkAI(Creature* creature) : BossAI(creature, DATA_ARLOKK) { }
+            boss_arlokkAI(Creature* creature) : BossAI(creature, DATA_ARLOKK)
+            {
+                Initialize();
+            }
 
-            void Reset() OVERRIDE
+            void Initialize()
             {
                 _summonCountA = 0;
                 _summonCountB = 0;
-                me->RemoveAllAuras();
+            }
+
+            void Reset() override
+            {
+                if (events.IsInPhase(PHASE_TWO))
+                    me->HandleStatModifier(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT, 35.0f, false); // hack
+                _Reset();
+                Initialize();
                 me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(WEAPON_DAGGER));
                 me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, uint32(WEAPON_DAGGER));
-                if (instance)
-                {
-                    if (GameObject* gate = me->GetMap()->GetGameObject(instance->GetData64(GO_FORCEFIELD)))
-                        gate->SetGoState(GO_STATE_READY);
-                    me->SetWalk(false);
-                    me->GetMotionMaster()->MovePoint(0, PosMoveOnSpawn[0]);
-                }
+                me->SetWalk(false);
+                me->GetMotionMaster()->MovePoint(0, PosMoveOnSpawn[0]);
             }
 
-            void JustDied(Unit* /*killer*/) OVERRIDE
+            void JustDied(Unit* /*killer*/) override
             {
+                _JustDied();
                 Talk(SAY_DEATH);
-                me->RemoveAllAuras();
-                if (instance)
-                {
-                    if (GameObject* gate = me->GetMap()->GetGameObject(instance->GetData64(GO_FORCEFIELD)))
-                        gate->SetGoState(GO_STATE_ACTIVE);
-                    instance->SetBossState(DATA_ARLOKK, DONE);
-                }
             }
 
-            void EnterCombat(Unit* /*who*/) OVERRIDE
+            void EnterCombat(Unit* /*who*/) override
             {
                 _EnterCombat();
                 events.ScheduleEvent(EVENT_SHADOW_WORD_PAIN, urand(7000, 9000), 0, PHASE_ONE);
                 events.ScheduleEvent(EVENT_GOUGE, urand(12000, 15000), 0, PHASE_ONE);
-                if (instance)
-                    events.ScheduleEvent(EVENT_SUMMON_PROWLERS, 6000, 0, PHASE_ALL);
+                events.ScheduleEvent(EVENT_SUMMON_PROWLERS, 6000, 0, PHASE_ALL);
                 events.ScheduleEvent(EVENT_MARK_OF_ARLOKK, urand(9000, 11000), 0, PHASE_ALL);
                 events.ScheduleEvent(EVENT_TRANSFORM, urand(15000, 20000), 0, PHASE_ONE);
                 Talk(SAY_AGGRO);
@@ -149,7 +147,7 @@ class boss_arlokk : public CreatureScript
                                 _triggersSideAGUID[sideA] = trigger->GetGUID();
                                 ++sideA;
                             }
-                             else
+                            else
                             {
                                 _triggersSideBGUID[sideB] = trigger->GetGUID();
                                 ++sideB;
@@ -159,20 +157,15 @@ class boss_arlokk : public CreatureScript
                 }
             }
 
-            void EnterEvadeMode() OVERRIDE
+            void EnterEvadeMode(EvadeReason why) override
             {
-                if (instance)
-                {
-                    if (GameObject* object = me->GetMap()->GetGameObject(instance->GetData64(GO_FORCEFIELD)))
-                        object->SetGoState(GO_STATE_ACTIVE);
-                    if (GameObject* object = me->GetMap()->GetGameObject(instance->GetData64(GO_GONG_OF_BETHEKK)))
-                        object->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
-                    instance->SetBossState(DATA_ARLOKK, NOT_STARTED);
-                }
+                BossAI::EnterEvadeMode(why);
+                if (GameObject* object = ObjectAccessor::GetGameObject(*me, instance->GetGuidData(GO_GONG_OF_BETHEKK)))
+                    object->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
                 me->DespawnOrUnsummon(4000);
             }
 
-            void SetData(uint32 id, uint32 /*value*/) OVERRIDE
+            void SetData(uint32 id, uint32 /*value*/) override
             {
                 if (id == 1)
                     --_summonCountA;
@@ -180,7 +173,7 @@ class boss_arlokk : public CreatureScript
                     --_summonCountB;
             }
 
-            void UpdateAI(uint32 diff) OVERRIDE
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -204,7 +197,7 @@ class boss_arlokk : public CreatureScript
                         case EVENT_SUMMON_PROWLERS:
                             if (_summonCountA < MAX_PROWLERS_PER_SIDE)
                             {
-                                if (Unit* trigger = me->GetUnit(*me, _triggersSideAGUID[urand(0, 4)]))
+                                if (Unit* trigger = ObjectAccessor::GetUnit(*me, _triggersSideAGUID[urand(0, 4)]))
                                 {
                                     trigger->CastSpell(trigger, SPELL_SUMMON_PROWLER);
                                     ++_summonCountA;
@@ -212,7 +205,7 @@ class boss_arlokk : public CreatureScript
                             }
                             if (_summonCountB < MAX_PROWLERS_PER_SIDE)
                             {
-                                if (Unit* trigger = me->GetUnit(*me, _triggersSideBGUID[urand(0, 4)]))
+                                if (Unit* trigger = ObjectAccessor::GetUnit(*me, _triggersSideBGUID[urand(0, 4)]))
                                 {
                                     trigger->CastSpell(trigger, SPELL_SUMMON_PROWLER);
                                     ++_summonCountB;
@@ -228,20 +221,22 @@ class boss_arlokk : public CreatureScript
                             if (target)
                             {
                                 DoCast(target, SPELL_MARK_OF_ARLOKK, true);
-                                Talk(SAY_FEAST_PROWLER, target->GetGUID());
+                                Talk(SAY_FEAST_PROWLER, target);
                             }
                             events.ScheduleEvent(EVENT_MARK_OF_ARLOKK, urand(120000, 130000));
                             break;
                         }
                         case EVENT_TRANSFORM:
                         {
-                            DoCast(me, SPELL_PANTHER_TRANSFORM);
+                            DoCast(me, SPELL_PANTHER_TRANSFORM); // SPELL_AURA_TRANSFORM
                             me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(EQUIP_UNEQUIP));
                             me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, uint32(EQUIP_UNEQUIP));
+                            /*
                             const CreatureTemplate* cinfo = me->GetCreatureTemplate();
                             me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (cinfo->mindmg +((cinfo->mindmg/100) * 35)));
                             me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (cinfo->maxdmg +((cinfo->maxdmg/100) * 35)));
                             me->UpdateDamagePhysical(BASE_ATTACK);
+                            */
                             me->AttackStop();
                             DoResetThreat();
                             me->SetReactState(REACT_PASSIVE);
@@ -254,8 +249,7 @@ class boss_arlokk : public CreatureScript
                         case EVENT_VANISH:
                             DoCast(me, SPELL_SUPER_INVIS);
                             me->SetWalk(false);
-                            if (instance)
-                                me->GetMotionMaster()->MovePoint(0, frand(-11551.0f, -11508.0f), frand(-1638.0f, -1617.0f), me->GetPositionZ());
+                            me->GetMotionMaster()->MovePoint(0, frand(-11551.0f, -11508.0f), frand(-1638.0f, -1617.0f), me->GetPositionZ());
                             events.ScheduleEvent(EVENT_VANISH_2, 9000, 0, PHASE_ONE);
                             break;
                         case EVENT_VANISH_2:
@@ -273,6 +267,7 @@ class boss_arlokk : public CreatureScript
                             events.ScheduleEvent(EVENT_RAVAGE, urand(10000, 14000), 0, PHASE_TWO);
                             events.ScheduleEvent(EVENT_TRANSFORM_BACK, urand(15000, 18000), 0, PHASE_TWO);
                             events.SetPhase(PHASE_TWO);
+                            me->HandleStatModifier(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT, 35.0f, true); // hack
                             break;
                         case EVENT_RAVAGE:
                             DoCastVictim(SPELL_RAVAGE, true);
@@ -280,14 +275,17 @@ class boss_arlokk : public CreatureScript
                             break;
                         case EVENT_TRANSFORM_BACK:
                         {
-                            me->RemoveAura(SPELL_PANTHER_TRANSFORM);
+                            me->RemoveAura(SPELL_PANTHER_TRANSFORM); // SPELL_AURA_TRANSFORM
                             DoCast(me, SPELL_VANISH_VISUAL);
                             me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(WEAPON_DAGGER));
                             me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, uint32(WEAPON_DAGGER));
+                            /*
                             const CreatureTemplate* cinfo = me->GetCreatureTemplate();
                             me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (cinfo->mindmg));
                             me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (cinfo->maxdmg));
                             me->UpdateDamagePhysical(BASE_ATTACK);
+                            */
+                            me->HandleStatModifier(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT, 35.0f, false); // hack
                             events.ScheduleEvent(EVENT_SHADOW_WORD_PAIN, urand(4000, 7000), 0, PHASE_ONE);
                             events.ScheduleEvent(EVENT_GOUGE, urand(12000, 15000), 0, PHASE_ONE);
                             events.ScheduleEvent(EVENT_TRANSFORM, urand(16000, 20000), 0, PHASE_ONE);
@@ -297,6 +295,9 @@ class boss_arlokk : public CreatureScript
                         default:
                             break;
                     }
+
+                    if (me->HasUnitState(UNIT_STATE_CASTING))
+                        return;
                 }
 
                 DoMeleeAttackIfReady();
@@ -305,11 +306,11 @@ class boss_arlokk : public CreatureScript
         private:
             uint8 _summonCountA;
             uint8 _summonCountB;
-            uint64 _triggersSideAGUID[5];
-            uint64 _triggersSideBGUID[5];
+            ObjectGuid _triggersSideAGUID[5];
+            ObjectGuid _triggersSideBGUID[5];
         };
 
-        CreatureAI* GetAI(Creature* creature) const OVERRIDE
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return GetZulGurubAI<boss_arlokkAI>(creature);
         }
@@ -338,13 +339,16 @@ Position const PosProwlerCenter[1] =
 
 class npc_zulian_prowler : public CreatureScript
 {
-    public: npc_zulian_prowler() : CreatureScript("npc_zulian_prowler") {}
+    public: npc_zulian_prowler() : CreatureScript("npc_zulian_prowler") { }
 
         struct npc_zulian_prowlerAI : public ScriptedAI
         {
-            npc_zulian_prowlerAI(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
+            npc_zulian_prowlerAI(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript())
+            {
+                _sideData = 0;
+            }
 
-            void Reset() OVERRIDE
+            void Reset() override
             {
                 if (me->GetPositionY() < -1625.0f)
                     _sideData = 1;
@@ -354,39 +358,35 @@ class npc_zulian_prowler : public CreatureScript
                 DoCast(me, SPELL_SNEAK_RANK_1_1);
                 DoCast(me, SPELL_SNEAK_RANK_1_2);
 
-                if (_instance)
-                    if (Unit* arlokk = me->GetUnit(*me, _instance->GetData64(NPC_ARLOKK)))
-                        me->GetMotionMaster()->MovePoint(0, arlokk->GetPositionX(), arlokk->GetPositionY(), arlokk->GetPositionZ());
+                if (Unit* arlokk = ObjectAccessor::GetUnit(*me, _instance->GetGuidData(NPC_ARLOKK)))
+                    me->GetMotionMaster()->MovePoint(0, arlokk->GetPositionX(), arlokk->GetPositionY(), arlokk->GetPositionZ());
                 _events.ScheduleEvent(EVENT_ATTACK, 6000);
             }
 
-            void EnterCombat(Unit* /*who*/) OVERRIDE
+            void EnterCombat(Unit* /*who*/) override
             {
                 me->GetMotionMaster()->Clear(false);
                 me->RemoveAura(SPELL_SNEAK_RANK_1_1);
                 me->RemoveAura(SPELL_SNEAK_RANK_1_2);
             }
 
-            void SpellHit(Unit* caster, SpellInfo const* spell) OVERRIDE
+            void SpellHit(Unit* caster, SpellInfo const* spell) override
             {
                 if (spell->Id == SPELL_MARK_OF_ARLOKK_TRIGGER) // Should only hit if line of sight
                     me->Attack(caster, true);
             }
 
-            void JustDied(Unit* /*killer*/) OVERRIDE
+            void JustDied(Unit* /*killer*/) override
             {
-                if (_instance)
+                if (Unit* arlokk = ObjectAccessor::GetUnit(*me, _instance->GetGuidData(NPC_ARLOKK)))
                 {
-                    if (Unit* arlokk = me->GetUnit(*me, _instance->GetData64(NPC_ARLOKK)))
-                    {
-                        if (arlokk->IsAlive())
-                            arlokk->GetAI()->SetData(_sideData, 0);
-                    }
+                    if (arlokk->IsAlive())
+                        arlokk->GetAI()->SetData(_sideData, 0);
                 }
                 me->DespawnOrUnsummon(4000);
             }
 
-            void UpdateAI(uint32 diff) OVERRIDE
+            void UpdateAI(uint32 diff) override
             {
                 if (UpdateVictim())
                 {
@@ -416,7 +416,7 @@ class npc_zulian_prowler : public CreatureScript
             InstanceScript* _instance;
         };
 
-        CreatureAI* GetAI(Creature* creature) const OVERRIDE
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return GetZulGurubAI<npc_zulian_prowlerAI>(creature);
         }
@@ -433,9 +433,9 @@ Position const PosSummonArlokk[1] =
 
 class go_gong_of_bethekk : public GameObjectScript
 {
-    public: go_gong_of_bethekk() : GameObjectScript("go_gong_of_bethekk") {}
+    public: go_gong_of_bethekk() : GameObjectScript("go_gong_of_bethekk") { }
 
-        bool OnGossipHello(Player* /*player*/, GameObject* go) OVERRIDE
+        bool OnGossipHello(Player* /*player*/, GameObject* go) override
         {
             if (go->GetInstanceScript())
             {

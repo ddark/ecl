@@ -4,7 +4,6 @@ build*/
 .mailmap
 *.orig
 *.rej
-*.7z
 *~
 .hg/
 *.kdev*
@@ -17,3 +16,7 @@ CMakeLists.txt.user
 *.BACKUP.*
 *.BASE.*
 *.LOCAL.*
+nbproject/*
+.idea/*
+.browse.VC*
+.vscode

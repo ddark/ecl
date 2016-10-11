@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -27,21 +27,20 @@ class Aura;
 
 typedef void(AuraEffect::*pAuraEffectHandler)(AuraApplication const* aurApp, uint8 mode, bool apply) const;
 
-class AuraEffect
+class TC_GAME_API AuraEffect
 {
-    friend void Aura::_InitEffects(uint8 effMask, Unit* caster, int32 *baseAmount);
-    friend Aura* Unit::_TryStackingOrRefreshingExistingAura(SpellInfo const* newAura, uint8 effMask, Unit* caster, int32* baseAmount, Item* castItem, uint64 casterGUID);
+    friend void Aura::_InitEffects(uint8 effMask, Unit* caster, int32* baseAmount);
+    friend Aura* Unit::_TryStackingOrRefreshingExistingAura(SpellInfo const* newAura, uint8 effMask, Unit* caster, int32* baseAmount, Item* castItem, ObjectGuid casterGUID, bool resetPeriodicTimer);
     friend Aura::~Aura();
     private:
         ~AuraEffect();
         explicit AuraEffect(Aura* base, uint8 effIndex, int32 *baseAmount, Unit* caster);
     public:
         Unit* GetCaster() const { return GetBase()->GetCaster(); }
-        uint64 GetCasterGUID() const { return GetBase()->GetCasterGUID(); }
+        ObjectGuid GetCasterGUID() const { return GetBase()->GetCasterGUID(); }
         Aura* GetBase() const { return m_base; }
         void GetTargetList(std::list<Unit*> & targetList) const;
         void GetApplicationList(std::list<AuraApplication*> & applicationList) const;
-        SpellModifier* GetSpellModifier() const { return m_spellmod; }
 
         SpellInfo const* GetSpellInfo() const { return m_spellInfo; }
         uint32 GetId() const { return m_spellInfo->Id; }
@@ -59,7 +58,7 @@ class AuraEffect
         void SetPeriodicTimer(int32 periodicTimer) { m_periodicTimer = periodicTimer; }
 
         int32 CalculateAmount(Unit* caster);
-        void CalculatePeriodic(Unit* caster, bool create = false, bool load = false);
+        void CalculatePeriodic(Unit* caster, bool resetPeriodicTimer = true, bool load = false);
         void CalculateSpellMod();
         void ChangeAmount(int32 newAmount, bool mark = true, bool onStackOrReapply = false);
         void RecalculateAmount() { if (!CanBeRecalculated()) return; ChangeAmount(CalculateAmount(GetCaster()), false); }
@@ -69,6 +68,13 @@ class AuraEffect
         void HandleEffect(AuraApplication * aurApp, uint8 mode, bool apply);
         void HandleEffect(Unit* target, uint8 mode, bool apply);
         void ApplySpellMod(Unit* target, bool apply);
+
+        void  SetBonusAmount(int32 val) { m_bonusAmount = val; }
+        int32 GetBonusAmount() const { return m_bonusAmount; }
+        void  SetCritChance(float val) { m_critChance = val; }
+        float GetCritChance() const { return m_critChance; }
+        void  SetDonePct(float val) { m_donePct = val; }
+        float GetDonePct() const { return m_donePct; }
 
         void Update(uint32 diff, Unit* caster);
         void UpdatePeriodic(Unit* caster);
@@ -83,8 +89,9 @@ class AuraEffect
         bool HasSpellClassMask() const { return m_spellInfo->Effects[m_effIndex].SpellClassMask; }
 
         void SendTickImmune(Unit* target, Unit* caster) const;
-        void PeriodicTick(AuraApplication * aurApp, Unit* caster) const;
+        void PeriodicTick(AuraApplication* aurApp, Unit* caster) const;
 
+        bool CheckEffectProc(AuraApplication* aurApp, ProcEventInfo& eventInfo) const;
         void HandleProc(AuraApplication* aurApp, ProcEventInfo& eventInfo);
 
         void CleanupTriggeredSpells(Unit* target);
@@ -98,6 +105,9 @@ class AuraEffect
         int32 const m_baseAmount;
 
         int32 m_amount;
+        int32 m_bonusAmount;
+        float m_critChance;
+        float m_donePct;
 
         SpellModifier* m_spellmod;
 
@@ -109,7 +119,7 @@ class AuraEffect
         bool m_canBeRecalculated;
         bool m_isPeriodic;
     private:
-        bool IsPeriodicTickCrit(Unit* target, Unit const* caster) const;
+        bool CanPeriodicTickCrit(Unit const* caster) const;
 
     public:
         // aura effect apply/remove handlers
@@ -295,6 +305,7 @@ class AuraEffect
         void HandlePeriodicPowerBurnAuraTick(Unit* target, Unit* caster) const;
 
         // aura effect proc handlers
+        void HandleBreakableCCAuraProc(AuraApplication* aurApp, ProcEventInfo& eventInfo);
         void HandleProcTriggerSpellAuraProc(AuraApplication* aurApp, ProcEventInfo& eventInfo);
         void HandleProcTriggerSpellWithValueAuraProc(AuraApplication* aurApp, ProcEventInfo& eventInfo);
         void HandleProcTriggerDamageAuraProc(AuraApplication* aurApp, ProcEventInfo& eventInfo);
@@ -317,11 +328,11 @@ namespace Trinity
                 // Wards
                 if ((spellProtoA->SpellFamilyName == SPELLFAMILY_MAGE) ||
                     (spellProtoA->SpellFamilyName == SPELLFAMILY_WARLOCK))
-                    if (spellProtoA->Category == 56)
+                    if (spellProtoA->GetCategory() == 56)
                         return true;
                 if ((spellProtoB->SpellFamilyName == SPELLFAMILY_MAGE) ||
                     (spellProtoB->SpellFamilyName == SPELLFAMILY_WARLOCK))
-                    if (spellProtoB->Category == 56)
+                    if (spellProtoB->GetCategory() == 56)
                         return false;
 
                 // Sacred Shield
@@ -343,9 +354,9 @@ namespace Trinity
                     return false;
 
                 // Ice Barrier
-                if (spellProtoA->Category == 471)
+                if (spellProtoA->GetCategory() == 471)
                     return true;
-                if (spellProtoB->Category == 471)
+                if (spellProtoB->GetCategory() == 471)
                     return false;
 
                 // Sacrifice

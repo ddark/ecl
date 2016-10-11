@@ -1,0 +1,156 @@
+/*
+* Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
+*
+* This program is free software; you can redistribute it and/or modify it
+* under the terms of the GNU General Public License as published by the
+* Free Software Foundation; either version 2 of the License, or (at your
+* option) any later version.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+* more details.
+*
+* You should have received a copy of the GNU General Public License along
+* with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef DEF_TRANSMOGRIFICATION_H
+#define DEF_TRANSMOGRIFICATION_H
+
+#include <vector>
+#include "Define.h"
+#include "ObjectGuid.h"
+
+#define PRESETS // comment this line to disable preset feature totally
+#define MAX_OPTIONS 25 // do not alter
+
+class Item;
+class Player;
+class WorldSession;
+struct ItemTemplate;
+
+enum TransmogTrinityStrings // Language.h might have same entries, appears when executing SQL, change if needed
+{
+    LANG_ERR_TRANSMOG_OK = 11100, // change this
+    LANG_ERR_TRANSMOG_INVALID_SLOT,
+    LANG_ERR_TRANSMOG_INVALID_SRC_ENTRY,
+    LANG_ERR_TRANSMOG_MISSING_SRC_ITEM,
+    LANG_ERR_TRANSMOG_MISSING_DEST_ITEM,
+    LANG_ERR_TRANSMOG_INVALID_ITEMS,
+    LANG_ERR_TRANSMOG_NOT_ENOUGH_MONEY,
+    LANG_ERR_TRANSMOG_NOT_ENOUGH_TOKENS,
+
+    LANG_ERR_UNTRANSMOG_OK,
+    LANG_ERR_UNTRANSMOG_NO_TRANSMOGS,
+
+    LANG_SLOT_NAME_HEAD = 11123,
+    LANG_SLOT_NAME_SHOULDERS = 11124,
+    LANG_SLOT_NAME_BODY = 11125,
+    LANG_SLOT_NAME_CHEST = 11126,
+    LANG_SLOT_NAME_WAIST = 11127,
+    LANG_SLOT_NAME_LEGS = 11128,
+    LANG_SLOT_NAME_FEET = 11129,
+    LANG_SLOT_NAME_WRISTS = 11130,
+    LANG_SLOT_NAME_HANDS = 11131,
+    LANG_SLOT_NAME_BACK = 11132,
+    LANG_SLOT_NAME_MAINHAND = 11133,
+    LANG_SLOT_NAME_OFFHAND = 11134,
+    LANG_SLOT_NAME_RANGED = 11135,
+    LANG_SLOT_NAME_TABARD = 11136,
+
+#ifdef PRESETS
+    LANG_PRESET_ERR_INVALID_NAME,
+#endif
+};
+
+class TC_GAME_API Transmogrification
+{
+private:
+    Transmogrification() { };
+    ~Transmogrification() { };
+    Transmogrification(const Transmogrification&);
+    Transmogrification& operator=(const Transmogrification&);
+
+public:
+    static Transmogrification* instance();
+
+#ifdef PRESETS
+
+    bool EnableSetInfo;
+    uint32 SetNpcText;
+
+    bool EnableSets;
+    uint8 MaxSets;
+    float SetCostModifier;
+    int32 SetCopperCost;
+
+    void LoadPlayerSets(Player* player);
+
+    void PresetTransmog(Player* player, Item* itemTransmogrified, uint32 fakeEntry, uint8 slot);
+#endif
+
+    bool EnableTransmogInfo;
+    uint32 TransmogNpcText;
+
+    // Use IsAllowed() and IsNotAllowed()
+    // these are thread unsafe, but assumed to be static data so it should be safe
+    std::set<uint32> Allowed;
+    std::set<uint32> NotAllowed;
+
+    float ScaledCostModifier;
+    int32 CopperCost;
+
+    bool RequireToken;
+    uint32 TokenEntry;
+    uint32 TokenAmount;
+
+    bool AllowPoor;
+    bool AllowCommon;
+    bool AllowUncommon;
+    bool AllowRare;
+    bool AllowEpic;
+    bool AllowLegendary;
+    bool AllowArtifact;
+    bool AllowHeirloom;
+
+    bool AllowMixedArmorTypes;
+    bool AllowMixedWeaponTypes;
+    bool AllowFishingPoles;
+
+    bool IgnoreReqRace;
+    bool IgnoreReqClass;
+    bool IgnoreReqSkill;
+    bool IgnoreReqSpell;
+    bool IgnoreReqLevel;
+    bool IgnoreReqEvent;
+    bool IgnoreReqStats;
+
+    bool IsAllowed(uint32 entry) const;
+    bool IsNotAllowed(uint32 entry) const;
+    bool IsAllowedQuality(uint32 quality) const;
+    bool IsRangedWeapon(uint32 Class, uint32 SubClass) const;
+
+    void LoadConfig(bool reload); // thread unsafe
+
+    std::string GetItemIcon(uint32 entry, uint32 width, uint32 height, int x, int y) const;
+    std::string GetSlotIcon(uint8 slot, uint32 width, uint32 height, int x, int y) const;
+    const char * GetSlotName(uint8 slot, WorldSession* session) const;
+    std::string GetItemLink(Item* item, WorldSession* session) const;
+    std::string GetItemLink(uint32 entry, WorldSession* session) const;
+    uint32 GetFakeEntry(const Item* item);
+    void UpdateItem(Player* player, Item* item) const;
+    void DeleteFakeEntry(Player* player, Item* item);
+    void SetFakeEntry(Player* player, Item* item, uint32 entry);
+
+    TransmogTrinityStrings Transmogrify(Player* player, ObjectGuid itemGUID, uint8 slot, bool no_cost = false);
+    bool CanTransmogrifyItemWithItem(Player* player, ItemTemplate const* destination, ItemTemplate const* source) const;
+    bool SuitableForTransmogrification(Player* player, ItemTemplate const* proto) const;
+    // bool CanBeTransmogrified(Item const* item);
+    // bool CanTransmogrify(Item const* item);
+    uint32 GetSpecialPrice(ItemTemplate const* proto) const;
+    std::vector<ObjectGuid> GetItemList(const Player* player) const;
+};
+#define sTransmogrification Transmogrification::instance()
+
+#endif

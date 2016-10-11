@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -23,6 +23,8 @@
 #include <vector>
 #include "SharedDefines.h"
 #include "Object.h"
+#include "MoveSplineInitArgs.h"
+#include "SplineChain.h"
 
 class MovementGenerator;
 class Unit;
@@ -52,7 +54,9 @@ enum MovementGeneratorType
     FOLLOW_MOTION_TYPE    = 14,
     ROTATE_MOTION_TYPE    = 15,
     EFFECT_MOTION_TYPE    = 16,
-    NULL_MOTION_TYPE      = 17
+    NULL_MOTION_TYPE      = 17,
+    SPLINE_CHAIN_MOTION_TYPE = 18,                          // SplineChainMovementGenerator.h
+    MAX_MOTION_TYPE                                         // limit
 };
 
 enum MovementSlot
@@ -79,7 +83,7 @@ enum RotateDirection
 // assume it is 25 yard per 0.6 second
 #define SPEED_CHARGE    42.0f
 
-class MotionMaster //: private std::stack<MovementGenerator *>
+class TC_GAME_API MotionMaster //: private std::stack<MovementGenerator *>
 {
     private:
         //typedef std::stack<MovementGenerator *> Impl;
@@ -87,13 +91,21 @@ class MotionMaster //: private std::stack<MovementGenerator *>
 
         void pop()
         {
+            if (empty())
+                return;
+
             Impl[_top] = NULL;
-            while (!top())
+            while (!empty() && !top())
                 --_top;
         }
         void push(_Ty _Val) { ++_top; Impl[_top] = _Val; }
 
-        bool needInitTop() const { return _needInit[_top]; }
+        bool needInitTop() const
+        {
+            if (empty())
+                return false;
+            return _needInit[_top];
+        }
         void InitTop();
     public:
 
@@ -112,8 +124,16 @@ class MotionMaster //: private std::stack<MovementGenerator *>
 
         bool empty() const { return (_top < 0); }
         int size() const { return _top + 1; }
-        _Ty top() const { return Impl[_top]; }
-        _Ty GetMotionSlot(int slot) const { return Impl[slot]; }
+        _Ty top() const
+        {
+            ASSERT(!empty());
+            return Impl[_top];
+        }
+        _Ty GetMotionSlot(int slot) const
+        {
+            ASSERT(slot >= 0);
+            return Impl[slot];
+        }
 
         void DirectDelete(_Ty curr);
         void DelayedDelete(_Ty curr);
@@ -157,17 +177,32 @@ class MotionMaster //: private std::stack<MovementGenerator *>
             { MovePoint(id, pos.m_positionX, pos.m_positionY, pos.m_positionZ, generatePath); }
         void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true);
 
+        /*  Makes the unit move toward the target until it is at a certain distance from it. The unit then stops.
+            Only works in 2D.
+            This method doesn't account for any movement done by the target. in other words, it only works if the target is stationary.
+        */
+        void MoveCloserAndStop(uint32 id, Unit* target, float distance);
+
         // These two movement types should only be used with creatures having landing/takeoff animations
         void MoveLand(uint32 id, Position const& pos);
         void MoveTakeoff(uint32 id, Position const& pos);
 
         void MoveCharge(float x, float y, float z, float speed = SPEED_CHARGE, uint32 id = EVENT_CHARGE, bool generatePath = false);
-        void MoveCharge(PathGenerator const& path);
+        void MoveCharge(PathGenerator const& path, float speed = SPEED_CHARGE);
         void MoveKnockbackFrom(float srcX, float srcY, float speedXY, float speedZ);
         void MoveJumpTo(float angle, float speedXY, float speedZ);
-        void MoveJump(Position const& pos, float speedXY, float speedZ, uint32 id = EVENT_JUMP)
-            { MoveJump(pos.m_positionX, pos.m_positionY, pos.m_positionZ, speedXY, speedZ, id); };
-        void MoveJump(float x, float y, float z, float speedXY, float speedZ, uint32 id = EVENT_JUMP);
+        void MoveJump(Position const& pos, float speedXY, float speedZ, uint32 id = EVENT_JUMP, bool hasOrientation = false)
+        {
+            MoveJump(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation(), speedXY, speedZ, id, hasOrientation);
+        }
+        void MoveJump(float x, float y, float z, float o, float speedXY, float speedZ, uint32 id = EVENT_JUMP, bool hasOrientation = false);
+        void MoveCirclePath(float x, float y, float z, float radius, bool clockwise, uint8 stepCount);
+        void MoveSmoothPath(uint32 pointId, G3D::Vector3 const* pathPoints, size_t pathSize, bool walk);
+        void MoveSmoothPath(uint32 pointId, Movement::PointsArray const& points, bool walk);
+        // Walk along spline chain stored in DB (script_spline_chain_meta and script_spline_chain_waypoints)
+        void MoveAlongSplineChain(uint32 pointId, uint16 dbChainId, bool walk);
+        void MoveAlongSplineChain(uint32 pointId, SplineChain const& chain, bool walk);
+        void ResumeSplineChain(SplineChainResumeInfo const& info);
         void MoveFall(uint32 id = 0);
 
         void MoveSeekAssistance(float x, float y, float z);

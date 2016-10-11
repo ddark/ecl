@@ -22,21 +22,24 @@
 #include "MMapFactory.h"
 #include "MMapManager.h"
 #include "Log.h"
-
+#include "DisableMgr.h"
 #include "DetourCommon.h"
 #include "DetourNavMeshQuery.h"
+#include "Metric.h"
 
 ////////////////// PathGenerator //////////////////
 PathGenerator::PathGenerator(const Unit* owner) :
     _polyLength(0), _type(PATHFIND_BLANK), _useStraightPath(false),
-    _forceDestination(false), _pointPathLimit(MAX_POINT_PATH_LENGTH),
+    _forceDestination(false), _pointPathLimit(MAX_POINT_PATH_LENGTH), _straightLine(false),
     _endPosition(G3D::Vector3::zero()), _sourceUnit(owner), _navMesh(NULL),
     _navMeshQuery(NULL)
 {
-    TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ PathGenerator::PathGenerator for %u \n", _sourceUnit->GetGUIDLow());
+    memset(_pathPolyRefs, 0, sizeof(_pathPolyRefs));
+
+    TC_LOG_DEBUG("maps", "++ PathGenerator::PathGenerator for %u \n", _sourceUnit->GetGUID().GetCounter());
 
     uint32 mapId = _sourceUnit->GetMapId();
-    if (MMAP::MMapFactory::IsPathfindingEnabled(mapId))
+    if (DisableMgr::IsPathfindingEnabled(mapId))
     {
         MMAP::MMapManager* mmap = MMAP::MMapFactory::createOrGetMMapManager();
         _navMesh = mmap->GetNavMesh(mapId);
@@ -48,16 +51,18 @@ PathGenerator::PathGenerator(const Unit* owner) :
 
 PathGenerator::~PathGenerator()
 {
-    TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ PathGenerator::~PathGenerator() for %u \n", _sourceUnit->GetGUIDLow());
+    TC_LOG_DEBUG("maps", "++ PathGenerator::~PathGenerator() for %u \n", _sourceUnit->GetGUID().GetCounter());
 }
 
-bool PathGenerator::CalculatePath(float destX, float destY, float destZ, bool forceDest)
+bool PathGenerator::CalculatePath(float destX, float destY, float destZ, bool forceDest, bool straightLine)
 {
     float x, y, z;
     _sourceUnit->GetPosition(x, y, z);
 
     if (!Trinity::IsValidMapCoord(destX, destY, destZ) || !Trinity::IsValidMapCoord(x, y, z))
         return false;
+
+    TC_METRIC_EVENT("mmap_events", "CalculatePath", "");
 
     G3D::Vector3 dest(destX, destY, destZ);
     SetEndPosition(dest);
@@ -66,8 +71,9 @@ bool PathGenerator::CalculatePath(float destX, float destY, float destZ, bool fo
     SetStartPosition(start);
 
     _forceDestination = forceDest;
+    _straightLine = straightLine;
 
-    TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ PathGenerator::CalculatePath() for %u \n", _sourceUnit->GetGUIDLow());
+    TC_LOG_DEBUG("maps", "++ PathGenerator::CalculatePath() for %u \n", _sourceUnit->GetGUID().GetCounter());
 
     // make sure navMesh works - we can run on map w/o mmap
     // check if the start and end point have a .mmtile loaded (can we pass via not loaded tile on the way?)
@@ -97,7 +103,7 @@ dtPolyRef PathGenerator::GetPathPolyByPosition(dtPolyRef const* polyPath, uint32
     for (uint32 i = 0; i < polyPathSize; ++i)
     {
         float closestPoint[VERTEX_SIZE];
-        if (dtStatusFailed(_navMeshQuery->closestPointOnPoly(polyPath[i], point, closestPoint)))
+        if (dtStatusFailed(_navMeshQuery->closestPointOnPoly(polyPath[i], point, closestPoint, NULL)))
             continue;
 
         float d = dtVdist2DSqr(point, closestPoint);
@@ -113,7 +119,7 @@ dtPolyRef PathGenerator::GetPathPolyByPosition(dtPolyRef const* polyPath, uint32
     }
 
     if (distance)
-        *distance = dtSqrt(minDist3d);
+        *distance = dtMathSqrtf(minDist3d);
 
     return (minDist2d < 3.0f) ? nearestPoly : INVALID_POLYREF;
 }
@@ -168,7 +174,7 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
     // its up to caller how he will use this info
     if (startPoly == INVALID_POLYREF || endPoly == INVALID_POLYREF)
     {
-        TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ BuildPolyPath :: (startPoly == 0 || endPoly == 0)\n");
+        TC_LOG_DEBUG("maps", "++ BuildPolyPath :: (startPoly == 0 || endPoly == 0)\n");
         BuildShortcut();
         bool path = _sourceUnit->GetTypeId() == TYPEID_UNIT && _sourceUnit->ToCreature()->CanFly();
 
@@ -188,17 +194,7 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
             }
         }
 
-        // Check for swimming or flying shortcut
-        if (_sourceUnit->GetTypeId() == TYPEID_UNIT)
-        {
-            if ((startPoly == INVALID_POLYREF && _sourceUnit->GetBaseMap()->IsUnderWater(startPos.x, startPos.y, startPos.z)) || (endPoly == INVALID_POLYREF && _sourceUnit->GetBaseMap()->IsUnderWater(endPos.x, endPos.y, endPos.z)))
-                _type = ((Creature*)_sourceUnit)->CanSwim() ? PathType(PATHFIND_NORMAL | PATHFIND_NOT_USING_PATH) : PATHFIND_NOPATH;
-            else
-                _type = ((Creature*)_sourceUnit)->CanFly() ? PathType(PATHFIND_NORMAL | PATHFIND_NOT_USING_PATH) : PATHFIND_NOPATH;
-        }
-        else
-            _type = PATHFIND_NOPATH;
-
+        _type = (path || waterPath) ? PathType(PATHFIND_NORMAL | PATHFIND_NOT_USING_PATH) : PATHFIND_NOPATH;
         return;
     }
 
@@ -206,7 +202,7 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
     bool farFromPoly = (distToStartPoly > 7.0f || distToEndPoly > 7.0f);
     if (farFromPoly)
     {
-        TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ BuildPolyPath :: farFromPoly distToStartPoly=%.3f distToEndPoly=%.3f\n", distToStartPoly, distToEndPoly);
+        TC_LOG_DEBUG("maps", "++ BuildPolyPath :: farFromPoly distToStartPoly=%.3f distToEndPoly=%.3f\n", distToStartPoly, distToEndPoly);
 
         bool buildShotrcut = false;
         if (_sourceUnit->GetTypeId() == TYPEID_UNIT)
@@ -216,13 +212,13 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
             G3D::Vector3 const& p = (distToStartPoly > 7.0f) ? startPos : endPos;
             if (_sourceUnit->GetBaseMap()->IsUnderWater(p.x, p.y, p.z))
             {
-                TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ BuildPolyPath :: underWater case\n");
+                TC_LOG_DEBUG("maps", "++ BuildPolyPath :: underWater case\n");
                 if (owner->CanSwim())
                     buildShotrcut = true;
             }
             else
             {
-                TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ BuildPolyPath :: flying case\n");
+                TC_LOG_DEBUG("maps", "++ BuildPolyPath :: flying case\n");
                 if (owner->CanFly())
                     buildShotrcut = true;
             }
@@ -238,7 +234,7 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
         {
             float closestPoint[VERTEX_SIZE];
             // we may want to use closestPointOnPolyBoundary instead
-            if (dtStatusSucceed(_navMeshQuery->closestPointOnPoly(endPoly, endPoint, closestPoint)))
+            if (dtStatusSucceed(_navMeshQuery->closestPointOnPoly(endPoly, endPoint, closestPoint, NULL)))
             {
                 dtVcopy(endPoint, closestPoint);
                 SetActualEndPosition(G3D::Vector3(endPoint[2], endPoint[0], endPoint[1]));
@@ -254,7 +250,7 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
     // just need to move in straight line
     if (startPoly == endPoly)
     {
-        TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ BuildPolyPath :: (startPoly == endPoly)\n");
+        TC_LOG_DEBUG("maps", "++ BuildPolyPath :: (startPoly == endPoly)\n");
 
         BuildShortcut();
 
@@ -262,7 +258,7 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
         _polyLength = 1;
 
         _type = farFromPoly ? PATHFIND_INCOMPLETE : PATHFIND_NORMAL;
-        TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ BuildPolyPath :: path type %d\n", _type);
+        TC_LOG_DEBUG("maps", "++ BuildPolyPath :: path type %d\n", _type);
         return;
     }
 
@@ -277,8 +273,16 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
     {
         for (; pathStartIndex < _polyLength; ++pathStartIndex)
         {
-            // here to carch few bugs
-            ASSERT(_pathPolyRefs[pathStartIndex] != INVALID_POLYREF);
+            // here to catch few bugs
+            if (_pathPolyRefs[pathStartIndex] == INVALID_POLYREF)
+            {
+                TC_LOG_ERROR("maps", "Invalid poly ref in BuildPolyPath. _polyLength: %u, pathStartIndex: %u,"
+                                     " startPos: %s, endPos: %s, mapid: %u",
+                                     _polyLength, pathStartIndex, startPos.toString().c_str(), endPos.toString().c_str(),
+                                     _sourceUnit->GetMapId());
+
+                break;
+            }
 
             if (_pathPolyRefs[pathStartIndex] == startPoly)
             {
@@ -297,7 +301,7 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
 
     if (startPolyFound && endPolyFound)
     {
-        TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ BuildPolyPath :: (startPolyFound && endPolyFound)\n");
+        TC_LOG_DEBUG("maps", "++ BuildPolyPath :: (startPolyFound && endPolyFound)\n");
 
         // we moved along the path and the target did not move out of our old poly-path
         // our path is a simple subpath case, we have all the data we need
@@ -308,7 +312,7 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
     }
     else if (startPolyFound && !endPolyFound)
     {
-        TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ BuildPolyPath :: (startPolyFound && !endPolyFound)\n");
+        TC_LOG_DEBUG("maps", "++ BuildPolyPath :: (startPolyFound && !endPolyFound)\n");
 
         // we are moving on the old path but target moved out
         // so we have atleast part of poly-path ready
@@ -329,13 +333,13 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
 
         // we need any point on our suffix start poly to generate poly-path, so we need last poly in prefix data
         float suffixEndPoint[VERTEX_SIZE];
-        if (dtStatusFailed(_navMeshQuery->closestPointOnPoly(suffixStartPoly, endPoint, suffixEndPoint)))
+        if (dtStatusFailed(_navMeshQuery->closestPointOnPoly(suffixStartPoly, endPoint, suffixEndPoint, NULL)))
         {
             // we can hit offmesh connection as last poly - closestPointOnPoly() don't like that
             // try to recover by using prev polyref
             --prefixPolyLength;
             suffixStartPoly = _pathPolyRefs[prefixPolyLength-1];
-            if (dtStatusFailed(_navMeshQuery->closestPointOnPoly(suffixStartPoly, endPoint, suffixEndPoint)))
+            if (dtStatusFailed(_navMeshQuery->closestPointOnPoly(suffixStartPoly, endPoint, suffixEndPoint, NULL)))
             {
                 // suffixStartPoly is still invalid, error state
                 BuildShortcut();
@@ -346,32 +350,62 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
 
         // generate suffix
         uint32 suffixPolyLength = 0;
-        dtStatus dtResult = _navMeshQuery->findPath(
-                                suffixStartPoly,    // start polygon
-                                endPoly,            // end polygon
-                                suffixEndPoint,     // start position
-                                endPoint,           // end position
-                                &_filter,            // polygon search filter
-                                _pathPolyRefs + prefixPolyLength - 1,    // [out] path
-                                (int*)&suffixPolyLength,
-                                MAX_PATH_LENGTH-prefixPolyLength);   // max number of polygons in output path
+
+        dtStatus dtResult;
+        if (_straightLine)
+        {
+            float hit = 0;
+            float hitNormal[3];
+            memset(hitNormal, 0, sizeof(hitNormal));
+
+            dtResult = _navMeshQuery->raycast(
+                            suffixStartPoly,
+                            suffixEndPoint,
+                            endPoint,
+                            &_filter,
+                            &hit,
+                            hitNormal,
+                            _pathPolyRefs + prefixPolyLength - 1,
+                            (int*)&suffixPolyLength,
+                            MAX_PATH_LENGTH - prefixPolyLength);
+
+            // raycast() sets hit to FLT_MAX if there is a ray between start and end
+            if (hit != FLT_MAX)
+            {
+                // the ray hit something, return no path instead of the incomplete one
+                _type = PATHFIND_NOPATH;
+                return;
+            }
+        }
+        else
+        {
+            dtResult = _navMeshQuery->findPath(
+                            suffixStartPoly,    // start polygon
+                            endPoly,            // end polygon
+                            suffixEndPoint,     // start position
+                            endPoint,           // end position
+                            &_filter,            // polygon search filter
+                            _pathPolyRefs + prefixPolyLength - 1,    // [out] path
+                            (int*)&suffixPolyLength,
+                            MAX_PATH_LENGTH - prefixPolyLength);   // max number of polygons in output path
+        }
 
         if (!suffixPolyLength || dtStatusFailed(dtResult))
         {
             // this is probably an error state, but we'll leave it
             // and hopefully recover on the next Update
             // we still need to copy our preffix
-            TC_LOG_ERROR(LOG_FILTER_MAPS, "%u's Path Build failed: 0 length path", _sourceUnit->GetGUIDLow());
+            TC_LOG_ERROR("maps", "%u's Path Build failed: 0 length path", _sourceUnit->GetGUID().GetCounter());
         }
 
-        TC_LOG_DEBUG(LOG_FILTER_MAPS, "++  m_polyLength=%u prefixPolyLength=%u suffixPolyLength=%u \n", _polyLength, prefixPolyLength, suffixPolyLength);
+        TC_LOG_DEBUG("maps", "++  m_polyLength=%u prefixPolyLength=%u suffixPolyLength=%u \n", _polyLength, prefixPolyLength, suffixPolyLength);
 
         // new path = prefix + suffix - overlap
         _polyLength = prefixPolyLength + suffixPolyLength - 1;
     }
     else
     {
-        TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ BuildPolyPath :: (!startPolyFound && !endPolyFound)\n");
+        TC_LOG_DEBUG("maps", "++ BuildPolyPath :: (!startPolyFound && !endPolyFound)\n");
 
         // either we have no path at all -> first run
         // or something went really wrong -> we aren't moving along the path to the target
@@ -380,20 +414,49 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
         // free and invalidate old path data
         Clear();
 
-        dtStatus dtResult = _navMeshQuery->findPath(
-                startPoly,          // start polygon
-                endPoly,            // end polygon
-                startPoint,         // start position
-                endPoint,           // end position
-                &_filter,           // polygon search filter
-                _pathPolyRefs,     // [out] path
-                (int*)&_polyLength,
-                MAX_PATH_LENGTH);   // max number of polygons in output path
+        dtStatus dtResult;
+        if (_straightLine)
+        {
+            float hit = 0;
+            float hitNormal[3];
+            memset(hitNormal, 0, sizeof(hitNormal));
+
+            dtResult = _navMeshQuery->raycast(
+                            startPoly,
+                            startPoint,
+                            endPoint,
+                            &_filter,
+                            &hit,
+                            hitNormal,
+                            _pathPolyRefs,
+                            (int*)&_polyLength,
+                            MAX_PATH_LENGTH);
+
+            // raycast() sets hit to FLT_MAX if there is a ray between start and end
+            if (hit != FLT_MAX)
+            {
+                // the ray hit something, return no path instead of the incomplete one
+                _type = PATHFIND_NOPATH;
+                return;
+            }
+        }
+        else
+        {
+            dtResult = _navMeshQuery->findPath(
+                            startPoly,          // start polygon
+                            endPoly,            // end polygon
+                            startPoint,         // start position
+                            endPoint,           // end position
+                            &_filter,           // polygon search filter
+                            _pathPolyRefs,     // [out] path
+                            (int*)&_polyLength,
+                            MAX_PATH_LENGTH);   // max number of polygons in output path
+        }
 
         if (!_polyLength || dtStatusFailed(dtResult))
         {
             // only happens if we passed bad data to findPath(), or navmesh is messed up
-            TC_LOG_ERROR(LOG_FILTER_MAPS, "%u's Path Build failed: 0 length path", _sourceUnit->GetGUIDLow());
+            TC_LOG_ERROR("maps", "%u's Path Build failed: 0 length path", _sourceUnit->GetGUID().GetCounter());
             BuildShortcut();
             _type = PATHFIND_NOPATH;
             return;
@@ -415,7 +478,33 @@ void PathGenerator::BuildPointPath(const float *startPoint, const float *endPoin
     float pathPoints[MAX_POINT_PATH_LENGTH*VERTEX_SIZE];
     uint32 pointCount = 0;
     dtStatus dtResult = DT_FAILURE;
-    if (_useStraightPath)
+    if (_straightLine)
+    {
+        dtResult = DT_SUCCESS;
+        pointCount = 1;
+        memcpy(&pathPoints[VERTEX_SIZE * 0], startPoint, sizeof(float)* 3); // first point
+
+        // path has to be split into polygons with dist SMOOTH_PATH_STEP_SIZE between them
+        G3D::Vector3 startVec = G3D::Vector3(startPoint[0], startPoint[1], startPoint[2]);
+        G3D::Vector3 endVec = G3D::Vector3(endPoint[0], endPoint[1], endPoint[2]);
+        G3D::Vector3 diffVec = (endVec - startVec);
+        G3D::Vector3 prevVec = startVec;
+        float len = diffVec.length();
+        diffVec *= SMOOTH_PATH_STEP_SIZE / len;
+        while (len > SMOOTH_PATH_STEP_SIZE)
+        {
+            len -= SMOOTH_PATH_STEP_SIZE;
+            prevVec += diffVec;
+            pathPoints[VERTEX_SIZE * pointCount + 0] = prevVec.x;
+            pathPoints[VERTEX_SIZE * pointCount + 1] = prevVec.y;
+            pathPoints[VERTEX_SIZE * pointCount + 2] = prevVec.z;
+            ++pointCount;
+        }
+
+        memcpy(&pathPoints[VERTEX_SIZE * pointCount], endPoint, sizeof(float)* 3); // last point
+        ++pointCount;
+    }
+    else if (_useStraightPath)
     {
         dtResult = _navMeshQuery->findStraightPath(
                 startPoint,         // start position
@@ -445,14 +534,14 @@ void PathGenerator::BuildPointPath(const float *startPoint, const float *endPoin
         // only happens if pass bad data to findStraightPath or navmesh is broken
         // single point paths can be generated here
         /// @todo check the exact cases
-        TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ PathGenerator::BuildPointPath FAILED! path sized %d returned\n", pointCount);
+        TC_LOG_DEBUG("maps", "++ PathGenerator::BuildPointPath FAILED! path sized %d returned\n", pointCount);
         BuildShortcut();
         _type = PATHFIND_NOPATH;
         return;
     }
     else if (pointCount == _pointPathLimit)
     {
-        TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ PathGenerator::BuildPointPath FAILED! path sized %d returned, lower than limit set to %d\n", pointCount, _pointPathLimit);
+        TC_LOG_DEBUG("maps", "++ PathGenerator::BuildPointPath FAILED! path sized %d returned, lower than limit set to %d\n", pointCount, _pointPathLimit);
         BuildShortcut();
         _type = PATHFIND_SHORT;
         return;
@@ -486,112 +575,7 @@ void PathGenerator::BuildPointPath(const float *startPoint, const float *endPoin
         _type = PathType(PATHFIND_NORMAL | PATHFIND_NOT_USING_PATH);
     }
 
-    // Custom Point for Bugged Zone (By Quentis)
-    float startEndDist = Dist3DSqr(GetStartPosition(), GetEndPosition());
-
-    // Blade's Edge Arena
-    if (_sourceUnit->GetMapId() == 562)
-    {
-        // Your Position & Target Position
-        if (endPoint[1] >= 9.000000f && startPoint[1] >= 9.000000f && endPoint[2] <= 6233.953223f && endPoint[2] >= 6223.140430f && endPoint[0] >= 246.160000f && endPoint[0] <= 256.818940f) // southeast pillar
-        {
-            // Path X,y,z 1# END
-            Clear();
-            _pathPoints.resize(4);
-            _pathPoints[0] = GetStartPosition();
-            _pathPoints[1] = G3D::Vector3(6236.567836f, 258.339106f, 11.500018f);
-            _pathPoints[2] = G3D::Vector3(6229.818836f, 252.049106f, 11.500018f);
-            _pathPoints[3] = GetEndPosition();
-        }
-        else if (startEndDist < 3000.0f && startPoint[1] >= 9.000000f && endPoint[1] >= 9.000000f && startPoint[2] <= 6233.953223f && startPoint[2] >= 6223.440430f && startPoint[0] >= 246.060000f && startPoint[0] <= 256.818940f) // southeast pillar
-        {
-             // Path X,y,z 1# Start
-             Clear();
-             _polyLength = 4;
-             _pathPoints.resize(4);
-             _pathPoints[0] = GetStartPosition();
-             _pathPoints[1] = G3D::Vector3(6229.818836f, 252.049106f, 11.500018f);
-             _pathPoints[2] = G3D::Vector3(6236.567836f, 258.339106f, 11.500018f);
-             _pathPoints[3] = GetEndPosition();
-        }
-        else if (startEndDist < 3000.0f && startPoint[1] >= 9.000000f && startPoint[2] >= 6242.185660f && startPoint[2] <= 6254.611660f && startPoint[0] >= 266.757917f && startPoint[0] <= 279.558794f) // northwest pillar
-        {
-             // Path X,y,z 2# Start
-             Clear();
-             _pathPoints.resize(5);
-             _pathPoints[0] = GetStartPosition();
-             _pathPoints[1] = G3D::Vector3(6246.324219f, 271.570000f, 11.300000f);
-             _pathPoints[2] = G3D::Vector3(6242.942484f, 267.210030f, 11.280000f);
-             _pathPoints[3] = G3D::Vector3(6241.539484f, 265.441030f, 11.280000f);
-             _pathPoints[4] = GetEndPosition();
-        }
-        else if (startEndDist < 3000.0f && endPoint[1] >= 9.000000f && endPoint[2] >= 6242.185660f && endPoint[2] <= 6254.611660f && endPoint[0] >= 266.757917f && endPoint[0] <= 279.558794f) // northwest pillar
-        {
-             // Path X,y,z 2# END
-             Clear();
-             _pathPoints.resize(5);
-             _pathPoints[0] = GetStartPosition();
-             _pathPoints[1] = G3D::Vector3(6241.539484f, 265.441030f, 11.280000f);
-             _pathPoints[2] = G3D::Vector3(6242.942484f, 267.210030f, 11.280000f);
-             _pathPoints[3] = G3D::Vector3(6246.324219f, 271.570000f, 11.300000f);
-             _pathPoints[4] = GetEndPosition();
-        }
-    }
-    // Dalaran Sewers
-    else if (_sourceUnit->GetMapId() == 617)
-    {
-         if (startEndDist < 2500.0f && startPoint[2] >= 1325.033223f && startPoint[1] >= 9.000000f) // Canal 1#
-         {
-             // Path X,y,z
-             Clear();
-             _pathPoints.resize(5);
-             _pathPoints[0] = GetStartPosition();
-             _pathPoints[1] = G3D::Vector3(1332.749268f, 816.274780f, 8.355900f);
-             _pathPoints[2] = G3D::Vector3(1325.749268f, 816.602539f, 5.4000000f);
-             _pathPoints[3] = G3D::Vector3(1328.749268f, 816.602539f, 3.4000000f);
-             _pathPoints[4] = GetEndPosition();
-         }
-         else if (startEndDist < 2500.0f && startPoint[2] <= 1253.904785f && startPoint[1] >= 9.000000f) // Canal 2#
-         {
-             // Path X,y,z
-             Clear();
-             _pathPoints.resize(5);
-             _pathPoints[0] = GetStartPosition();
-             _pathPoints[1] = G3D::Vector3(1252.425395f, 764.971680f, 8.000000f);
-             _pathPoints[3] = G3D::Vector3(1255.425395f, 764.971680f, 5.3559000f);
-             _pathPoints[3] = G3D::Vector3(1257.425395f, 764.971680f, 3.3559000f);
-             _pathPoints[4] = GetEndPosition();
-         }
-    }
-    // Eye of the Storm
-    else if (_sourceUnit->GetMapId() == 566)
-    {
-         if (startEndDist < 2500.0f && startPoint[2] <= 1850.003223f && startPoint[1] >= 1237.000000f && startPoint[0] >= 1501.420000f && startPoint[0] <= 1579.960000f) // StartZone Horde
-         {
-             // Path X,y,z
-             Clear();
-             _pathPoints.resize(5);
-             _pathPoints[0] = GetStartPosition();
-             _pathPoints[1] = G3D::Vector3(1847.004468f, 1540.660539f, 1243.400000f);
-             _pathPoints[2] = G3D::Vector3(1842.883268f, 1527.123839f, 1238.410000f);
-             _pathPoints[3] = G3D::Vector3(1839.593268f, 1519.479539f, 1229.428000f);
-             _pathPoints[4] = GetEndPosition();
-         }
-         if (startEndDist < 2500.0f && startPoint[2] >= 2484.003223f && startPoint[1] >= 1240.000000f && startPoint[0] >= 1567.420000f && startPoint[0] <= 1626.960000f) // StartZone Alliance
-         {
-             // Path X,y,z
-             Clear();
-             _pathPoints.resize(5);
-             _pathPoints[0] = GetStartPosition();
-             _pathPoints[1] = G3D::Vector3(2485.154468f, 1596.583439f, 1244.898315f);
-             _pathPoints[2] = G3D::Vector3(2482.733268f, 1608.305649f, 1238.092000f);
-             _pathPoints[3] = G3D::Vector3(2488.073268f, 1623.749539f, 1227.788000f);
-             _pathPoints[4] = GetEndPosition();
-         }
-    }
-    // Custom Point for Bugged Zone 
-
-    TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ PathGenerator::BuildPointPath path type %d size %d poly-size %d\n", _type, pointCount, _polyLength);
+    TC_LOG_DEBUG("maps", "++ PathGenerator::BuildPointPath path type %d size %d poly-size %d\n", _type, pointCount, _polyLength);
 }
 
 void PathGenerator::NormalizePath()
@@ -602,7 +586,7 @@ void PathGenerator::NormalizePath()
 
 void PathGenerator::BuildShortcut()
 {
-    TC_LOG_DEBUG(LOG_FILTER_MAPS, "++ BuildShortcut :: making shortcut\n");
+    TC_LOG_DEBUG("maps", "++ BuildShortcut :: making shortcut\n");
 
     Clear();
 
@@ -663,7 +647,9 @@ void PathGenerator::UpdateFilter()
 NavTerrain PathGenerator::GetNavTerrain(float x, float y, float z)
 {
     LiquidData data;
-    _sourceUnit->GetBaseMap()->getLiquidStatus(x, y, z, MAP_ALL_LIQUIDS, &data);
+    ZLiquidStatus liquidStatus = _sourceUnit->GetBaseMap()->getLiquidStatus(x, y, z, MAP_ALL_LIQUIDS, &data);
+    if (liquidStatus == LIQUID_MAP_NO_WATER)
+        return NAV_GROUND;
 
     switch (data.type_flags)
     {
@@ -810,13 +796,13 @@ dtStatus PathGenerator::FindSmoothPath(float const* startPos, float const* endPo
         if (!GetSteerTarget(iterPos, targetPos, SMOOTH_PATH_SLOP, polys, npolys, steerPos, steerPosFlag, steerPosRef))
             break;
 
-        bool endOfPath = (steerPosFlag & DT_STRAIGHTPATH_END);
-        bool offMeshConnection = (steerPosFlag & DT_STRAIGHTPATH_OFFMESH_CONNECTION);
+        bool endOfPath = (steerPosFlag & DT_STRAIGHTPATH_END) != 0;
+        bool offMeshConnection = (steerPosFlag & DT_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
 
         // Find movement delta.
         float delta[VERTEX_SIZE];
         dtVsub(delta, steerPos, iterPos);
-        float len = dtSqrt(dtVdot(delta, delta));
+        float len = dtMathSqrtf(dtVdot(delta, delta));
         // If the steer target is end of path or off-mesh link, do not move past the location.
         if ((endOfPath || offMeshConnection) && len < SMOOTH_PATH_STEP_SIZE)
             len = 1.0f;
@@ -870,16 +856,16 @@ dtStatus PathGenerator::FindSmoothPath(float const* startPos, float const* endPo
             npolys -= npos;
 
             // Handle the connection.
-            float startPos[VERTEX_SIZE], endPos[VERTEX_SIZE];
-            if (dtStatusSucceed(_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos, endPos)))
+            float connectionStartPos[VERTEX_SIZE], connectionEndPos[VERTEX_SIZE];
+            if (dtStatusSucceed(_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, connectionStartPos, connectionEndPos)))
             {
                 if (nsmoothPath < maxSmoothPathSize)
                 {
-                    dtVcopy(&smoothPath[nsmoothPath*VERTEX_SIZE], startPos);
+                    dtVcopy(&smoothPath[nsmoothPath*VERTEX_SIZE], connectionStartPos);
                     nsmoothPath++;
                 }
                 // Move position at the other side of the off-mesh link.
-                dtVcopy(iterPos, endPos);
+                dtVcopy(iterPos, connectionEndPos);
                 _navMeshQuery->getPolyHeight(polys[0], iterPos, &iterPos[1]);
                 iterPos[1] += 0.5f;
             }
@@ -916,4 +902,48 @@ bool PathGenerator::InRange(G3D::Vector3 const& p1, G3D::Vector3 const& p2, floa
 float PathGenerator::Dist3DSqr(G3D::Vector3 const& p1, G3D::Vector3 const& p2) const
 {
     return (p1 - p2).squaredLength();
+}
+
+void PathGenerator::ReducePathLenghtByDist(float dist)
+{
+    if (GetPathType() == PATHFIND_BLANK)
+    {
+        TC_LOG_ERROR("maps", "PathGenerator::ReducePathLenghtByDist called before path was built");
+        return;
+    }
+
+    if (_pathPoints.size() < 2) // path building failure
+        return;
+
+    uint32 i = _pathPoints.size();
+    G3D::Vector3 nextVec = _pathPoints[--i];
+    while (i > 0)
+    {
+        G3D::Vector3 currVec = _pathPoints[--i];
+        G3D::Vector3 diffVec = (nextVec - currVec);
+        float len = diffVec.length();
+        if (len > dist)
+        {
+            float step = dist / len;
+            // same as nextVec
+            _pathPoints[i + 1] -= diffVec * step;
+            _sourceUnit->UpdateAllowedPositionZ(_pathPoints[i + 1].x, _pathPoints[i + 1].y, _pathPoints[i + 1].z);
+            _pathPoints.resize(i + 2);
+            break;
+        }
+        else if (i == 0) // at second point
+        {
+            _pathPoints[1] = _pathPoints[0];
+            _pathPoints.resize(2);
+            break;
+        }
+
+        dist -= len;
+        nextVec = currVec; // we're going backwards
+    }
+}
+
+bool PathGenerator::IsInvalidDestinationZ(Unit const* target) const
+{
+    return (target->GetPositionZ() - GetActualEndPosition().z) > 5.0f;
 }

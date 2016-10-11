@@ -1,5 +1,5 @@
  /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -65,9 +65,9 @@ public:
 
     struct npc_deathstalker_erlandAI : public npc_escortAI
     {
-        npc_deathstalker_erlandAI(Creature* creature) : npc_escortAI(creature) {}
+        npc_deathstalker_erlandAI(Creature* creature) : npc_escortAI(creature) { }
 
-        void WaypointReached(uint32 waypointId) OVERRIDE
+        void WaypointReached(uint32 waypointId) override
         {
             Player* player = GetPlayerForEscort();
             if (!player)
@@ -76,13 +76,13 @@ public:
             switch (waypointId)
             {
                 case 1:
-                    Talk(SAY_START, player->GetGUID());
+                    Talk(SAY_START, player);
                     break;
                 case 10:
                     Talk(SAY_PROGRESS);
                     break;
                 case 13:
-                    Talk(SAY_LAST, player->GetGUID());
+                    Talk(SAY_LAST, player);
                     player->GroupEventHappens(QUEST_ESCORTING, me);
                     break;
                 case 15:
@@ -108,19 +108,19 @@ public:
             }
         }
 
-        void Reset() OVERRIDE {}
+        void Reset() override { }
 
-        void EnterCombat(Unit* who) OVERRIDE
+        void EnterCombat(Unit* who) override
         {
-            Talk(SAY_AGGRO, who->GetGUID());
+            Talk(SAY_AGGRO, who);
         }
     };
 
-    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) OVERRIDE
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
     {
         if (quest->GetQuestId() == QUEST_ESCORTING)
         {
-            creature->AI()->Talk(SAY_QUESTACCEPT, player->GetGUID());
+            creature->AI()->Talk(SAY_QUESTACCEPT, player);
 
             if (npc_escortAI* pEscortAI = CAST_AI(npc_deathstalker_erland::npc_deathstalker_erlandAI, creature->AI()))
                 pEscortAI->Start(true, false, player->GetGUID());
@@ -129,7 +129,7 @@ public:
         return true;
     }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_deathstalker_erlandAI(creature);
     }
@@ -139,10 +139,22 @@ public:
 ## pyrewood_ambush
 #######*/
 
-#define QUEST_PYREWOOD_AMBUSH 452
-
-#define NPCSAY_INIT "Get ready, they'll be arriving any minute..." //not blizzlike
-#define NPCSAY_END "Thanks for your help!" //not blizzlike
+enum PyrewoodAmbush
+{
+    SAY_PREPARE_TO_AMBUSH = 0,
+    SAY_A_BLOW_TO_ARUGAL  = 1,
+    FACTION_ENEMY         = 168,
+    QUEST_PYREWOOD_AMBUSH = 452,
+    COUNCILMAN_SMITHERS   = 2060,
+    COUNCILMAN_THATCHER   = 2061,
+    COUNCILMAN_HENDRICKS  = 2062,
+    COUNCILMAN_WILHELM    = 2063,
+    COUNCILMAN_HARTIN     = 2064,
+    COUNCILMAN_COOPER     = 2065,
+    COUNCILMAN_HIGARTH    = 2066,
+    COUNCILMAN_BRUNSWICK  = 2067,
+    LORD_MAYOR_MORRISON   = 2068
+};
 
 static float PyrewoodSpawnPoints[3][4] =
 {
@@ -159,27 +171,25 @@ static float PyrewoodSpawnPoints[3][4] =
     {-397.94f, 1504.74f, 19.77f, 0},
 };
 
-#define WAIT_SECS 6000
-
 class pyrewood_ambush : public CreatureScript
 {
 public:
     pyrewood_ambush() : CreatureScript("pyrewood_ambush") { }
 
-    bool OnQuestAccept(Player* player, Creature* creature, const Quest *quest) OVERRIDE
+    bool OnQuestAccept(Player* player, Creature* creature, const Quest *quest) override
     {
-        if (quest->GetQuestId() == QUEST_PYREWOOD_AMBUSH && !CAST_AI(pyrewood_ambush::pyrewood_ambushAI, creature->AI())->QuestInProgress)
+        if (quest->GetQuestId() == QUEST_PYREWOOD_AMBUSH && !ENSURE_AI(pyrewood_ambush::pyrewood_ambushAI, creature->AI())->QuestInProgress)
         {
-            CAST_AI(pyrewood_ambush::pyrewood_ambushAI, creature->AI())->QuestInProgress = true;
-            CAST_AI(pyrewood_ambush::pyrewood_ambushAI, creature->AI())->Phase = 0;
-            CAST_AI(pyrewood_ambush::pyrewood_ambushAI, creature->AI())->KillCount = 0;
-            CAST_AI(pyrewood_ambush::pyrewood_ambushAI, creature->AI())->PlayerGUID = player->GetGUID();
+            ENSURE_AI(pyrewood_ambush::pyrewood_ambushAI, creature->AI())->QuestInProgress = true;
+            ENSURE_AI(pyrewood_ambush::pyrewood_ambushAI, creature->AI())->Phase = 0;
+            ENSURE_AI(pyrewood_ambush::pyrewood_ambushAI, creature->AI())->KillCount = 0;
+            ENSURE_AI(pyrewood_ambush::pyrewood_ambushAI, creature->AI())->PlayerGUID = player->GetGUID();
         }
 
         return true;
     }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new pyrewood_ambushAI(creature);
     }
@@ -188,39 +198,46 @@ public:
     {
         pyrewood_ambushAI(Creature* creature) : ScriptedAI(creature), Summons(me)
         {
-           QuestInProgress = false;
+            Initialize();
+            WaitTimer = 6 * IN_MILLISECONDS;
+            QuestInProgress = false;
+        }
+
+        void Initialize()
+        {
+            Phase = 0;
+            KillCount = 0;
+            PlayerGUID.Clear();
         }
 
         uint32 Phase;
         int8 KillCount;
         uint32 WaitTimer;
-        uint64 PlayerGUID;
+        ObjectGuid PlayerGUID;
         SummonList Summons;
 
         bool QuestInProgress;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            WaitTimer = WAIT_SECS;
+            WaitTimer = 6 * IN_MILLISECONDS;
 
             if (!QuestInProgress) //fix reset values (see UpdateVictim)
             {
-                Phase = 0;
-                KillCount = 0;
-                PlayerGUID = 0;
+                Initialize();
                 Summons.DespawnAll();
             }
         }
 
-        void EnterCombat(Unit* /*who*/)OVERRIDE {}
+        void EnterCombat(Unit* /*who*/) override { }
 
-        void JustSummoned(Creature* summoned) OVERRIDE
+        void JustSummoned(Creature* summoned) override
         {
             Summons.Summon(summoned);
             ++KillCount;
         }
 
-        void SummonedCreatureDespawn(Creature* summoned) OVERRIDE
+        void SummonedCreatureDespawn(Creature* summoned) override
         {
             Summons.Despawn(summoned);
             --KillCount;
@@ -232,30 +249,30 @@ public:
             {
                 Unit* target = NULL;
                 if (PlayerGUID)
-                    if (Player* player = Unit::GetPlayer(*me, PlayerGUID))
+                    if (Player* player = ObjectAccessor::GetPlayer(*me, PlayerGUID))
                         if (player->IsAlive() && RAND(0, 1))
                             target = player;
 
                 if (!target)
                     target = me;
 
-                summoned->setFaction(168);
+                summoned->setFaction(FACTION_ENEMY);
                 summoned->AddThreat(target, 32.0f);
                 summoned->AI()->AttackStart(target);
             }
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/) override
         {
             if (PlayerGUID)
-                if (Player* player = Unit::GetPlayer(*me, PlayerGUID))
+                if (Player* player = ObjectAccessor::GetPlayer(*me, PlayerGUID))
                     if (player->GetQuestStatus(QUEST_PYREWOOD_AMBUSH) == QUEST_STATUS_INCOMPLETE)
                         player->FailQuest(QUEST_PYREWOOD_AMBUSH);
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
-            //TC_LOG_INFO(LOG_FILTER_TSCR, "DEBUG: p(%i) k(%i) d(%u) W(%i)", Phase, KillCount, diff, WaitTimer);
+            //TC_LOG_INFO("scripts", "DEBUG: p(%i) k(%i) d(%u) W(%i)", Phase, KillCount, diff, WaitTimer);
 
             if (!QuestInProgress)
                 return;
@@ -272,8 +289,9 @@ public:
             switch (Phase)
             {
                 case 0:
-                    if (WaitTimer == WAIT_SECS)
-                        me->MonsterSay(NPCSAY_INIT, LANG_UNIVERSAL, 0); //no blizzlike
+                    if (WaitTimer == 6 * IN_MILLISECONDS)
+                        if (Player* player = ObjectAccessor::GetPlayer(*me, PlayerGUID))
+                            Talk(SAY_PREPARE_TO_AMBUSH, player);
 
                     if (WaitTimer <= diff)
                     {
@@ -282,28 +300,28 @@ public:
                     }
                     break;
                 case 1:
-                    SummonCreatureWithRandomTarget(2060, 1);
+                    SummonCreatureWithRandomTarget(COUNCILMAN_SMITHERS, 1);
                     break;
                 case 2:
-                    SummonCreatureWithRandomTarget(2061, 2);
-                    SummonCreatureWithRandomTarget(2062, 0);
+                    SummonCreatureWithRandomTarget(COUNCILMAN_THATCHER, 2);
+                    SummonCreatureWithRandomTarget(COUNCILMAN_HENDRICKS, 0);
                     break;
                 case 3:
-                    SummonCreatureWithRandomTarget(2063, 1);
-                    SummonCreatureWithRandomTarget(2064, 2);
-                    SummonCreatureWithRandomTarget(2065, 0);
+                    SummonCreatureWithRandomTarget(COUNCILMAN_WILHELM, 1);
+                    SummonCreatureWithRandomTarget(COUNCILMAN_HARTIN, 2);
+                    SummonCreatureWithRandomTarget(COUNCILMAN_COOPER, 0);
                     break;
                 case 4:
-                    SummonCreatureWithRandomTarget(2066, 1);
-                    SummonCreatureWithRandomTarget(2067, 0);
-                    SummonCreatureWithRandomTarget(2068, 2);
+                    SummonCreatureWithRandomTarget(COUNCILMAN_HIGARTH, 1);
+                    SummonCreatureWithRandomTarget(COUNCILMAN_BRUNSWICK, 0);
+                    SummonCreatureWithRandomTarget(LORD_MAYOR_MORRISON, 2);
                     break;
                 case 5: //end
                     if (PlayerGUID)
                     {
-                        if (Player* player = Unit::GetPlayer(*me, PlayerGUID))
+                        if (Player* player = ObjectAccessor::GetPlayer(*me, PlayerGUID))
                         {
-                            me->MonsterSay(NPCSAY_END, LANG_UNIVERSAL, 0); //not blizzlike
+                            Talk(SAY_A_BLOW_TO_ARUGAL);
                             player->GroupEventHappens(QUEST_PYREWOOD_AMBUSH, me);
                         }
                     }

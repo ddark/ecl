@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -19,7 +19,6 @@
 #include "Log.h"
 #include "ObjectAccessor.h"
 #include "CreatureAI.h"
-#include "ObjectMgr.h"
 #include "TemporarySummon.h"
 #include "Pet.h"
 #include "Player.h"
@@ -28,7 +27,9 @@ TempSummon::TempSummon(SummonPropertiesEntry const* properties, Unit* owner, boo
 Creature(isWorldObject), m_Properties(properties), m_type(TEMPSUMMON_MANUAL_DESPAWN),
 m_timer(0), m_lifetime(0)
 {
-    m_summonerGUID = owner ? owner->GetGUID() : 0;
+    if (owner)
+        m_summonerGUID = owner->GetGUID();
+
     m_unitTypeMask |= UNIT_MASK_SUMMON;
 }
 
@@ -166,7 +167,7 @@ void TempSummon::Update(uint32 diff)
         }
         default:
             UnSummon();
-            TC_LOG_ERROR(LOG_FILTER_UNITS, "Temporary summoned creature (entry: %u) have unknown type %u of ", GetEntry(), m_type);
+            TC_LOG_ERROR("entities.unit", "Temporary summoned creature (entry: %u) have unknown type %u of ", GetEntry(), m_type);
             break;
     }
 }
@@ -226,6 +227,11 @@ void TempSummon::InitSummon()
     }
 }
 
+void TempSummon::UpdateObjectVisibilityOnCreate()
+{
+    WorldObject::UpdateObjectVisibility(true);
+}
+
 void TempSummon::SetTempSummonType(TempSummonType type)
 {
     m_type = type;
@@ -253,14 +259,6 @@ void TempSummon::UnSummon(uint32 msTime)
     if (owner && owner->GetTypeId() == TYPEID_UNIT && owner->ToCreature()->IsAIEnabled)
         owner->ToCreature()->AI()->SummonedCreatureDespawn(this);
 
-    //npcbot
-    if (GetIAmABot() || GetIAmABotsPet())
-    {
-        //TC_LOG_ERROR("TempSummon::UnSummon(): Trying to unsummon Bot %s(owner: %s). Aborted", GetName(), GetBotOwner()->GetName());
-        return;
-    }
-    //end npcbots
-
     AddObjectToRemoveList();
 }
 
@@ -279,10 +277,10 @@ void TempSummon::RemoveFromWorld()
         if (uint32 slot = m_Properties->Slot)
             if (Unit* owner = GetSummoner())
                 if (owner->m_SummonSlot[slot] == GetGUID())
-                    owner->m_SummonSlot[slot] = 0;
+                    owner->m_SummonSlot[slot].Clear();
 
     //if (GetOwnerGUID())
-    //    TC_LOG_ERROR(LOG_FILTER_UNITS, "Unit %u has owner guid when removed from world", GetEntry());
+    //    TC_LOG_ERROR("entities.unit", "Unit %u has owner guid when removed from world", GetEntry());
 
     Creature::RemoveFromWorld();
 }
@@ -326,7 +324,7 @@ Guardian::Guardian(SummonPropertiesEntry const* properties, Unit* owner, bool is
 {
     memset(m_statFromOwner, 0, sizeof(float)*MAX_STATS);
     m_unitTypeMask |= UNIT_MASK_GUARDIAN;
-    if (properties && properties->Type == SUMMON_TYPE_PET)
+    if (properties && (properties->Type == SUMMON_TYPE_PET || properties->Category == SUMMON_CATEGORY_PET))
     {
         m_unitTypeMask |= UNIT_MASK_CONTROLABLE_GUARDIAN;
         InitCharmInfo();
@@ -375,7 +373,7 @@ void Puppet::InitSummon()
 {
     Minion::InitSummon();
     if (!SetCharmedBy(GetOwner(), CHARM_TYPE_POSSESS))
-        ASSERT(false);
+        ABORT();
 }
 
 void Puppet::Update(uint32 time)

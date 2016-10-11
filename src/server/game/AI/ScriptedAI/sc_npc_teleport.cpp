@@ -1,27 +1,31 @@
-/**
+/*
+ * Copyright (C) 20??-2008 Wilibald09
+ * Copyright (C) 2011-2015 ArkCORE <http://www.arkania.net/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
- * @File : sc_npc_teleport.cpp
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
  *
- * @Authors : Wilibald09
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * @Date : 28/08/2008
- *
- * @Version : 1.2
- *
- **/
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
-
-#include "ScriptPCH.h"
+#include "Player.h"
 #include "sc_npc_teleport.h"
-//#include "ProgressBar.h"
+#include "WorldSession.h"
 
 #define TELE    nsNpcTel::CatDest
 #define PAGE    nsNpcTel::Page
 #define PAGEI   PAGE::Instance
 
-
 nsNpcTel::VCatDest nsNpcTel::TabCatDest;
-
 
 uint32 PAGE::operator [] (Player * const player) const
 {
@@ -76,39 +80,47 @@ PAGE::Instance PAGEI::operator -- (int32)
     return tmp;
 }
 
-TELE::CatDest(const uint32 &id, const std::string &name,
-              const Flag &flag, const uint64 &data0, const uint32 &data1)
-    : m_id(id), m_name(name), m_flag(flag), m_data0(data0), m_data1(data1)
+TELE::CatDest(const CatValue cat, const CatName catname)
+    : m_catvalue(cat), m_catname(catname)
 {
     m_TabDest.clear();
 }
 
-std::string TELE::GetName(const bool IsGM /* = false */) const
+std::string TELE::GetName(const uint8 loc /* = 0 */, const bool IsGM /* = false */) const
 {
-    if (!IsGM || m_flag != FLAG_TEAM)
-        return m_name;
+    std::string icon = m_catname.icon;
+    std::string size = m_catname.size;
+    std::string colour = m_catname.colour;
+    std::string name = m_catname.name[loc];
+    if (name.length() == 0)
+        name = m_catname.name[0];
 
-    switch (m_data0)
+    if (!IsGM || m_catvalue.flag != FLAG_TEAM)
     {
-      case TEAM_HORDE:      return std::string(m_name + " (H)");
-      case TEAM_ALLIANCE:   return std::string(m_name + " (A)");
+        return "|TInterface/ICONS/"+icon+":"+size+":"+size+"|t|cff"+colour+" "+name;
     }
-    return m_name;
+
+    switch (m_catvalue.data0)
+    {
+      case TEAM_HORDE:      return "|TInterface/ICONS/"+icon+":"+size+":"+size+"|t|cff"+colour+" "+name + " (H)";
+      case TEAM_ALLIANCE:   return "|TInterface/ICONS/"+icon+":"+size+":"+size+"|t|cff"+colour+" "+name + " (A)";
+    }
+    return "|TInterface/ICONS/"+icon+":"+size+":"+size+"|t|cff"+colour+" "+name;;
 }
 
 bool TELE::IsAllowedToTeleport(Player * const player) const
 {
     if (player->IsGameMaster())
     {
-        if (m_flag == FLAG_GMLEVEL)
-            return player->GetSession()->GetSecurity() >= m_data0;
+        if (m_catvalue.flag == FLAG_GMLEVEL)
+            return player->GetSession()->GetSecurity() >= m_catvalue.data0;
         return true;
     }
 
-    switch (m_flag)
+    switch (m_catvalue.flag)
     {
       case FLAG_TEAM:
-        switch (m_data0)
+        switch (m_catvalue.data0)
         {
           case TEAM_HORDE:      return player->GetTeam() == HORDE;
           case TEAM_ALLIANCE:   return player->GetTeam() == ALLIANCE;
@@ -116,51 +128,53 @@ bool TELE::IsAllowedToTeleport(Player * const player) const
         }
 
       case FLAG_GUILD:
-        return player->GetGuildId() == m_data0;
+        return player->GetGuildId() == m_catvalue.data0;
 
       case FLAG_GMLEVEL:
-        return player->GetSession()->GetSecurity() >= m_data0;
+        return player->GetSession()->GetSecurity() >= m_catvalue.data0;
 
       case FLAG_ISGM:
         return player->IsGameMaster();
 
       case FLAG_ACCOUNT:
-        return player->GetSession()->GetAccountId() == m_data0;
+        return player->GetSession()->GetAccountId() == m_catvalue.data0;
 
       case FLAG_LEVEL:
-        return player->getLevel() >= m_data0;
+        return player->getLevel() >= m_catvalue.data0;
 
       case FLAG_ITEM:
-        return player->HasItemCount(m_data0, m_data1, true);
+        return player->HasItemCount(m_catvalue.data0, m_catvalue.data1, true);
 
       case FLAG_QUEST:
-        if (m_data1 < MAX_QUEST_STATUS)
-            return player->GetQuestStatus(m_data0) == m_data1;
-        return player->GetQuestRewardStatus(m_data0);
+        if (m_catvalue.data1 < MAX_QUEST_STATUS)
+            return player->GetQuestStatus(m_catvalue.data0) == m_catvalue.data1;
+        return player->GetQuestRewardStatus(m_catvalue.data0);
 
       case FLAG_GENDER:
-        return player->getGender() == m_data0;
+        return player->getGender() == m_catvalue.data0;
 
       case FLAG_RACE:
-        return player->getRace() == m_data0;
+        return player->getRace() == m_catvalue.data0;
 
       case FLAG_CLASS:
-        return player->getClass() == m_data0;
+        return player->getClass() == m_catvalue.data0;
 
       case FLAG_REPUTATION:
-        return player->GetReputationRank(m_data0) >= m_data1;
+        return player->GetReputationRank(m_catvalue.data0) >= (int32)m_catvalue.data1;
 
       case FLAG_PLAYER:
-        return player->GetGUID() == m_data0;
+        return player->GetGUID() == m_catvalue.data0;
+
+      default: TC_LOG_ERROR("misc", "Invalid flag (category: %u). Important problem...", GetCatID());
     }
 
-    TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid flag (category: %u). Important problem...", GetCatID());
+    TC_LOG_ERROR("misc", "Invalid flag (category: %u). Important problem...", GetCatID());
     return false;
 }
 
 uint32 TELE::CountOfCategoryAllowedBy(Player * const player)
 {
-    uint32 count (0);
+    uint32 count(0);
     for (VCatDest_t i(0); i < TabCatDest.size(); ++i)
     {
         if (TabCatDest[i].IsAllowedToTeleport(player))
@@ -169,125 +183,126 @@ uint32 TELE::CountOfCategoryAllowedBy(Player * const player)
     return count;
 }
 
-bool nsNpcTel::IsValidData(const uint32 &cat,   const Flag &flag,
-                           const uint64 &data0, const uint32 &data1)
+bool nsNpcTel::IsValidData(CatValue catvalue) //  const uint32 &cat, const Flag &flag, const uint64 &data0, const uint32 &data1
 {
-    switch(flag)
+    switch (catvalue.flag)
     {
       case FLAG_TEAM:
-        if (data1)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (category: %u).", cat);
-        if (data0 < MAX_FLAG_TEAM)
+        if (catvalue.data1)
+            TC_LOG_ERROR("misc", "Invalid data1 (category: %u).", catvalue.catid);
+        if (catvalue.data0 < MAX_FLAG_TEAM)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (Team) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data0 (Team) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_GUILD:
-        if (data1)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (category: %u).", cat);
-        if (data0)
+        if (catvalue.data1)
+            TC_LOG_ERROR("misc", "Invalid data1 (category: %u).", catvalue.catid);
+        if (catvalue.data0)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (GuildID) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data0 (GuildID) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_GMLEVEL:
-        if (data1)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (category: %u).", cat);
-        if (0 < data0 && data0 < 256)
+        if (catvalue.data1)
+            TC_LOG_ERROR("misc", "Invalid data1 (category: %u).", catvalue.catid);
+        if (0 < catvalue.data0 && catvalue.data0 < 256)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (GmLevel) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data0 (GmLevel) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_ISGM:
-        if (data0)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (category: %u).", cat);
-        if (data1)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (category: %u).", cat);
+        if (catvalue.data0)
+            TC_LOG_ERROR("misc", "Invalid data0 (category: %u).", catvalue.catid);
+        if (catvalue.data1)
+            TC_LOG_ERROR("misc", "Invalid data1 (category: %u).", catvalue.catid);
         return true;
 
       case FLAG_ACCOUNT:
-        if (data1)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (category: %u).", cat);
-        if (data0)
+        if (catvalue.data1)
+            TC_LOG_ERROR("misc", "Invalid data1 (category: %u).", catvalue.catid);
+        if (catvalue.data0)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (AccountID) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data0 (AccountID) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_LEVEL:
-        if (data1)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (category: %u).", cat);
-        if (0 < data0 && data0 < 256)
+        if (catvalue.data1)
+            TC_LOG_ERROR("misc", "Invalid data1 (category: %u).", catvalue.catid);
+        if (0 < catvalue.data0 && catvalue.data0 < 256)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (Level) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data0 (Level) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_ITEM:
-        if (!data0)
+        if (!catvalue.data0)
         {
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (ItemID) (category: %u).", cat);
+            TC_LOG_ERROR("misc", "Invalid data0 (ItemID) (category: %u).", catvalue.catid);
             return false;
         }
-        if (data1)
+        if (catvalue.data1)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (Item Count) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data1 (Item Count) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_QUEST:
-        if (!data0)
+        if (!catvalue.data0)
         {
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (QuestID) (category: %u).", cat);
+            TC_LOG_ERROR("misc", "Invalid data0 (QuestID) (category: %u).", catvalue.catid);
             return false;
         }
-        if (data1 < MAX_QUEST_STATUS + 1)
+        if (catvalue.data1 < MAX_QUEST_STATUS + 1)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (Quest Status) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data1 (Quest Status) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_GENDER:
-        if (data1)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (category: %u).", cat);
-        if (data0 < GENDER_NONE)
+        if (catvalue.data1)
+            TC_LOG_ERROR("misc", "Invalid data1 (category: %u).", catvalue.catid);
+        if (catvalue.data0 < GENDER_NONE)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (Gender) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data0 (Gender) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_RACE:
-        if (data1)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (category: %u).", cat);
-        if (0 < data0 && data0 < MAX_RACES)
+        if (catvalue.data1)
+            TC_LOG_ERROR("misc", "Invalid data1 (category: %u).", catvalue.catid);
+        if (0 < catvalue.data0 && catvalue.data0 < MAX_RACES)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (Race) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data0 (Race) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_CLASS:
-        if (data1)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (category: %u).", cat);
-        if (0 < data0 && data0 < MAX_CLASSES)
+        if (catvalue.data1)
+            TC_LOG_ERROR("misc", "Invalid data1 (category: %u).", catvalue.catid);
+        if (0 < catvalue.data0 && catvalue.data0 < MAX_CLASSES)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (Class) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data0 (Class) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_REPUTATION:
-        if (!data0)
+        if (!catvalue.data0)
         {
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (Faction/Reputation) (category: %u).", cat);
+            TC_LOG_ERROR("misc", "Invalid data0 (Faction/Reputation) (category: %u).", catvalue.catid);
             return false;
         }
-        if (data1 <= REP_EXALTED)
+        if (catvalue.data1 <= REP_EXALTED)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (Faction/Reputation) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data1 (Faction/Reputation) (category: %u).", catvalue.catid);
         return false;
 
       case FLAG_PLAYER:
-        if (data1)
-            TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data1 (category: %u).", cat);
-        if (data0)
+        if (catvalue.data1)
+            TC_LOG_ERROR("misc", "Invalid data1 (category: %u).", catvalue.catid);
+        if (catvalue.data0)
             return true;
-        TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid data0 (PlayerGuid) (category: %u).", cat);
+        TC_LOG_ERROR("misc", "Invalid data0 (PlayerGuid) (category: %u).", catvalue.catid);
         return false;
+
+      default: TC_LOG_ERROR("misc", "Invalid flag (category: %u).", catvalue.catid);
     }
 
-    TC_LOG_ERROR(LOG_FILTER_GENERAL, "Invalid flag (category: %u).", cat);
+    TC_LOG_ERROR("misc", "Invalid flag (category: %u).", catvalue.catid);
     return false;
 }
 
@@ -302,10 +317,16 @@ void LoadNpcTele(void)
 
 
     QueryResult result = WorldDatabase.PQuery(
-        "SELECT `flag`, `data0`, `data1`, `cat_id`, C.`name` `namecat`, D.`name` `namedest`, "
-        //      0        1        2        3                  4                   5
-               "`pos_X`, `pos_Y`, `pos_Z`, `orientation`, `map`, `level`, `cost` "
-        //      6        7        8        9              10     11       12
+        "SELECT `flag`, `data0`, `data1`, `cat_id`, C.`icon` `iconcat`, C.`size` `iconsize`,  C.`colour` `colourcat`, C.`name` `namecat`, "
+        //       0       1        2        3                  4                   5                       6                     7
+        "C.`name_loc1`, C.`name_loc2`, C.`name_loc3`, C.`name_loc4`, C.`name_loc5`, C.`name_loc6`, C.`name_loc7`, C.`name_loc8`, "
+        //  8              9              10             11             12             13             14             15
+        "D.`icon` `icondest`, D.`size` `sizedest`, D.`colour` `colourdest`, D.`name` `namedest`, "
+        //         16                   17                     18                     19
+        "D.`name_loc1`, D.`name_loc2`, D.`name_loc3`, D.`name_loc4`, D.`name_loc5`, D.`name_loc6`, D.`name_loc7`, D.`name_loc8`, "
+        //  20             21             22             23             24             25             26             27
+        "`pos_X`, `pos_Y`, `pos_Z`, `orientation`, `map`, `level`, `cost` "
+        //28       29       30       31             32     33       34
         "FROM `%s` C, `%s` D, `%s` A "
         "WHERE C.`id` = `cat_id` AND D.`id` = `dest_id` "
         "ORDER BY `namecat`, `cat_id`, `namedest`", Table[0], Table[1], Table[2]);
@@ -314,8 +335,7 @@ void LoadNpcTele(void)
 
     if (result)
     {
-        TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, "Loading %s, %s and %s...", Table[0], Table[1], Table[2]);
-        // barGoLink bar(result->GetRowCount());
+        TC_LOG_INFO("server.loading", "Loading %s, %s and %s...", Table[0], Table[1], Table[2]);
 
         uint32 catid = 0;
         uint32 nbDest = 0;
@@ -324,7 +344,6 @@ void LoadNpcTele(void)
 
         do
         {
-            // bar.step();
             Field *fields = result->Fetch();
 
             if (!IsValidCat && catid == fields[3].GetUInt32() && !FirstTime)
@@ -333,44 +352,80 @@ void LoadNpcTele(void)
             IsValidCat = true;
             FirstTime = false;
 
-            if (!nsNpcTel::IsValidData(fields[3].GetUInt32(), (nsNpcTel::Flag)fields[0].GetUInt8(),
-                                       fields[1].GetUInt64(), fields[2].GetUInt32()))
+            nsNpcTel::CatValue catvalue =
+            {
+                fields[3].GetUInt32(),
+                (nsNpcTel::Flag)fields[0].GetUInt8(),
+                fields[1].GetUInt64(),
+                fields[2].GetUInt32()
+            };
+
+            if (!nsNpcTel::IsValidData(catvalue))
             {
                 IsValidCat = false;
-                catid = fields[3].GetUInt32();
+                catid = catvalue.catid;
                 continue;
             }
 
-            if (catid != fields[3].GetUInt32())
+            if (catid != catvalue.catid)
             {
-                catid = fields[3].GetUInt32();
-                nsNpcTel::CatDest categorie (catid, fields[4].GetString(), (nsNpcTel::Flag)fields[0].GetUInt8(),
-                                             fields[1].GetUInt64(), fields[2].GetUInt32());
+                catid = catvalue.catid;
+                nsNpcTel::CatName catname =
+                {
+                    fields[4].GetString(),  // Cat icon
+                    fields[5].GetString(),  // Cat size
+                    fields[6].GetString(),  // Cat colour
+                    {
+                        fields[7].GetString(),  // Cat Name
+                        fields[8].GetString(),  // Cat Name Loc1
+                        fields[9].GetString(),  // Cat Name Loc2
+                        fields[10].GetString(),  // Cat Name Loc3
+                        fields[11].GetString(),  // Cat Name Loc4
+                        fields[12].GetString(),  // Cat Name Loc5
+                        fields[13].GetString(), // Cat Name Loc6
+                        fields[14].GetString(), // Cat Name Loc7
+                        fields[15].GetString()  // Cat Name Loc8
+                    }
+                };
+
+                nsNpcTel::CatDest categorie(catvalue, catname);
                 nsNpcTel::TabCatDest.push_back(categorie);
             }
 
             nsNpcTel::Dest item =
             {
-                fields[5].GetString(),   // Name
-                fields[6].GetFloat(),       // X
-                fields[7].GetFloat(),       // Y
-                fields[8].GetFloat(),       // Z
-                fields[9].GetFloat(),       // Orientation
-                fields[10].GetUInt16(),     // Map
-                fields[11].GetUInt8(),      // Level
-                fields[12].GetUInt32(),     // Cost
+                fields[16].GetString(),    // Dest icon
+                fields[17].GetString(),    // Dest size
+                fields[18].GetString(),    // Dest colour
+                {
+                    fields[19].GetString(),    // Dest Name
+                    fields[20].GetString(),    // Dest Name_loc1
+                    fields[21].GetString(),    // Dest Name_loc2
+                    fields[22].GetString(),    // Dest Name_loc3
+                    fields[23].GetString(),    // Dest Name_loc4
+                    fields[24].GetString(),    // Dest Name_loc5
+                    fields[25].GetString(),    // Dest Name_loc6
+                    fields[26].GetString(),    // Dest Name_loc7
+                    fields[27].GetString()     // Dest Name_loc8
+                },
+                fields[28].GetFloat(),      // X
+                fields[29].GetFloat(),      // Y
+                fields[30].GetFloat(),      // Z
+                fields[31].GetFloat(),      // Orientation
+                fields[32].GetUInt16(),     // Map
+                fields[33].GetUInt8(),      // Level
+                fields[34].GetUInt32()      // Cost
             };
 
             nsNpcTel::TabCatDest.back().AddDest(item);
             ++nbDest;
         } while (result->NextRow());
-
-        TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, "");
-        TC_LOG_INFO(LOG_FILTER_SERVER_LOADING, "Loaded %u npc_teleport.", nbDest);
-    } else TC_LOG_ERROR(LOG_FILTER_GENERAL, "WARNING >> Loaded 0 npc_teleport.");
+        //TC_LOG_INFO("server.loading", " ");
+        TC_LOG_INFO("server.loading", "Loaded %u npc_teleport.", nbDest);
+    }
+    else
+        TC_LOG_ERROR("misc", "WARNING >> Loaded 0 npc_teleport.");
 }
 
 
 #undef TELE
-#undef PAGE
-#undef PAGEI

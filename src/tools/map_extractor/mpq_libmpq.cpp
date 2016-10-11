@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "mpq_libmpq04.h"
 #include <deque>
 #include <cstdio>
@@ -53,7 +71,7 @@ MPQFile::MPQFile(const char* filename):
         uint32_t filenum;
         if(libmpq__file_number(mpq_a, filename, &filenum)) continue;
         libmpq__off_t transferred;
-        libmpq__file_unpacked_size(mpq_a, filenum, &size);
+        libmpq__file_size_unpacked(mpq_a, filenum, &size);
 
         // HACK: in patch.mpq some files don't want to open and give 1 for filesize
         if (size<=1) {

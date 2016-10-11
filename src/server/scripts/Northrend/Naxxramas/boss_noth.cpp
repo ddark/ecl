@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,294 +19,323 @@
 #include "ScriptedCreature.h"
 #include "naxxramas.h"
 
-#define SPELL_BLINK                     RAND(29208, 29209, 29210, 29211)
-
-enum Noth
+enum Phases
 {
-    SAY_AGGRO                       = 0,
-    SAY_SUMMON                      = 1,
-    SAY_SLAY                        = 2,
-    SAY_DEATH                       = 3,
-    EMOTE_SUMMON                    = 4,
-    EMOTE_BALCONY                   = 5,
-    EMOTE_SKELETON                  = 6,
-    EMOTE_TELEPORT                  = 7,  
-    EMOTE_BLINK                     = 8,
-
-    SPELL_CURSE_PLAGUEBRINGER       = 29213,
-    SPELL_CRIPPLE                   = 29212,
-    SPELL_TELEPORT_BALCONY          = 29216,
-    SPELL_TELEPORT_BACK             = 29231,
-    SPELL_SUMMON_WARRIOR_1          = 29247,
-    SPELL_SUMMON_WARRIOR_2          = 29248,
-    SPELL_SUMMON_WARRIOR_3          = 29249,
-    SPELL_SUMMON_CHAMPION_1         = 29255,
-    SPELL_SUMMON_CHAMPION_2         = 29257,
-    SPELL_SUMMON_CHAMPION_3         = 29224,
-    SPELL_SUMMON_CHAMPION_4         = 29262,
-    SPELL_SUMMON_GUARDIAN_1         = 29226,
-    SPELL_SUMMON_GUARDIAN_2         = 29268,
-    SPELL_SUMMON_GUARDIAN_3         = 29256,
-    SPELL_SUMMON_CONSTRUCT_1        = 54862,
-    SPELL_SUMMON_CONST_CHAMP        = 29240,
-
-    MOB_WARRIOR                     = 16984,
-    MOB_CHAMPION                    = 16983,
-    MOB_GUARDIAN                    = 16981,
+    PHASE_NONE,
+    PHASE_GROUND,
+    PHASE_BALCONY
 };
 
 enum Events
 {
-    EVENT_NONE,
-    EVENT_BERSERK,
-    EVENT_CURSE,
-    EVENT_BLINK,
-    EVENT_WARRIOR,
-    EVENT_BALCONY,
-    EVENT_WAVE,
-    EVENT_GROUND,
-    EVENT_SUMMON,
-    EVENT_BALCONY_TELEPORT,
+    EVENT_CURSE = 1,            // curse of the plaguebringer
+    EVENT_BLINK,                // blink (25m only)
+    EVENT_WARRIOR,              // summon warriors during ground phase
+    EVENT_BALCONY,              // become untargetable and begin balcony phase
+    EVENT_BALCONY_TELEPORT,     // actually teleport to balcony, this is slightly delayed
+    EVENT_WAVE,                 // spawn wave during balcony phase
+    EVENT_GROUND,               // end balcony phase and teleport to ground
+    EVENT_GROUND_ATTACKABLE     // become attackable and aggressive again at start of ground phase, once again slightly delayed to prevent motionmaster weirdness
 };
 
-class StartMovementEvent : public BasicEvent
+enum Talk
 {
-    public:
-        StartMovementEvent(Creature* summoner, Creature* owner)
-            : _summoner(summoner), _owner(owner)
-        {
-        }
+    SAY_AGGRO               = 0,
+    SAY_SUMMON              = 1,
+    SAY_SLAY                = 2,
+    SAY_DEATH               = 3,
 
-        bool Execute(uint64 /*time*/, uint32 /*diff*/)
-        {
-            _owner->SetReactState(REACT_AGGRESSIVE);
-            if (Unit* target = _summoner->AI()->SelectTarget(SELECT_TARGET_RANDOM, 0, NonTankTargetSelector(_summoner)))
-                _owner->AI()->AttackStart(target);
-            return true;
-        }
-
-    private:
-        Creature* _summoner;
-        Creature* _owner;
+    EMOTE_SUMMON            = 4, // ground phase
+    EMOTE_SUMMON_WAVE       = 5, // balcony phase
+    EMOTE_TELEPORT_1        = 6, // ground to balcony
+    EMOTE_TELEPORT_2        = 7  // balcony to ground
 };
+
+enum Spells
+{
+    SPELL_CURSE         = 29213, // 25-man: 54835
+    SPELL_CRIPPLE       = 29212, // 25-man: 54814
+
+    SPELL_TELEPORT      = 29216, // ground to balcony
+    SPELL_TELEPORT_BACK = 29231  // balcony to ground
+};
+
+enum Adds
+{
+    N_WARRIOR_SPELLS = 3,
+    N_CHAMPION_SPELLS = 6,
+    N_GUARDIAN_SPELLS = 3
+};
+const uint32 SummonWarriorSpells[N_WARRIOR_SPELLS] = { 29247, 29248, 29249 };
+const uint32 SummonChampionSpells[N_CHAMPION_SPELLS] = { 29238, 29255, 29257, 29258, 29262, 29267 };
+const uint32 SummonGuardianSpells[N_GUARDIAN_SPELLS] = { 29239, 29256, 29268 };
+
+#define SPELL_BLINK                 RAND(29208, 29209, 29210, 29211)
 
 class boss_noth : public CreatureScript
 {
-    public:
-        boss_noth() : CreatureScript("boss_noth") { }
+public:
+    boss_noth() : CreatureScript("boss_noth") { }
 
-        struct boss_nothAI : public BossAI
+    struct boss_nothAI : public BossAI
+    {
+        boss_nothAI(Creature* creature) : BossAI(creature, BOSS_NOTH), balconyCount(0), justBlinked(false)
         {
-            boss_nothAI(Creature* creature) : BossAI(creature, DATA_NOTH) {}
+            std::copy(SummonWarriorSpells, SummonWarriorSpells + N_WARRIOR_SPELLS, _SummonWarriorSpells);
+            std::copy(SummonChampionSpells, SummonChampionSpells + N_CHAMPION_SPELLS, _SummonChampionSpells);
+            std::copy(SummonGuardianSpells, SummonGuardianSpells + N_GUARDIAN_SPELLS, _SummonGuardianSpells);
 
-            void Reset()
+            events.SetPhase(PHASE_NONE);
+        }
+
+        void EnterEvadeMode(EvadeReason /*why*/) override
+        {
+            Reset(); // teleport back first
+            _EnterEvadeMode();
+        }
+
+        void Reset() override
+        {
+            if (!me->IsAlive())
+                return;
+
+            // in case we reset during balcony phase
+            if (events.IsInPhase(PHASE_BALCONY))
             {
+                DoCastAOE(SPELL_TELEPORT_BACK);
                 me->SetReactState(REACT_AGGRESSIVE);
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                _Reset();
+                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_NOT_SELECTABLE);
             }
 
-            void EnterCombat(Unit* /*who*/)
-            {
-                _EnterCombat();
-                TalkToMap(SAY_AGGRO);
-                balconyCount = 0;
-                EnterPhaseGround();
-            }
+            balconyCount = 0;
+            events.SetPhase(PHASE_NONE);
+            justBlinked = false;
 
-            void EnterPhaseGround()
+            _Reset();
+        }
+
+        void EnterCombat(Unit* /*who*/) override
+        {
+            _EnterCombat();
+            Talk(SAY_AGGRO);
+            EnterPhaseGround();
+        }
+
+        void EnterPhaseGround()
+        {
+            events.SetPhase(PHASE_GROUND);
+
+            DoZoneInCombat();
+
+            if (me->getThreatManager().isThreatListEmpty())
+                Reset();
+            else
             {
-                me->SetReactState(REACT_AGGRESSIVE);
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                DoZoneInCombat();
-                if (me->getThreatManager().isThreatListEmpty())
-                    EnterEvadeMode();
-                else
+                uint8 timeGround;
+                switch (balconyCount)
                 {
-                    events.ScheduleEvent(EVENT_BALCONY, 110000);
-                    events.ScheduleEvent(EVENT_CURSE, 10000+rand()%15000);
-                    events.ScheduleEvent(EVENT_WARRIOR, 30000);
-                    if (GetDifficulty() == RAID_DIFFICULTY_25MAN_NORMAL)
-                        events.ScheduleEvent(EVENT_BLINK, urand(20000, 40000));
-                }
-            }
-
-            void KilledUnit(Unit* /*victim*/)
-            {
-                TalkToMap(SAY_SLAY);
-            }
-
-            void JustSummoned(Creature* summon)
-            {
-                switch (summon->GetEntry())
-                {
-                    case MOB_WARRIOR:
-                    case MOB_CHAMPION:
-                        summon->SetReactState(REACT_PASSIVE);
-                        summon->HandleEmoteCommand(EMOTE_ONESHOT_EMERGE);
-                        summon->m_Events.AddEvent(new StartMovementEvent(me, summon), summon->m_Events.CalculateTime(5000));
+                    case 0:
+                        timeGround =  90;
                         break;
+                    case 1:
+                        timeGround = 110;
+                        break;
+                    case 2:
                     default:
-                        break;
+                        timeGround = 180;
                 }
-                BossAI::JustSummoned(summon);
+                events.ScheduleEvent(EVENT_GROUND_ATTACKABLE, Seconds(2), 0, PHASE_GROUND);
+                events.ScheduleEvent(EVENT_BALCONY, Seconds(timeGround), 0, PHASE_GROUND);
+                events.ScheduleEvent(EVENT_CURSE, randtime(Seconds(10), Seconds(25)), 0, PHASE_GROUND);
+                events.ScheduleEvent(EVENT_WARRIOR, randtime(Seconds(20), Seconds(30)), 0, PHASE_GROUND);
+                if (GetDifficulty() == RAID_DIFFICULTY_25MAN_NORMAL)
+                    events.ScheduleEvent(EVENT_BLINK, randtime(Seconds(20), Seconds(30)), 0, PHASE_GROUND);
             }
+        }
 
-            void SummonedCreatureDies(Creature* summon, Unit* /*killer*/)
-            {
-                switch (summon->GetEntry())
+        void KilledUnit(Unit* victim) override
+        {
+            if (victim->GetTypeId() == TYPEID_PLAYER)
+                Talk(SAY_SLAY);
+        }
+
+        void JustSummoned(Creature* summon) override
+        {
+            summons.Summon(summon);
+            summon->setActive(true);
+            summon->AI()->DoZoneInCombat(nullptr, 250.0f); // specify range to cover entire room - default 50yd is not enough
+        }
+
+        void JustDied(Unit* /*killer*/) override
+        {
+            _JustDied();
+            Talk(SAY_DEATH);
+        }
+
+        void DamageTaken(Unit* /*who*/, uint32& damage) override // prevent noth from somehow dying in the balcony phase
+        {
+            if (!events.IsInPhase(PHASE_BALCONY))
+                return;
+            if (damage < me->GetHealth())
+                return;
+
+            me->SetHealth(1u);
+            damage = 0u;
+        }
+
+        void HandleSummon(uint32* spellsList, const uint8 nSpells, uint8 num)
+        { // this ensures we do not spawn two mobs using the same spell (<=> in the same position) if we can help it
+            while (num)
+                for (uint8 it = 0; it < nSpells && num; ++it)
                 {
-                    case MOB_WARRIOR:
-                    case MOB_CHAMPION:
-                    case MOB_GUARDIAN:
-                        summon->ToTempSummon()->DespawnOrUnsummon(4000);
+                    num--;
+                    uint8 selected = urand(it, nSpells - 1);
+                    DoCastAOE(spellsList[selected]);
+                    if (selected != it) // shuffle the selected into the part of the array that is no longer being searched
+                        std::swap(spellsList[selected], spellsList[it]);
+                }
+        }
+
+        void CastSummon(uint8 nWarrior, uint8 nChampion, uint8 nGuardian)
+        {
+            HandleSummon(_SummonWarriorSpells, N_WARRIOR_SPELLS, nWarrior);
+            HandleSummon(_SummonChampionSpells, N_CHAMPION_SPELLS, nChampion);
+            HandleSummon(_SummonGuardianSpells, N_GUARDIAN_SPELLS, nGuardian);
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            if (!UpdateVictim())
+                return;
+
+            events.Update(diff);
+
+            if (me->HasUnitState(UNIT_STATE_CASTING))
+                return;
+
+            while (uint32 eventId = events.ExecuteEvent())
+            {
+                switch (eventId)
+                {
+                    case EVENT_CURSE:
+                    {
+                        DoCastAOE(SPELL_CURSE);
+                        events.Repeat(randtime(Seconds(50), Seconds(70)));
                         break;
-                    default:
+                    }
+                    case EVENT_WARRIOR:
+                        Talk(SAY_SUMMON);
+                        Talk(EMOTE_SUMMON);
+
+                        CastSummon(RAID_MODE(2, 3), 0, 0);
+
+                        events.Repeat(Seconds(40));
+                        break;
+                    case EVENT_BLINK:
+                        DoCastAOE(SPELL_CRIPPLE, true);
+                        DoCastAOE(SPELL_BLINK);
+                        DoResetThreat();
+                        justBlinked = true;
+
+                        events.Repeat(Seconds(40));
+                        break;
+                    case EVENT_BALCONY:
+                        events.SetPhase(PHASE_BALCONY);
+                        me->SetReactState(REACT_PASSIVE);
+                        me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_NOT_SELECTABLE);
+                        me->AttackStop();
+                        me->StopMoving();
+                        me->RemoveAllAuras();
+
+                        events.ScheduleEvent(EVENT_BALCONY_TELEPORT, Seconds(3), 0, PHASE_BALCONY);
+                        events.ScheduleEvent(EVENT_WAVE, randtime(Seconds(5), Seconds(8)), 0, PHASE_BALCONY);
+
+                        uint8 timeBalcony;
+                        switch (balconyCount)
+                        {
+                            case 0:
+                                timeBalcony = 70;
+                                break;
+                            case 1:
+                                timeBalcony = 97;
+                                break;
+                            case 2:
+                            default:
+                                timeBalcony = 120;
+                                break;
+                        }
+                        events.ScheduleEvent(EVENT_GROUND, Seconds(timeBalcony), 0, PHASE_BALCONY);
+                        break;
+                    case EVENT_BALCONY_TELEPORT:
+                        Talk(EMOTE_TELEPORT_1);
+                        DoCastAOE(SPELL_TELEPORT);
+                        break;
+                    case EVENT_WAVE:
+                        Talk(EMOTE_SUMMON_WAVE);
+                        switch (balconyCount)
+                        {
+                            case 0:
+                                CastSummon(0, RAID_MODE(2, 4), 0);
+                                break;
+                            case 1:
+                                CastSummon(0, RAID_MODE(1, 2), RAID_MODE(1, 2));
+                                break;
+                            case 2:
+                                CastSummon(0, 0, RAID_MODE(2, 4));
+                                break;
+                            default:
+                                CastSummon(0, RAID_MODE(5, 10), RAID_MODE(5, 10));
+                                break;
+                        }
+                        events.Repeat(randtime(Seconds(30), Seconds(45)));
+                        break;
+                    case EVENT_GROUND:
+                        ++balconyCount;
+
+                        DoCastAOE(SPELL_TELEPORT_BACK);
+                        Talk(EMOTE_TELEPORT_2);
+
+                        EnterPhaseGround();
+                        break;
+                    case EVENT_GROUND_ATTACKABLE:
+                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_NOT_SELECTABLE);
+                        me->SetReactState(REACT_AGGRESSIVE);
                         break;
                 }
-            }
-
-            void JustDied(Unit* /*killer*/)
-            {
-                _JustDied();
-                TalkToMap(SAY_DEATH);
-            }
-
-            void UpdateAI(uint32 diff)
-            {
-                if (!UpdateVictim() || !CheckInRoom())
-                    return;
 
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
+            }
 
-                events.Update(diff);
-
-                while (uint32 eventId = events.ExecuteEvent())
+            if (events.IsInPhase(PHASE_GROUND))
+            {
+                /* workaround for movechase breaking after blinking
+                   without this noth would just stand there unless his current target moves */
+                if (justBlinked && me->GetVictim() && !me->IsWithinMeleeRange(me->EnsureVictim()))
                 {
-                    switch (eventId)
-                    {
-                        case EVENT_CURSE:
-                            DoCastAOE(SPELL_CURSE_PLAGUEBRINGER);
-                            events.ScheduleEvent(EVENT_CURSE, urand(50000, 60000));
-                            break;
-                        case EVENT_WARRIOR:
-                            TalkToMap(SAY_SUMMON);
-                            TalkToMap(EMOTE_SUMMON);
-                            events.ScheduleEvent(EVENT_SUMMON, 4000);
-                            break;
-                        case EVENT_SUMMON:
-                            DoCast(me, SPELL_SUMMON_WARRIOR_1);
-                            DoCast(me, SPELL_SUMMON_WARRIOR_2);
-                            if (GetDifficulty() == RAID_DIFFICULTY_25MAN_NORMAL)
-                                DoCast(me, SPELL_SUMMON_WARRIOR_3);
-                            events.ScheduleEvent(EVENT_WARRIOR, 26000);
-                            break;
-                        case EVENT_BLINK:
-                            TalkToMap(EMOTE_BLINK);
-                            DoCastAOE(SPELL_CRIPPLE);
-                            DoCastAOE(SPELL_BLINK);
-                            DoResetThreat();
-                            events.ScheduleEvent(EVENT_BLINK, 40000);
-                            break;
-                        case EVENT_BALCONY:
-                            TalkToMap(EMOTE_BALCONY);
-                            me->SetReactState(REACT_PASSIVE);
-                            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                            me->AttackStop();
-                            me->RemoveAllAuras();
-                            events.ScheduleEvent(EVENT_BALCONY_TELEPORT, 2000);
-                            break;
-                        case EVENT_BALCONY_TELEPORT:
-                            DoCast(SPELL_TELEPORT_BALCONY);
-                            events.Reset();
-                            events.ScheduleEvent(EVENT_WAVE, urand(2000, 5000));
-                            waveCount = 0;
-                            break;
-                        case EVENT_WAVE:
-                            TalkToMap(EMOTE_SKELETON);
-                            switch (balconyCount)
-                            {
-                                case 0:
-                                    DoCast(me, SPELL_SUMMON_CHAMPION_1);
-                                    DoCast(me, SPELL_SUMMON_CHAMPION_2);
-                                    if (GetDifficulty() == RAID_DIFFICULTY_25MAN_NORMAL)
-                                    {
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_3);
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_4);
-                                    }
-                                    break;
-                                case 1:
-                                    DoCast(me, SPELL_SUMMON_CHAMPION_1);
-                                    DoCast(me, SPELL_SUMMON_CHAMPION_2);
-                                    if (GetDifficulty() == RAID_DIFFICULTY_25MAN_NORMAL)
-                                    {
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_3);
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_4);
-                                    }
-                                    break;
-                                case 2:
-                                    if (GetDifficulty() == RAID_DIFFICULTY_10MAN_NORMAL)
-                                    {
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_1);
-                                        DoCast(me, SPELL_SUMMON_GUARDIAN_2);
-                                        DoCast(me, SPELL_SUMMON_GUARDIAN_1);
-                                    }
-                                    else if (GetDifficulty() == RAID_DIFFICULTY_25MAN_NORMAL)
-                                    {
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_1);
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_2);
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_3);
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_4);
-                                        DoCast(me, SPELL_SUMMON_GUARDIAN_1);
-                                        DoCast(me, SPELL_SUMMON_GUARDIAN_3);
-                                    }
-                                    break;
-                                default:
-                                    if (GetDifficulty() == RAID_DIFFICULTY_10MAN_NORMAL)
-                                    {
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_2);
-                                        DoCast(me, SPELL_SUMMON_CONSTRUCT_1);
-                                        DoCast(me, SPELL_SUMMON_GUARDIAN_1);
-                                    }
-                                    else if (GetDifficulty() == RAID_DIFFICULTY_25MAN_NORMAL)
-                                    {
-                                        DoCast(me, SPELL_SUMMON_CONST_CHAMP);
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_2);
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_3);
-                                        DoCast(me, SPELL_SUMMON_CHAMPION_4);
-                                        DoCast(me, SPELL_SUMMON_GUARDIAN_1);
-                                        DoCast(me, SPELL_SUMMON_GUARDIAN_3);
-                                        DoCast(me, SPELL_SUMMON_CONSTRUCT_1);
-                                        DoCast(me, SPELL_SUMMON_CONST_CHAMP);
-                                    }
-                                    break;
-                            }
-                            ++waveCount;
-                            events.ScheduleEvent(waveCount < 2 ? EVENT_WAVE : EVENT_GROUND, urand(30000, 45000));
-                            break;
-                        case EVENT_GROUND:
-                            TalkToMap(EMOTE_TELEPORT);
-                            ++balconyCount;
-                            DoCast(SPELL_TELEPORT_BACK);
-                            events.ScheduleEvent(EVENT_BALCONY, 110000);
-                            EnterPhaseGround();
-                            break;
-                    }
+                    me->GetMotionMaster()->Clear();
+                    me->GetMotionMaster()->MoveChase(me->EnsureVictim());
+                    justBlinked = false;
                 }
-
-                if (me->HasReactState(REACT_AGGRESSIVE))
+                else
                     DoMeleeAttackIfReady();
             }
-        private:
-            uint32 waveCount;
-            uint32 balconyCount;
-        };
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return GetNaxxramasAI<boss_nothAI>(creature);
         }
+
+        private:
+            uint32 balconyCount;
+
+            bool justBlinked;
+
+            uint32 _SummonWarriorSpells[N_WARRIOR_SPELLS];
+            uint32 _SummonChampionSpells[N_CHAMPION_SPELLS];
+            uint32 _SummonGuardianSpells[N_GUARDIAN_SPELLS];
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return GetInstanceAI<boss_nothAI>(creature);
+    }
 };
 
 void AddSC_boss_noth()

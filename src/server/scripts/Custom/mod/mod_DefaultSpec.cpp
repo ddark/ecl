@@ -1,0 +1,797 @@
+#include "Config.h"
+#include "GuildMgr.h"
+#include "ObjectMgr.h"
+#include "Player.h"
+#include "Battleground.h"
+#include "BattlegroundMgr.h"
+#include "ScriptedCreature.h"
+#include "ScriptedGossip.h"
+#include "WorldPacket.h"
+#include "ObjectMgr.h"
+#include "ArenaTeam.h"
+#include "ArenaTeamMgr.h"
+#include "World.h"
+#include "WorldSession.h"
+#include "Group.h"
+#include "AchievementMgr.h"
+#include "ObjectAccessor.h"
+#include "Unit.h"
+#include "SharedDefines.h"
+#include "Creature.h"
+#include "ScriptMgr.h"
+#include "ScriptedCreature.h"
+#include "GridNotifiers.h"
+#include "GridNotifiersImpl.h"
+#include "Cell.h"
+#include "CellImpl.h"
+#include "Language.h"
+#include "Chat.h"
+#include <sstream>
+#include "Channel.h"
+
+bool DefaultSpecEnable   = false;
+
+class mod_DefaultSpec_WorldScript : public WorldScript
+{
+public:
+    mod_DefaultSpec_WorldScript() : WorldScript("mod_DefaultSpec_WorldScript") { }
+
+    // Called after the world configuration is (re)loaded.
+    void OnConfigLoad(bool /*reload*/)
+    {
+        DefaultSpecEnable    = sConfigMgr->GetBoolDefault("DefaultSpec.Enable", false);
+    }
+};
+
+class mod_DefaultSpec_PlayerScript : public PlayerScript
+{
+public:
+    mod_DefaultSpec_PlayerScript() : PlayerScript("mod_DefaultSpec_PlayerScript") { }
+
+    // Called when a player is created.
+    void OnCreate(Player* player)
+    {
+        if (!DefaultSpecEnable)
+            return;
+
+        uint32 pclass = player->getClass();
+
+        if (pclass == 1) {
+            player->LearnTalent(130, 0);
+            player->LearnTalent(130, 1);
+            player->LearnTalent(130, 2);
+            player->LearnTalent(130, 3);
+            player->LearnTalent(130, 4);
+            player->LearnTalent(641, 0);
+            player->LearnTalent(641, 1);
+            player->LearnTalent(128, 0);
+            player->LearnTalent(128, 1);
+            player->LearnTalent(128, 2);
+            player->LearnTalent(662, 0);
+            player->LearnTalent(662, 1);
+            player->LearnTalent(121, 0);
+            player->LearnTalent(121, 1);
+            player->LearnTalent(121, 2);
+            player->LearnTalent(136, 0);
+            player->LearnTalent(136, 1);
+            player->LearnTalent(136, 2);
+            player->LearnTalent(2250, 0);
+            player->LearnTalent(2250, 1);
+            player->LearnTalent(2250, 2);
+            player->LearnTalent(157, 0);
+            player->LearnTalent(157, 1);
+            player->LearnTalent(157, 2);
+            player->LearnTalent(157, 3);
+            player->LearnTalent(157, 4);
+            player->LearnTalent(159, 0);
+            player->LearnTalent(159, 1);
+            player->LearnTalent(159, 2);
+            player->LearnTalent(159, 3);
+            player->LearnTalent(159, 4);
+            player->LearnTalent(160, 0);
+            player->LearnTalent(154, 0);
+            player->LearnTalent(154, 1);
+            player->LearnTalent(154, 2);
+            player->LearnTalent(154, 3);
+            player->LearnTalent(154, 4);
+            player->LearnTalent(1581, 0);
+            player->LearnTalent(1581, 1);
+            player->LearnTalent(1581, 2);
+            player->LearnTalent(1581, 3);
+            player->LearnTalent(1581, 4);
+            player->LearnTalent(155, 0);
+            player->LearnTalent(155, 1);
+            player->LearnTalent(155, 2);
+            player->LearnTalent(155, 3);
+            player->LearnTalent(155, 4);
+            player->LearnTalent(165, 0);
+            player->LearnTalent(156, 0);
+            player->LearnTalent(156, 1);
+            player->LearnTalent(156, 2);
+            player->LearnTalent(156, 3);
+            player->LearnTalent(156, 4);
+            player->LearnTalent(167, 0);
+            player->LearnTalent(1655, 0);
+            player->LearnTalent(1655, 1);
+            player->LearnTalent(1865, 0);
+            player->LearnTalent(1865, 1);
+            player->LearnTalent(1658, 0);
+            player->LearnTalent(1658, 1);
+            player->LearnTalent(1658, 2);
+            player->LearnTalent(1658, 3);
+            player->LearnTalent(1658, 4);
+            player->LearnTalent(1868, 0);
+            player->LearnTalent(1659, 0);
+            player->LearnTalent(2234, 0);
+            player->LearnTalent(2234, 1);
+            player->LearnTalent(2234, 2);
+            player->LearnTalent(2234, 3);
+            player->LearnTalent(2234, 4);
+            player->LearnTalent(1867, 0);
+        }
+        else if (pclass == 5) {
+            player->LearnTalent(462, 0);
+            player->LearnTalent(462, 1);
+            player->LearnTalent(462, 2);
+            player->LearnTalent(462, 3);
+            player->LearnTalent(462, 4);
+            player->LearnTalent(466, 0);
+            player->LearnTalent(466, 1);
+            player->LearnTalent(466, 2);
+            player->LearnTalent(482, 0);
+            player->LearnTalent(482, 1);
+            player->LearnTalent(463, 0);
+            player->LearnTalent(463, 1);
+            player->LearnTalent(463, 2);
+            player->LearnTalent(342, 0);
+            player->LearnTalent(342, 1);
+            player->LearnTalent(342, 2);
+            player->LearnTalent(342, 3);
+            player->LearnTalent(342, 4);
+            player->LearnTalent(352, 0);
+            player->LearnTalent(352, 1);
+            player->LearnTalent(352, 2);
+            player->LearnTalent(346, 0);
+            player->LearnTalent(346, 1);
+            player->LearnTalent(346, 2);
+            player->LearnTalent(344, 0);
+            player->LearnTalent(344, 1);
+            player->LearnTalent(348, 0);
+            player->LearnTalent(343, 0);
+            player->LearnTalent(343, 1);
+            player->LearnTalent(343, 2);
+            player->LearnTalent(341, 0);
+            player->LearnTalent(341, 1);
+            player->LearnTalent(341, 2);
+            player->LearnTalent(542, 0);
+            player->LearnTalent(542, 1);
+            player->LearnTalent(501, 0);
+            player->LearnTalent(483, 0);
+            player->LearnTalent(483, 1);
+            player->LearnTalent(881, 0);
+            player->LearnTalent(881, 1);
+            player->LearnTalent(461, 0);
+            player->LearnTalent(461, 1);
+            player->LearnTalent(461, 2);
+            player->LearnTalent(541, 0);
+            player->LearnTalent(484, 0);
+            player->LearnTalent(1638, 0);
+            player->LearnTalent(1638, 1);
+            player->LearnTalent(1781, 0);
+            player->LearnTalent(1781, 1);
+            player->LearnTalent(2267, 0);
+            player->LearnTalent(2267, 1);
+            player->LearnTalent(2267, 2);
+            player->LearnTalent(521, 0);
+            player->LearnTalent(1778, 0);
+            player->LearnTalent(1778, 1);
+            player->LearnTalent(1778, 2);
+            player->LearnTalent(1778, 3);
+            player->LearnTalent(1778, 4);
+            player->LearnTalent(1906, 0);
+            player->LearnTalent(1906, 1);
+            player->LearnTalent(1816, 0);
+            player->LearnTalent(1816, 1);
+            player->LearnTalent(1816, 2);
+            player->LearnTalent(1908, 0);
+            player->LearnTalent(1779, 0);
+            player->LearnTalent(1907, 0);
+            player->LearnTalent(1907, 1);
+            player->LearnTalent(1907, 2);
+            player->LearnTalent(1907, 3);
+            player->LearnTalent(1907, 4);
+            player->LearnTalent(1910, 0);
+        }
+        else if (pclass == 7) {
+            player->LearnTalent(563, 0);
+            player->LearnTalent(563, 1);
+            player->LearnTalent(563, 2);
+            player->LearnTalent(563, 3);
+            player->LearnTalent(563, 4);
+            player->LearnTalent(561, 0);
+            player->LearnTalent(561, 1);
+            player->LearnTalent(561, 2);
+            player->LearnTalent(1640, 0);
+            player->LearnTalent(1640, 1);
+            player->LearnTalent(1640, 2);
+            player->LearnTalent(574, 0);
+            player->LearnTalent(565, 0);
+            player->LearnTalent(565, 1);
+            player->LearnTalent(565, 2);
+            player->LearnTalent(565, 3);
+            player->LearnTalent(565, 4);
+            player->LearnTalent(1642, 0);
+            player->LearnTalent(1642, 1);
+            player->LearnTalent(1642, 2);
+            player->LearnTalent(1641, 0);
+            player->LearnTalent(1641, 1);
+            player->LearnTalent(562, 0);
+            player->LearnTalent(1682, 0);
+            player->LearnTalent(1682, 1);
+            player->LearnTalent(1682, 2);
+            player->LearnTalent(721, 0);
+            player->LearnTalent(721, 1);
+            player->LearnTalent(721, 2);
+            player->LearnTalent(721, 3);
+            player->LearnTalent(721, 4);
+            player->LearnTalent(573, 0);
+            player->LearnTalent(2052, 0);
+            player->LearnTalent(2052, 1);
+            player->LearnTalent(2052, 2);
+            player->LearnTalent(2262, 0);
+            player->LearnTalent(2262, 1);
+            player->LearnTalent(2049, 0);
+            player->LearnTalent(2049, 1);
+            player->LearnTalent(1686, 0);
+            player->LearnTalent(1686, 1);
+            player->LearnTalent(1686, 2);
+            player->LearnTalent(2050, 0);
+            player->LearnTalent(2050, 1);
+            player->LearnTalent(2050, 2);
+            player->LearnTalent(1687, 0);
+            player->LearnTalent(2051, 0);
+            player->LearnTalent(2051, 1);
+            player->LearnTalent(2051, 2);
+            player->LearnTalent(2252, 0);
+            player->LearnTalent(2252, 1);
+            player->LearnTalent(2252, 2);
+            player->LearnTalent(2252, 3);
+            player->LearnTalent(2252, 4);
+            player->LearnTalent(2053, 0);
+            player->LearnTalent(2101, 0);
+            player->LearnTalent(2101, 1);
+            player->LearnTalent(614, 0);
+            player->LearnTalent(614, 1);
+            player->LearnTalent(614, 2);
+            player->LearnTalent(609, 0);
+            player->LearnTalent(609, 1);
+            player->LearnTalent(613, 0);
+            player->LearnTalent(613, 1);
+            player->LearnTalent(613, 2);
+            player->LearnTalent(605, 0);
+            player->LearnTalent(605, 1);
+            player->LearnTalent(611, 0);
+            player->LearnTalent(611, 1);
+            player->LearnTalent(611, 2);
+            player->LearnTalent(617, 0);
+        }
+        else if (pclass == 9) {
+            player->LearnTalent(1221, 0);
+            player->LearnTalent(1221, 1);
+            player->LearnTalent(1223, 0);
+            player->LearnTalent(1223, 1);
+            player->LearnTalent(1223, 2);
+            player->LearnTalent(1883, 0);
+            player->LearnTalent(1883, 1);
+            player->LearnTalent(1242, 0);
+            player->LearnTalent(1242, 1);
+            player->LearnTalent(1242, 2);
+            player->LearnTalent(1282, 0);
+            player->LearnTalent(1226, 0);
+            player->LearnTalent(1671, 0);
+            player->LearnTalent(1671, 1);
+            player->LearnTalent(1671, 2);
+            player->LearnTalent(1227, 0);
+            player->LearnTalent(1227, 1);
+            player->LearnTalent(943, 0);
+            player->LearnTalent(943, 1);
+            player->LearnTalent(943, 2);
+            player->LearnTalent(943, 3);
+            player->LearnTalent(943, 4);
+            player->LearnTalent(982, 0);
+            player->LearnTalent(982, 1);
+            player->LearnTalent(941, 0);
+            player->LearnTalent(941, 1);
+            player->LearnTalent(941, 2);
+            player->LearnTalent(963, 0);
+            player->LearnTalent(967, 0);
+            player->LearnTalent(967, 1);
+            player->LearnTalent(967, 2);
+            player->LearnTalent(967, 3);
+            player->LearnTalent(967, 4);
+            player->LearnTalent(985, 0);
+            player->LearnTalent(985, 1);
+            player->LearnTalent(964, 0);
+            player->LearnTalent(964, 1);
+            player->LearnTalent(1817, 0);
+            player->LearnTalent(1817, 1);
+            player->LearnTalent(1817, 2);
+            player->LearnTalent(961, 0);
+            player->LearnTalent(961, 1);
+            player->LearnTalent(961, 2);
+            player->LearnTalent(981, 0);
+            player->LearnTalent(1679, 0);
+            player->LearnTalent(1679, 1);
+            player->LearnTalent(1679, 2);
+            player->LearnTalent(966, 0);
+            player->LearnTalent(966, 1);
+            player->LearnTalent(966, 2);
+            player->LearnTalent(966, 3);
+            player->LearnTalent(966, 4);
+            player->LearnTalent(968, 0);
+            player->LearnTalent(1678, 0);
+            player->LearnTalent(1678, 1);
+            player->LearnTalent(1678, 2);
+            player->LearnTalent(1677, 0);
+            player->LearnTalent(1677, 1);
+            player->LearnTalent(1677, 2);
+            player->LearnTalent(1677, 3);
+            player->LearnTalent(1677, 4);
+            player->LearnTalent(1888, 0);
+            player->LearnTalent(1888, 1);
+            player->LearnTalent(1888, 2);
+            player->LearnTalent(1676, 0);
+            player->LearnTalent(1890, 0);
+            player->LearnTalent(1890, 1);
+            player->LearnTalent(1890, 2);
+            player->LearnTalent(1890, 3);
+            player->LearnTalent(1890, 4);
+            player->LearnTalent(1891, 0);
+        }
+        else if (pclass == 6) {
+            player->LearnTalent(2031, 0);
+            player->LearnTalent(2031, 1);
+            player->LearnTalent(2031, 2);
+            player->LearnTalent(2020, 0);
+            player->LearnTalent(2020, 1);
+            player->LearnTalent(2035, 0);
+            player->LearnTalent(2035, 1);
+            player->LearnTalent(1973, 0);
+            player->LearnTalent(1973, 1);
+            player->LearnTalent(1973, 2);
+            player->LearnTalent(1973, 3);
+            player->LearnTalent(1973, 4);
+            player->LearnTalent(2042, 0);
+            player->LearnTalent(2042, 1);
+            player->LearnTalent(2042, 2);
+            player->LearnTalent(2042, 3);
+            player->LearnTalent(2042, 4);
+            player->LearnTalent(2215, 0);
+            player->LearnTalent(1971, 0);
+            player->LearnTalent(1971, 1);
+            player->LearnTalent(2082, 0);
+            player->LearnTalent(2082, 1);
+            player->LearnTalent(1932, 0);
+            player->LearnTalent(1932, 1);
+            player->LearnTalent(1932, 2);
+            player->LearnTalent(1963, 0);
+            player->LearnTalent(1963, 1);
+            player->LearnTalent(1933, 0);
+            player->LearnTalent(1933, 1);
+            player->LearnTalent(1933, 2);
+            player->LearnTalent(2025, 0);
+            player->LearnTalent(2025, 1);
+            player->LearnTalent(1934, 0);
+            player->LearnTalent(2008, 0);
+            player->LearnTalent(2008, 1);
+            player->LearnTalent(2008, 2);
+            player->LearnTalent(1985, 0);
+            player->LearnTalent(2039, 0);
+            player->LearnTalent(2039, 1);
+            player->LearnTalent(2225, 0);
+            player->LearnTalent(2225, 1);
+            player->LearnTalent(1996, 0);
+            player->LearnTalent(2005, 0);
+            player->LearnTalent(2005, 1);
+            player->LearnTalent(2005, 2);
+            player->LearnTalent(2226, 0);
+            player->LearnTalent(2226, 1);
+            player->LearnTalent(2009, 0);
+            player->LearnTalent(2009, 1);
+            player->LearnTalent(2009, 2);
+            player->LearnTalent(2001, 0);
+            player->LearnTalent(2001, 1);
+            player->LearnTalent(2001, 2);
+            player->LearnTalent(1984, 0);
+            player->LearnTalent(2221, 0);
+            player->LearnTalent(2013, 0);
+            player->LearnTalent(2013, 1);
+            player->LearnTalent(1962, 0);
+            player->LearnTalent(1962, 1);
+            player->LearnTalent(2007, 0);
+            player->LearnTalent(1962, 2);
+            player->LearnTalent(2043, 0);
+            player->LearnTalent(2043, 1);
+            player->LearnTalent(2043, 2);
+            player->LearnTalent(2216, 0);
+            player->LearnTalent(2036, 0);
+            player->LearnTalent(2036, 1);
+            player->LearnTalent(2036, 2);
+            player->LearnTalent(2036, 3);
+            player->LearnTalent(2036, 4);
+            player->LearnTalent(2000, 0);
+        }
+        else if (pclass == 4) {
+            player->LearnTalent(270, 0);
+            player->LearnTalent(270, 1);
+            player->LearnTalent(270, 2);
+            player->LearnTalent(270, 3);
+            player->LearnTalent(270, 4);
+            player->LearnTalent(273, 0);
+            player->LearnTalent(273, 1);
+            player->LearnTalent(273, 2);
+            player->LearnTalent(277, 0);
+            player->LearnTalent(277, 1);
+            player->LearnTalent(277, 2);
+            player->LearnTalent(382, 0);
+            player->LearnTalent(269, 0);
+            player->LearnTalent(269, 1);
+            player->LearnTalent(269, 2);
+            player->LearnTalent(269, 3);
+            player->LearnTalent(269, 4);
+            player->LearnTalent(682, 0);
+            player->LearnTalent(682, 1);
+            player->LearnTalent(682, 2);
+            player->LearnTalent(1721, 0);
+            player->LearnTalent(1721, 1);
+            player->LearnTalent(280, 0);
+            player->LearnTalent(1762, 0);
+            player->LearnTalent(1762, 1);
+            player->LearnTalent(283, 0);
+            player->LearnTalent(283, 1);
+            player->LearnTalent(283, 2);
+            player->LearnTalent(283, 3);
+            player->LearnTalent(283, 4);
+            player->LearnTalent(274, 0);
+            player->LearnTalent(274, 1);
+            player->LearnTalent(2065, 0);
+            player->LearnTalent(2065, 1);
+            player->LearnTalent(281, 0);
+            player->LearnTalent(2069, 0);
+            player->LearnTalent(2069, 1);
+            player->LearnTalent(1718, 0);
+            player->LearnTalent(1718, 1);
+            player->LearnTalent(1718, 2);
+            player->LearnTalent(1715, 0);
+            player->LearnTalent(1715, 1);
+            player->LearnTalent(1715, 2);
+            player->LearnTalent(1719, 0);
+            player->LearnTalent(221, 0);
+            player->LearnTalent(221, 1);
+            player->LearnTalent(221, 2);
+            player->LearnTalent(221, 3);
+            player->LearnTalent(2244, 0);
+            player->LearnTalent(2244, 1);
+            player->LearnTalent(2244, 2);
+            player->LearnTalent(2244, 3);
+            player->LearnTalent(2244, 4);
+            player->LearnTalent(241, 0);
+            player->LearnTalent(241, 1);
+            player->LearnTalent(241, 2);
+            player->LearnTalent(261, 0);
+            player->LearnTalent(261, 1);
+            player->LearnTalent(262, 0);
+            player->LearnTalent(262, 1);
+            player->LearnTalent(244, 0);
+            player->LearnTalent(244, 1);
+            player->LearnTalent(244, 2);
+            player->LearnTalent(247, 0);
+            player->LearnTalent(247, 1);
+            player->LearnTalent(245, 0);
+            player->LearnTalent(245, 1);
+            player->LearnTalent(245, 2);
+            player->LearnTalent(284, 0);
+            player->LearnTalent(1701, 0);
+            player->LearnTalent(1701, 1);
+        }
+        else if (pclass == 2) {
+            player->LearnTalent(1463, 0);
+            player->LearnTalent(1463, 1);
+            player->LearnTalent(1463, 2);
+            player->LearnTalent(1463, 3);
+            player->LearnTalent(1463, 4);
+            player->LearnTalent(1628, 0);
+            player->LearnTalent(1628, 1);
+            player->LearnTalent(2185, 0);
+            player->LearnTalent(2185, 1);
+            player->LearnTalent(2185, 2);
+            player->LearnTalent(2185, 3);
+            player->LearnTalent(2185, 4);
+            player->LearnTalent(1748, 0);
+            player->LearnTalent(1748, 1);
+            player->LearnTalent(1748, 2);
+            player->LearnTalent(1425, 0);
+            player->LearnTalent(1407, 0);
+            player->LearnTalent(1407, 1);
+            player->LearnTalent(1407, 2);
+            player->LearnTalent(1407, 3);
+            player->LearnTalent(1407, 4);
+            player->LearnTalent(1631, 0);
+            player->LearnTalent(1631, 1);
+            player->LearnTalent(1464, 0);
+            player->LearnTalent(1464, 1);
+            player->LearnTalent(1401, 0);
+            player->LearnTalent(1401, 1);
+            player->LearnTalent(1464, 2);
+            player->LearnTalent(1411, 0);
+            player->LearnTalent(1411, 1);
+            player->LearnTalent(1411, 2);
+            player->LearnTalent(1411, 3);
+            player->LearnTalent(1411, 4);
+            player->LearnTalent(1634, 0);
+            player->LearnTalent(1634, 1);
+            player->LearnTalent(1632, 0);
+            player->LearnTalent(1632, 1);
+            player->LearnTalent(1410, 0);
+            player->LearnTalent(1410, 1);
+            player->LearnTalent(1761, 0);
+            player->LearnTalent(1756, 0);
+            player->LearnTalent(1755, 0);
+            player->LearnTalent(1755, 1);
+            player->LearnTalent(1761, 1);
+            player->LearnTalent(1761, 2);
+            player->LearnTalent(1755, 2);
+            player->LearnTalent(1410, 2);
+            player->LearnTalent(2176, 0);
+            player->LearnTalent(2176, 1);
+            player->LearnTalent(1441, 0);
+            player->LearnTalent(1758, 0);
+            player->LearnTalent(1758, 1);
+            player->LearnTalent(1758, 2);
+            player->LearnTalent(1759, 0);
+            player->LearnTalent(1759, 1);
+            player->LearnTalent(1759, 2);
+            player->LearnTalent(2147, 0);
+            player->LearnTalent(2147, 1);
+            player->LearnTalent(1823, 0);
+            player->LearnTalent(2179, 0);
+            player->LearnTalent(2179, 1);
+            player->LearnTalent(2179, 2);
+            player->LearnTalent(2149, 0);
+            player->LearnTalent(2149, 1);
+            player->LearnTalent(2149, 2);
+            player->LearnTalent(1402, 0);
+            player->LearnTalent(1402, 1);
+            player->LearnTalent(1757, 0);
+            player->LearnTalent(1402, 2);
+            player->LearnTalent(1757, 1);
+            player->LearnTalent(2150, 0);
+        }
+        else if (pclass == 8) {
+            player->LearnTalent(74, 0);
+            player->LearnTalent(74, 1);
+            player->LearnTalent(76, 0);
+            player->LearnTalent(76, 1);
+            player->LearnTalent(76, 2);
+            player->LearnTalent(1650, 0);
+            player->LearnTalent(1650, 1);
+            player->LearnTalent(75, 0);
+            player->LearnTalent(75, 1);
+            player->LearnTalent(75, 2);
+            player->LearnTalent(82, 0);
+            player->LearnTalent(82, 1);
+            player->LearnTalent(81, 0);
+            player->LearnTalent(81, 1);
+            player->LearnTalent(81, 2);
+            player->LearnTalent(88, 0);
+            player->LearnTalent(88, 1);
+            player->LearnTalent(2222, 0);
+            player->LearnTalent(2222, 1);
+            player->LearnTalent(2222, 2);
+            player->LearnTalent(38, 0);
+            player->LearnTalent(38, 1);
+            player->LearnTalent(38, 2);
+            player->LearnTalent(37, 0);
+            player->LearnTalent(37, 1);
+            player->LearnTalent(37, 2);
+            player->LearnTalent(62, 0);
+            player->LearnTalent(62, 1);
+            player->LearnTalent(37, 3);
+            player->LearnTalent(37, 4);
+            player->LearnTalent(62, 2);
+            player->LearnTalent(73, 0);
+            player->LearnTalent(73, 1);
+            player->LearnTalent(73, 2);
+            player->LearnTalent(70, 0);
+            player->LearnTalent(70, 1);
+            player->LearnTalent(65, 0);
+            player->LearnTalent(65, 1);
+            player->LearnTalent(65, 2);
+            player->LearnTalent(61, 0);
+            player->LearnTalent(61, 1);
+            player->LearnTalent(61, 2);
+            player->LearnTalent(69, 0);
+            player->LearnTalent(741, 0);
+            player->LearnTalent(741, 1);
+            player->LearnTalent(67, 0);
+            player->LearnTalent(67, 1);
+            player->LearnTalent(67, 2);
+            player->LearnTalent(72, 0);
+            player->LearnTalent(1737, 0);
+            player->LearnTalent(1737, 1);
+            player->LearnTalent(68, 0);
+            player->LearnTalent(68, 1);
+            player->LearnTalent(68, 2);
+            player->LearnTalent(71, 0);
+            player->LearnTalent(2214, 0);
+            player->LearnTalent(2214, 1);
+            player->LearnTalent(1740, 0);
+            player->LearnTalent(1740, 1);
+            player->LearnTalent(1853, 0);
+            player->LearnTalent(1853, 1);
+            player->LearnTalent(1854, 0);
+            player->LearnTalent(1854, 1);
+            player->LearnTalent(1854, 2);
+            player->LearnTalent(1741, 0);
+            player->LearnTalent(1856, 0);
+            player->LearnTalent(1856, 1);
+            player->LearnTalent(1856, 2);
+            player->LearnTalent(1856, 3);
+            player->LearnTalent(1856, 4);
+            player->LearnTalent(1857, 0);
+        }
+        else if (pclass == 11) {
+            player->LearnTalent(796, 0);
+            player->LearnTalent(796, 1);
+            player->LearnTalent(796, 2);
+            player->LearnTalent(796, 3);
+            player->LearnTalent(796, 4);
+            player->LearnTalent(799, 0);
+            player->LearnTalent(799, 1);
+            player->LearnTalent(799, 2);
+            player->LearnTalent(805, 0);
+            player->LearnTalent(805, 1);
+            player->LearnTalent(807, 0);
+            player->LearnTalent(1162, 0);
+            player->LearnTalent(798, 0);
+            player->LearnTalent(798, 1);
+            player->LearnTalent(798, 2);
+            player->LearnTalent(802, 0);
+            player->LearnTalent(802, 1);
+            player->LearnTalent(803, 0);
+            player->LearnTalent(803, 1);
+            player->LearnTalent(803, 2);
+            player->LearnTalent(801, 0);
+            player->LearnTalent(801, 1);
+            player->LearnTalent(797, 0);
+            player->LearnTalent(797, 1);
+            player->LearnTalent(804, 0);
+            player->LearnTalent(1792, 0);
+            player->LearnTalent(1792, 1);
+            player->LearnTalent(808, 0);
+            player->LearnTalent(808, 1);
+            player->LearnTalent(808, 2);
+            player->LearnTalent(1794, 0);
+            player->LearnTalent(1794, 1);
+            player->LearnTalent(808, 3);
+            player->LearnTalent(808, 4);
+            player->LearnTalent(1794, 2);
+            player->LearnTalent(809, 0);
+            player->LearnTalent(1798, 0);
+            player->LearnTalent(1798, 1);
+            player->LearnTalent(1793, 0);
+            player->LearnTalent(1793, 1);
+            player->LearnTalent(1793, 2);
+            player->LearnTalent(1795, 0);
+            player->LearnTalent(1795, 1);
+            player->LearnTalent(1795, 2);
+            player->LearnTalent(1919, 0);
+            player->LearnTalent(1919, 1);
+            player->LearnTalent(1919, 2);
+            player->LearnTalent(1921, 0);
+            player->LearnTalent(1921, 1);
+            player->LearnTalent(1921, 2);
+            player->LearnTalent(1796, 0);
+            player->LearnTalent(1920, 0);
+            player->LearnTalent(1920, 1);
+            player->LearnTalent(1918, 0);
+            player->LearnTalent(1918, 1);
+            player->LearnTalent(1918, 2);
+            player->LearnTalent(1918, 3);
+            player->LearnTalent(1918, 4);
+            player->LearnTalent(2266, 0);
+            player->LearnTalent(1927, 0);
+            player->LearnTalent(822, 0);
+            player->LearnTalent(822, 1);
+            player->LearnTalent(822, 2);
+            player->LearnTalent(822, 3);
+            player->LearnTalent(822, 4);
+            player->LearnTalent(824, 0);
+            player->LearnTalent(824, 1);
+            player->LearnTalent(824, 2);
+            player->LearnTalent(824, 3);
+            player->LearnTalent(824, 4);
+            player->LearnTalent(827, 0);
+        }
+        else if (pclass == 3) {
+            player->LearnTalent(1344, 0);
+            player->LearnTalent(1344, 1);
+            player->LearnTalent(1344, 2);
+            player->LearnTalent(1344, 3);
+            player->LearnTalent(1344, 4);
+            player->LearnTalent(1806, 0);
+            player->LearnTalent(1806, 1);
+            player->LearnTalent(1806, 2);
+            player->LearnTalent(1349, 0);
+            player->LearnTalent(1349, 1);
+            player->LearnTalent(1349, 2);
+            player->LearnTalent(1349, 3);
+            player->LearnTalent(1349, 4);
+            player->LearnTalent(1818, 0);
+            player->LearnTalent(1346, 0);
+            player->LearnTalent(1346, 1);
+            player->LearnTalent(1346, 2);
+            player->LearnTalent(1345, 0);
+            player->LearnTalent(1348, 0);
+            player->LearnTalent(1348, 1);
+            player->LearnTalent(1348, 2);
+            player->LearnTalent(1351, 0);
+            player->LearnTalent(1351, 1);
+            player->LearnTalent(1353, 0);
+            player->LearnTalent(1347, 0);
+            player->LearnTalent(1347, 1);
+            player->LearnTalent(1347, 2);
+            player->LearnTalent(1804, 0);
+            player->LearnTalent(1804, 1);
+            player->LearnTalent(1362, 0);
+            player->LearnTalent(1362, 1);
+            player->LearnTalent(1362, 2);
+            player->LearnTalent(1361, 0);
+            player->LearnTalent(1821, 0);
+            player->LearnTalent(1821, 1);
+            player->LearnTalent(1821, 2);
+            player->LearnTalent(1807, 0);
+            player->LearnTalent(1807, 1);
+            player->LearnTalent(1807, 2);
+            player->LearnTalent(1807, 3);
+            player->LearnTalent(1807, 4);
+            player->LearnTalent(2131, 0);
+            player->LearnTalent(2132, 0);
+            player->LearnTalent(2132, 1);
+            player->LearnTalent(2132, 2);
+            player->LearnTalent(1808, 0);
+            player->LearnTalent(2134, 0);
+            player->LearnTalent(2134, 1);
+            player->LearnTalent(2134, 2);
+            player->LearnTalent(2134, 3);
+            player->LearnTalent(2134, 4);
+            player->LearnTalent(2135, 0);
+            player->LearnTalent(1623, 0);
+            player->LearnTalent(1623, 1);
+            player->LearnTalent(1623, 2);
+            player->LearnTalent(1623, 3);
+            player->LearnTalent(1623, 4);
+            player->LearnTalent(1820, 0);
+            player->LearnTalent(1820, 1);
+            player->LearnTalent(1820, 2);
+            player->LearnTalent(1304, 0);
+            player->LearnTalent(1304, 1);
+            player->LearnTalent(1304, 2);
+            player->LearnTalent(1810, 0);
+            player->LearnTalent(1810, 1);
+            player->LearnTalent(1814, 0);
+            player->LearnTalent(1309, 0);
+            player->LearnTalent(1309, 1);
+            player->LearnTalent(1306, 0);
+            player->LearnTalent(1306, 1);
+            player->LearnTalent(1306, 2);
+        }
+        player->SaveToDB();
+    }
+};
+
+void AddSC_mod_DefaultSpec()
+{
+    new mod_DefaultSpec_WorldScript();
+    new mod_DefaultSpec_PlayerScript();
+}

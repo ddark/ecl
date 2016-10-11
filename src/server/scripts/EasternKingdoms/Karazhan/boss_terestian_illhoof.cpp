@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -61,7 +61,6 @@ enum Creatures
     NPC_DEMONCHAINS             = 17248,
     NPC_FIENDISHIMP             = 17267,
     NPC_PORTAL                  = 17265,
-    NPC_KILREK                  = 17229
 };
 
 
@@ -70,54 +69,43 @@ class npc_kilrek : public CreatureScript
 public:
     npc_kilrek() : CreatureScript("npc_kilrek") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new npc_kilrekAI(creature);
+        return GetInstanceAI<npc_kilrekAI>(creature);
     }
 
     struct npc_kilrekAI : public ScriptedAI
     {
         npc_kilrekAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             instance = creature->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            AmplifyTimer = 2000;
         }
 
         InstanceScript* instance;
 
-        uint64 TerestianGUID;
-
         uint32 AmplifyTimer;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            TerestianGUID = 0;
-            AmplifyTimer = 2000;
+            Initialize();
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override { }
+
+        void JustDied(Unit* /*killer*/) override
         {
-            if (!instance)
-            {
-                ERROR_INST_DATA(me);
-                return;
-            }
+            Creature* Terestian = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_TERESTIAN));
+            if (Terestian && Terestian->IsAlive())
+                DoCast(Terestian, SPELL_BROKEN_PACT, true);
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
-        {
-            if (instance)
-            {
-                uint64 TerestianGUID = instance->GetData64(DATA_TERESTIAN);
-                if (TerestianGUID)
-                {
-                    Unit* Terestian = Unit::GetUnit(*me, TerestianGUID);
-                    if (Terestian && Terestian->IsAlive())
-                        DoCast(Terestian, SPELL_BROKEN_PACT, true);
-                }
-            } else ERROR_INST_DATA(me);
-        }
-
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -141,32 +129,40 @@ class npc_demon_chain : public CreatureScript
 public:
     npc_demon_chain() : CreatureScript("npc_demon_chain") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_demon_chainAI(creature);
     }
 
     struct npc_demon_chainAI : public ScriptedAI
     {
-        npc_demon_chainAI(Creature* creature) : ScriptedAI(creature) {}
-
-        uint64 SacrificeGUID;
-
-        void Reset() OVERRIDE
+        npc_demon_chainAI(Creature* creature) : ScriptedAI(creature)
         {
-            SacrificeGUID = 0;
+            Initialize();
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE {}
-        void AttackStart(Unit* /*who*/) OVERRIDE {}
-        void MoveInLineOfSight(Unit* /*who*/) OVERRIDE {}
+        void Initialize()
+        {
+            SacrificeGUID.Clear();
+        }
+
+        ObjectGuid SacrificeGUID;
+
+        void Reset() override
+        {
+            Initialize();
+        }
+
+        void EnterCombat(Unit* /*who*/) override { }
+        void AttackStart(Unit* /*who*/) override { }
+        void MoveInLineOfSight(Unit* /*who*/) override { }
 
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/) override
         {
             if (SacrificeGUID)
             {
-                Unit* Sacrifice = Unit::GetUnit(*me, SacrificeGUID);
+                Unit* Sacrifice = ObjectAccessor::GetUnit(*me, SacrificeGUID);
                 if (Sacrifice)
                     Sacrifice->RemoveAurasDueToSpell(SPELL_SACRIFICE);
             }
@@ -179,23 +175,23 @@ class npc_fiendish_portal : public CreatureScript
 public:
     npc_fiendish_portal() : CreatureScript("npc_fiendish_portal") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_fiendish_portalAI(creature);
     }
 
     struct npc_fiendish_portalAI : public PassiveAI
     {
-        npc_fiendish_portalAI(Creature* creature) : PassiveAI(creature), summons(me){}
+        npc_fiendish_portalAI(Creature* creature) : PassiveAI(creature), summons(me){ }
 
         SummonList summons;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
             DespawnAllImp();
         }
 
-        void JustSummoned(Creature* summon) OVERRIDE
+        void JustSummoned(Creature* summon) override
         {
             summons.Summon(summon);
             DoZoneInCombat(summon);
@@ -213,27 +209,35 @@ class npc_fiendish_imp : public CreatureScript
 public:
     npc_fiendish_imp() : CreatureScript("npc_fiendish_imp") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_fiendish_impAI(creature);
     }
 
     struct npc_fiendish_impAI : public ScriptedAI
     {
-        npc_fiendish_impAI(Creature* creature) : ScriptedAI(creature) {}
+        npc_fiendish_impAI(Creature* creature) : ScriptedAI(creature)
+        {
+            Initialize();
+        }
+
+        void Initialize()
+        {
+            FireboltTimer = 2000;
+        }
 
         uint32 FireboltTimer;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            FireboltTimer = 2000;
+            Initialize();
 
             me->ApplySpellImmune(0, IMMUNITY_SCHOOL, SPELL_SCHOOL_MASK_FIRE, true);
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE {}
+        void EnterCombat(Unit* /*who*/) override { }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -255,23 +259,34 @@ class boss_terestian_illhoof : public CreatureScript
 public:
     boss_terestian_illhoof() : CreatureScript("boss_terestian_illhoof") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new boss_terestianAI(creature);
+        return GetInstanceAI<boss_terestianAI>(creature);
     }
 
     struct boss_terestianAI : public ScriptedAI
     {
         boss_terestianAI(Creature* creature) : ScriptedAI(creature)
         {
-            for (uint8 i = 0; i < 2; ++i)
-                PortalGUID[i] = 0;
             instance = creature->GetInstanceScript();
+            Initialize();
+        }
+
+        void Initialize()
+        {
+            PortalsCount = 0;
+            SacrificeTimer = 30000;
+            ShadowboltTimer = 5000;
+            SummonTimer = 10000;
+            BerserkTimer = 600000;
+
+            SummonedPortals = false;
+            Berserk = false;
         }
 
         InstanceScript* instance;
 
-        uint64 PortalGUID[2];
+        ObjectGuid PortalGUID[2];
         uint8 PortalsCount;
 
         uint32 SacrificeTimer;
@@ -282,33 +297,25 @@ public:
         bool SummonedPortals;
         bool Berserk;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
             for (uint8 i = 0; i < 2; ++i)
             {
                 if (PortalGUID[i])
                 {
-                    if (Creature* pPortal = Unit::GetCreature(*me, PortalGUID[i]))
+                    if (Creature* pPortal = ObjectAccessor::GetCreature(*me, PortalGUID[i]))
                     {
-                        CAST_AI(npc_fiendish_portal::npc_fiendish_portalAI, pPortal->AI())->DespawnAllImp();
+                        ENSURE_AI(npc_fiendish_portal::npc_fiendish_portalAI, pPortal->AI())->DespawnAllImp();
                         pPortal->DespawnOrUnsummon();
                     }
 
-                    PortalGUID[i] = 0;
+                    PortalGUID[i].Clear();
                 }
             }
 
-            PortalsCount        =     0;
-            SacrificeTimer      = 30000;
-            ShadowboltTimer     =  5000;
-            SummonTimer         = 10000;
-            BerserkTimer        = 600000;
+            Initialize();
 
-            SummonedPortals     = false;
-            Berserk             = false;
-
-            if (instance)
-                instance->SetData(TYPE_TERESTIAN, NOT_STARTED);
+            instance->SetBossState(DATA_TERESTIAN, NOT_STARTED);
 
             me->RemoveAurasDueToSpell(SPELL_BROKEN_PACT);
 
@@ -323,12 +330,12 @@ public:
             else DoCast(me, SPELL_SUMMON_IMP, true);
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         {
             Talk(SAY_AGGRO);
         }
 
-        void JustSummoned(Creature* summoned) OVERRIDE
+        void JustSummoned(Creature* summoned) override
         {
             if (summoned->GetEntry() == NPC_PORTAL)
             {
@@ -343,31 +350,30 @@ public:
             }
         }
 
-        void KilledUnit(Unit* /*victim*/) OVERRIDE
+        void KilledUnit(Unit* /*victim*/) override
         {
             Talk(SAY_SLAY);
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/) override
         {
             for (uint8 i = 0; i < 2; ++i)
             {
                 if (PortalGUID[i])
                 {
-                    if (Creature* pPortal = Unit::GetCreature((*me), PortalGUID[i]))
+                    if (Creature* pPortal = ObjectAccessor::GetCreature((*me), PortalGUID[i]))
                         pPortal->DespawnOrUnsummon();
 
-                    PortalGUID[i] = 0;
+                    PortalGUID[i].Clear();
                 }
             }
 
             Talk(SAY_DEATH);
 
-            if (instance)
-                instance->SetData(TYPE_TERESTIAN, DONE);
+            instance->SetBossState(DATA_TERESTIAN, DONE);
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             if (!UpdateVictim())
                 return;
@@ -382,7 +388,7 @@ public:
 
                     if (Creature* Chains = me->FindNearestCreature(NPC_DEMONCHAINS, 5000))
                     {
-                        CAST_AI(npc_demon_chain::npc_demon_chainAI, Chains->AI())->SacrificeGUID = target->GetGUID();
+                        ENSURE_AI(npc_demon_chain::npc_demon_chainAI, Chains->AI())->SacrificeGUID = target->GetGUID();
                         Chains->CastSpell(Chains, SPELL_DEMON_CHAINS, true);
                         Talk(SAY_SACRIFICE);
                         SacrificeTimer = 30000;
@@ -406,7 +412,7 @@ public:
 
                 if (PortalGUID[0] && PortalGUID[1])
                 {
-                    if (Creature* pPortal = Unit::GetCreature(*me, PortalGUID[urand(0, 1)]))
+                    if (Creature* pPortal = ObjectAccessor::GetCreature(*me, PortalGUID[urand(0, 1)]))
                         pPortal->CastSpell(me->GetVictim(), SPELL_SUMMON_FIENDISIMP, false);
                     SummonTimer = 5000;
                 }

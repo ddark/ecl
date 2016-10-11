@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -47,22 +47,30 @@ class npc_crystalcore_devastator : public CreatureScript
         }
         struct npc_crystalcore_devastatorAI : public ScriptedAI
         {
-            npc_crystalcore_devastatorAI(Creature* creature) : ScriptedAI(creature) {}
+            npc_crystalcore_devastatorAI(Creature* creature) : ScriptedAI(creature)
+            {
+                Initialize();
+            }
 
-            uint32 Knockaway_Timer;
-            uint32 Countercharge_Timer;
-
-            void Reset() OVERRIDE
+            void Initialize()
             {
                 Countercharge_Timer = 9000;
                 Knockaway_Timer = 25000;
             }
 
-            void EnterCombat(Unit* /*who*/) OVERRIDE
+            uint32 Knockaway_Timer;
+            uint32 Countercharge_Timer;
+
+            void Reset() override
+            {
+                Initialize();
+            }
+
+            void EnterCombat(Unit* /*who*/) override
             {
             }
 
-            void UpdateAI(uint32 diff) OVERRIDE
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -100,7 +108,7 @@ class npc_crystalcore_devastator : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const OVERRIDE
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_crystalcore_devastatorAI(creature);
         }

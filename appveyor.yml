@@ -1,0 +1,25 @@
+version: 1.0.{build}
+pull_requests:
+  do_not_increment_build_number: true
+environment:
+  BOOST_ROOT: C:\Libraries\boost_1_59_0
+  OPENSSL_ROOT_DIR: C:\OpenSSL-Win64
+build_script:
+- cmd: >-
+    git submodule init
+    
+    git submodule update
+    
+    md build
+    
+    cd build
+    
+    cmake -G"Visual Studio 14 Win64" -DSCRIPTS=static -DTOOLS=False ..
+    
+    "C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe" /p:Configuration=RelWithDebInfo /p:Platform="X64" /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" "TrinityCore.sln"
+    
+    cd bin\RelWithDebInfo\
+    
+    7z a TrinityCoreWin64VS2015.zip *
+artifacts:
+- path: build\bin\RelWithDebInfo\TrinityCoreWin64VS2015.zip

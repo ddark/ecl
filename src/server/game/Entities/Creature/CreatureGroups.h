@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -20,7 +20,7 @@
 #define _FORMATIONS_H
 
 #include "Define.h"
-#include "UnorderedMap.h"
+#include <unordered_map>
 #include <map>
 
 class Creature;
@@ -32,23 +32,28 @@ struct FormationInfo
     float follow_dist;
     float follow_angle;
     uint8 groupAI;
+    uint32 point_1;
+    uint32 point_2;
 };
 
-typedef UNORDERED_MAP<uint32/*memberDBGUID*/, FormationInfo*>   CreatureGroupInfoType;
+typedef std::unordered_map<uint32/*memberDBGUID*/, FormationInfo*>   CreatureGroupInfoType;
 
-class FormationMgr
+class TC_GAME_API FormationMgr
 {
-    friend class ACE_Singleton<FormationMgr, ACE_Null_Mutex>;
-    public:
+    private:
         FormationMgr() { }
         ~FormationMgr();
+
+    public:
+        static FormationMgr* instance();
+
         void AddCreatureToGroup(uint32 group_id, Creature* creature);
         void RemoveCreatureFromGroup(CreatureGroup* group, Creature* creature);
         void LoadCreatureFormations();
         CreatureGroupInfoType CreatureGroupMap;
 };
 
-class CreatureGroup
+class TC_GAME_API CreatureGroup
 {
     private:
         Creature* m_leader; //Important do not forget sometimes to work with pointers instead synonims :D:D
@@ -60,8 +65,8 @@ class CreatureGroup
 
     public:
         //Group cannot be created empty
-        explicit CreatureGroup(uint32 id) : m_leader(NULL), m_groupID(id), m_Formed(false) {}
-        ~CreatureGroup() {}
+        explicit CreatureGroup(uint32 id) : m_leader(NULL), m_groupID(id), m_Formed(false) { }
+        ~CreatureGroup() { }
 
         Creature* getLeader() const { return m_leader; }
         uint32 GetId() const { return m_groupID; }
@@ -76,6 +81,6 @@ class CreatureGroup
         void MemberAttackStart(Creature* member, Unit* target);
 };
 
-#define sFormationMgr ACE_Singleton<FormationMgr, ACE_Null_Mutex>::instance()
+#define sFormationMgr FormationMgr::instance()
 
 #endif

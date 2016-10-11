@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -27,36 +27,32 @@ EndScriptData */
 #include "InstanceScript.h"
 #include "zulgurub.h"
 
+DoorData const doorData[] =
+{
+    { GO_FORCEFIELD, DATA_ARLOKK, DOOR_TYPE_ROOM },
+    { 0,             0,           DOOR_TYPE_ROOM } // END
+};
+
 class instance_zulgurub : public InstanceMapScript
 {
-    public: instance_zulgurub(): InstanceMapScript(ZGScriptName, 309) {}
+    public: instance_zulgurub(): InstanceMapScript(ZGScriptName, 309) { }
 
         struct instance_zulgurub_InstanceMapScript : public InstanceScript
         {
             instance_zulgurub_InstanceMapScript(Map* map) : InstanceScript(map)
             {
+                SetHeaders(DataHeader);
                 SetBossNumber(EncounterCount);
+                LoadDoorData(doorData);
             }
 
-            void Initialize()
-            {
-                _zealotLorkhanGUID = 0;
-                _zealotZathGUID = 0;
-                _highPriestTekalGUID = 0;
-                _jindoTheHexxerGUID = 0;
-                _vilebranchSpeakerGUID = 0;
-                _arlokkGUID = 0;
-                _goForcefieldGUID = 0;
-                _goGongOfBethekkGUID = 0;
-            }
-
-            bool IsEncounterInProgress() const
+            bool IsEncounterInProgress() const override
             {
                 // not active in Zul'Gurub
                 return false;
             }
 
-            void OnCreatureCreate(Creature* creature)
+            void OnCreatureCreate(Creature* creature) override
             {
                 switch (creature->GetEntry())
                 {
@@ -81,12 +77,12 @@ class instance_zulgurub : public InstanceMapScript
                 }
             }
 
-            void OnGameObjectCreate(GameObject* go)
+            void OnGameObjectCreate(GameObject* go) override
             {
                 switch (go->GetEntry())
                 {
                     case GO_FORCEFIELD:
-                        _goForcefieldGUID = go->GetGUID();
+                        AddDoor(go, true);
                         break;
                     case GO_GONG_OF_BETHEKK:
                         _goGongOfBethekkGUID = go->GetGUID();
@@ -100,7 +96,19 @@ class instance_zulgurub : public InstanceMapScript
                 }
             }
 
-            uint64 GetData64(uint32 uiData) const OVERRIDE
+            void OnGameObjectRemove(GameObject* go) override
+            {
+                switch (go->GetEntry())
+                {
+                    case GO_FORCEFIELD:
+                        AddDoor(go, false);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            ObjectGuid GetGuidData(uint32 uiData) const override
             {
                 switch (uiData)
                 {
@@ -119,73 +127,27 @@ class instance_zulgurub : public InstanceMapScript
                     case NPC_ARLOKK:
                         return _arlokkGUID;
                         break;
-                    case GO_FORCEFIELD:
-                        return _goForcefieldGUID;
-                        break;
                     case GO_GONG_OF_BETHEKK:
                         return _goGongOfBethekkGUID;
                         break;
                 }
-                return 0;
+                return ObjectGuid::Empty;
             }
 
-            std::string GetSaveData()
-            {
-                OUT_SAVE_INST_DATA;
-
-                std::ostringstream saveStream;
-                saveStream << "Z G " << GetBossSaveData();
-
-                OUT_SAVE_INST_DATA_COMPLETE;
-                return saveStream.str();
-            }
-
-            void Load(const char* str)
-            {
-                if (!str)
-                {
-                    OUT_LOAD_INST_DATA_FAIL;
-                    return;
-                }
-
-                OUT_LOAD_INST_DATA(str);
-
-                char dataHead1, dataHead2;
-
-                std::istringstream loadStream(str);
-                loadStream >> dataHead1 >> dataHead2;
-
-                if (dataHead1 == 'Z' && dataHead2 == 'G')
-                {
-                    for (uint32 i = 0; i < EncounterCount; ++i)
-                    {
-                        uint32 tmpState;
-                        loadStream >> tmpState;
-                        if (tmpState == IN_PROGRESS || tmpState > SPECIAL)
-                            tmpState = NOT_STARTED;
-                        SetBossState(i, EncounterState(tmpState));
-                    }
-                }
-                else
-                    OUT_LOAD_INST_DATA_FAIL;
-
-                OUT_LOAD_INST_DATA_COMPLETE;
-            }
         private:
             //If all High Priest bosses were killed. Lorkhan, Zath and Ohgan are added too.
             //Storing Lorkhan, Zath and Thekal because we need to cast on them later. Jindo is needed for healfunction too.
 
-            uint64 _zealotLorkhanGUID;
-            uint64 _zealotZathGUID;
-            uint64 _highPriestTekalGUID;
-            uint64 _jindoTheHexxerGUID;
-            uint64 _vilebranchSpeakerGUID;
-            uint64 _arlokkGUID;
-            uint64 _goForcefieldGUID;
-            uint64 _goGongOfBethekkGUID;
+            ObjectGuid _zealotLorkhanGUID;
+            ObjectGuid _zealotZathGUID;
+            ObjectGuid _highPriestTekalGUID;
+            ObjectGuid _jindoTheHexxerGUID;
+            ObjectGuid _vilebranchSpeakerGUID;
+            ObjectGuid _arlokkGUID;
+            ObjectGuid _goGongOfBethekkGUID;
         };
 
-        InstanceScript* GetInstanceScript(InstanceMap* map) const OVERRIDE
+        InstanceScript* GetInstanceScript(InstanceMap* map) const override
         {
             return new instance_zulgurub_InstanceMapScript(map);
         }

@@ -26,10 +26,10 @@ namespace Movement
 {
     struct Location : public Vector3
     {
-        Location() : orientation(0) {}
-        Location(float x, float y, float z, float o) : Vector3(x, y, z), orientation(o) {}
-        Location(const Vector3& v) : Vector3(v), orientation(0) {}
-        Location(const Vector3& v, float o) : Vector3(v), orientation(o) {}
+        Location() : orientation(0) { }
+        Location(float x, float y, float z, float o) : Vector3(x, y, z), orientation(o) { }
+        Location(const Vector3& v) : Vector3(v), orientation(0) { }
+        Location(const Vector3& v, float o) : Vector3(v), orientation(o) { }
 
         float orientation;
     };
@@ -37,7 +37,7 @@ namespace Movement
     // MoveSpline represents smooth catmullrom or linear curve and point that moves belong it
     // curve can be cyclic - in this case movement will be cyclic
     // point can have vertical acceleration motion componemt(used in fall, parabolic movement)
-    class MoveSpline
+    class TC_GAME_API MoveSpline
     {
     public:
         typedef Spline<int32> MySpline;
@@ -117,7 +117,6 @@ namespace Movement
         bool Finalized() const { return splineflags.done; }
         bool isCyclic() const { return splineflags.cyclic; }
         bool isFalling() const { return splineflags.falling; }
-
         Vector3 FinalDestination() const { return Initialized() ? spline.getPoint(spline.last()) : Vector3(); }
         Vector3 CurrentDestination() const { return Initialized() ? spline.getPoint(point_Idx + 1) : Vector3(); }
         int32 currentPathIdx() const;

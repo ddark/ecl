@@ -17,12 +17,11 @@
  */
 
 #include "MoveSplineFlag.h"
-#include <math.h>
-#include <string>
+#include <cmath>
 
 namespace Movement
 {
-    double gravity = 19.29110527038574;
+    float gravity = static_cast<float>(19.29110527038574);
     UInt32Counter splineIdGen;
 
     /// Velocity bounds that makes fall speed limited
@@ -45,14 +44,14 @@ namespace Movement
             if (path_length >= terminal_safeFall_length)
                 time = (path_length - terminal_safeFall_length) / terminalSafefallVelocity + terminal_safeFall_fallTime;
             else
-                time = sqrtf(2.0f * path_length / gravity);
+                time = std::sqrt(2.0f * path_length / gravity);
         }
         else
         {
             if (path_length >= terminal_length)
                 time = (path_length - terminal_length) / terminalVelocity + terminal_fallTime;
             else
-                time = sqrtf(2.0f * path_length / gravity);
+                time = std::sqrt(2.0f * path_length / gravity);
         }
 
         return time;
@@ -77,7 +76,7 @@ namespace Movement
         {
             result = termVel * (t_passed - terminal_time) +
                 start_velocity * terminal_time +
-                gravity * terminal_time * terminal_time*0.5f;
+                gravity * terminal_time * terminal_time * 0.5f;
         }
         else
             result = t_passed * (start_velocity + t_passed * gravity * 0.5f);

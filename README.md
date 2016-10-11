@@ -1,5 +1,14 @@
-# ![logo](http://www.trinitycore.org/f/public/style_images/1_trinitycore.png) TrinityCore
+# ![logo](https://community.trinitycore.org/public/style_images/1_trinitycore.png) TrinityCore
 
+[![Issue Stats](http://www.issuestats.com/github/TrinityCore/TrinityCore/badge/issue)](http://www.issuestats.com/github/TrinityCore/TrinityCore) [![Issue Stats](http://www.issuestats.com/github/TrinityCore/TrinityCore/badge/pr)](http://www.issuestats.com/github/TrinityCore/TrinityCore) [![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=1310)](https://www.bountysource.com/trackers/1310-trinity-core?utm_source=1310&utm_medium=shield&utm_campaign=TRACKER_BADGE)
+
+## Build Status
+
+6.x | 3.3.5
+:------------: | :------------:
+[![6.x Build Status](https://travis-ci.org/TrinityCore/TrinityCore.svg?branch=6.x)](https://travis-ci.org/TrinityCore/TrinityCore) | [![3.3.5 Build Status](https://travis-ci.org/TrinityCore/TrinityCore.svg?branch=3.3.5)](https://travis-ci.org/TrinityCore/TrinityCore)
+[![6.x Build status](https://ci.appveyor.com/api/projects/status/54d0u1fxe50ad80o/branch/6.x?svg=true)](https://ci.appveyor.com/project/DDuarte/trinitycore/branch/6.x) | [![Build status](https://ci.appveyor.com/api/projects/status/54d0u1fxe50ad80o/branch/3.3.5?svg=true)](https://ci.appveyor.com/project/DDuarte/trinitycore/branch/3.3.5)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/435/badge.svg)](https://scan.coverity.com/projects/435) | [![Coverity Scan Build Status](https://scan.coverity.com/projects/4656/badge.svg)](https://scan.coverity.com/projects/4656)
 
 ## Introduction
 
@@ -18,25 +27,17 @@ make pull requests to our [Github repository](https://github.com/TrinityCore/Tri
 For further information on the TrinityCore project, please visit our project
 website at [TrinityCore.org](http://www.trinitycore.org).
 
-
 ## Requirements
 
-+ Platform: Linux, Windows or Mac
-+ Processor with SSE2 support
-+ ACE ≥ 5.8.3 (included for Windows)
-+ MySQL ≥ 5.1.0 (included for Windows)
-+ CMake ≥ 2.8.0
-+ OpenSSL ≥ 0.9.8o
-+ GCC ≥ 4.3 (Linux only)
-+ MS Visual Studio ≥ 9 (2008) (Windows only)
+
+Software requirements are available in the [wiki](http://www.trinitycore.info/display/tc/Requirements) for
+Windows, Linux and OS X.
 
 
 ## Install
 
-Detailed installation guides are available in the wiki for
-[Windows](http://collab.kpsn.org/display/tc/How-to_Win),
-[Linux](http://collab.kpsn.org/display/tc/How-to_Linux) and
-[Mac OSX](http://collab.kpsn.org/display/tc/How-to_Mac).
+Detailed installation guides are available in the [wiki](http://www.trinitycore.info/display/tc/Installation+Guide) for
+Windows, Linux and OS X.
 
 
 ## Reporting issues
@@ -53,8 +54,9 @@ reports are wasteful and are subject to deletion.
 
 ## Submitting fixes
 
-Fixes are submitted as pull requests via Github. For more information on how to
+C++ fixes are submitted as pull requests via Github. For more information on how to
 properly submit a pull request, read the [how-to: maintain a remote fork](http://www.trinitycore.org/f/topic/6037-howto-maintain-a-remote-fork-for-pull-requests-tortoisegit/).
+For SQL only fixes open a ticket or if a bug report exists for the bug post on existing ticket.
 
 
 ## Copyright

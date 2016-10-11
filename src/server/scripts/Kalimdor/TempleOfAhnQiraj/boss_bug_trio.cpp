@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -32,7 +32,7 @@ enum Spells
     SPELL_CLEAVE       = 26350,
     SPELL_TOXIC_VOLLEY = 25812,
     SPELL_POISON_CLOUD = 38718, //Only Spell with right dmg.
-    SPELL_ENRAGE       = 34624, //Changed cause 25790 is casted on gamers too. Same prob with old explosion of twin emperors.
+    SPELL_ENRAGE       = 34624, //Changed cause 25790 is cast on gamers too. Same prob with old explosion of twin emperors.
 
     SPELL_CHARGE       = 26561,
     SPELL_KNOCKBACK    = 26027,
@@ -46,16 +46,27 @@ class boss_kri : public CreatureScript
 public:
     boss_kri() : CreatureScript("boss_kri") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new boss_kriAI(creature);
+        return GetInstanceAI<boss_kriAI>(creature);
     }
 
     struct boss_kriAI : public ScriptedAI
     {
         boss_kriAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             instance = creature->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            Cleave_Timer = urand(4000, 8000);
+            ToxicVolley_Timer = urand(6000, 12000);
+            Check_Timer = 2000;
+
+            VemDead = false;
+            Death = false;
         }
 
         InstanceScript* instance;
@@ -67,32 +78,23 @@ public:
         bool VemDead;
         bool Death;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            Cleave_Timer = urand(4000, 8000);
-            ToxicVolley_Timer = urand(6000, 12000);
-            Check_Timer = 2000;
-
-            VemDead = false;
-            Death = false;
+            Initialize();
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         {
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/) override
         {
-            if (instance)
-            {
-                if (instance->GetData(DATA_BUG_TRIO_DEATH) < 2)
-                                                                // Unlootable if death
-                    me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
+            if (instance->GetData(DATA_BUG_TRIO_DEATH) < 2)// Unlootable if death
+                me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
 
-                instance->SetData(DATA_BUG_TRIO_DEATH, 1);
-            }
+            instance->SetData(DATA_BUG_TRIO_DEATH, 1);
         }
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -123,7 +125,7 @@ public:
                 //Checking if Vem is dead. If yes we will enrage.
                 if (Check_Timer <= diff)
                 {
-                    if (instance && instance->GetData(DATA_VEMISDEAD))
+                    if (instance->GetData(DATA_VEMISDEAD))
                     {
                         DoCast(me, SPELL_ENRAGE);
                         VemDead = true;
@@ -143,16 +145,26 @@ class boss_vem : public CreatureScript
 public:
     boss_vem() : CreatureScript("boss_vem") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new boss_vemAI(creature);
+        return GetInstanceAI<boss_vemAI>(creature);
     }
 
     struct boss_vemAI : public ScriptedAI
     {
         boss_vemAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             instance = creature->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            Charge_Timer = urand(15000, 27000);
+            KnockBack_Timer = urand(8000, 20000);
+            Enrage_Timer = 120000;
+
+            Enraged = false;
         }
 
         InstanceScript* instance;
@@ -163,32 +175,24 @@ public:
 
         bool Enraged;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            Charge_Timer = urand(15000, 27000);
-            KnockBack_Timer = urand(8000, 20000);
-            Enrage_Timer = 120000;
-
-            Enraged = false;
+            Initialize();
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/) override
         {
-            if (instance)
-            {
-                instance->SetData(DATA_VEM_DEATH, 0);
-                if (instance->GetData(DATA_BUG_TRIO_DEATH) < 2)
-                                                                // Unlootable if death
-                    me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
-                instance->SetData(DATA_BUG_TRIO_DEATH, 1);
-            }
+            instance->SetData(DATA_VEM_DEATH, 0);
+            if (instance->GetData(DATA_BUG_TRIO_DEATH) < 2)// Unlootable if death
+                me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
+            instance->SetData(DATA_BUG_TRIO_DEATH, 1);
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         {
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -236,16 +240,26 @@ class boss_yauj : public CreatureScript
 public:
     boss_yauj() : CreatureScript("boss_yauj") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new boss_yaujAI(creature);
+        return GetInstanceAI<boss_yaujAI>(creature);
     }
 
     struct boss_yaujAI : public ScriptedAI
     {
         boss_yaujAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             instance = creature->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            Heal_Timer = urand(25000, 40000);
+            Fear_Timer = urand(12000, 24000);
+            Check_Timer = 2000;
+
+            VemDead = false;
         }
 
         InstanceScript* instance;
@@ -256,24 +270,16 @@ public:
 
         bool VemDead;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            Heal_Timer = urand(25000, 40000);
-            Fear_Timer = urand(12000, 24000);
-            Check_Timer = 2000;
-
-            VemDead = false;
+            Initialize();
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/) override
         {
-            if (instance)
-            {
-                if (instance->GetData(DATA_BUG_TRIO_DEATH) < 2)
-                                                                // Unlootable if death
-                    me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
-                instance->SetData(DATA_BUG_TRIO_DEATH, 1);
-            }
+            if (instance->GetData(DATA_BUG_TRIO_DEATH) < 2)// Unlootable if death
+                me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
+            instance->SetData(DATA_BUG_TRIO_DEATH, 1);
 
             for (uint8 i = 0; i < 10; ++i)
             {
@@ -285,11 +291,11 @@ public:
             }
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         {
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -306,28 +312,22 @@ public:
             //Casting Heal to other twins or herself.
             if (Heal_Timer <= diff)
             {
-                if (instance)
+                switch (urand(0, 2))
                 {
-                    Unit* pKri = Unit::GetUnit(*me, instance->GetData64(DATA_KRI));
-                    Unit* pVem = Unit::GetUnit(*me, instance->GetData64(DATA_VEM));
-
-                    switch (urand(0, 2))
-                    {
-                        case 0:
-                            if (pKri)
-                                DoCast(pKri, SPELL_HEAL);
-                            break;
-                        case 1:
-                            if (pVem)
-                                DoCast(pVem, SPELL_HEAL);
-                            break;
-                        case 2:
-                            DoCast(me, SPELL_HEAL);
-                            break;
-                    }
+                    case 0:
+                        if (Creature* kri = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_KRI)))
+                            DoCast(kri, SPELL_HEAL);
+                        break;
+                    case 1:
+                        if (Creature* vem = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_VEM)))
+                            DoCast(vem, SPELL_HEAL);
+                        break;
+                    case 2:
+                        DoCast(me, SPELL_HEAL);
+                        break;
                 }
 
-                Heal_Timer = 15000+rand()%15000;
+                Heal_Timer = 15000 + rand32() % 15000;
             } else Heal_Timer -= diff;
 
             //Checking if Vem is dead. If yes we will enrage.
@@ -335,13 +335,10 @@ public:
             {
                 if (!VemDead)
                 {
-                    if (instance)
+                    if (instance->GetData(DATA_VEMISDEAD))
                     {
-                        if (instance->GetData(DATA_VEMISDEAD))
-                        {
-                            DoCast(me, SPELL_ENRAGE);
-                            VemDead = true;
-                        }
+                        DoCast(me, SPELL_ENRAGE);
+                        VemDead = true;
                     }
                 }
                 Check_Timer = 2000;

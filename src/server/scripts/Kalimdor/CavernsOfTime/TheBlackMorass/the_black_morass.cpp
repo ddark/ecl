@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -68,16 +68,26 @@ class npc_medivh_bm : public CreatureScript
 public:
     npc_medivh_bm() : CreatureScript("npc_medivh_bm") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new npc_medivh_bmAI(creature);
+        return GetInstanceAI<npc_medivh_bmAI>(creature);
     }
 
     struct npc_medivh_bmAI : public ScriptedAI
     {
         npc_medivh_bmAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             instance = creature->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            SpellCorrupt_Timer = 0;
+            Check_Timer = 0;
+            Life75 = true;
+            Life50 = true;
+            Life25 = true;
         }
 
         InstanceScript* instance;
@@ -89,12 +99,9 @@ public:
         bool Life50;
         bool Life25;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            SpellCorrupt_Timer = 0;
-
-            if (!instance)
-                return;
+            Initialize();
 
             if (instance->GetData(TYPE_MEDIVH) == IN_PROGRESS)
                 DoCast(me, SPELL_CHANNEL, true);
@@ -104,12 +111,8 @@ public:
             DoCast(me, SPELL_PORTAL_RUNE, true);
         }
 
-        void MoveInLineOfSight(Unit* who) OVERRIDE
-
+        void MoveInLineOfSight(Unit* who) override
         {
-            if (!instance)
-                return;
-
             if (who->GetTypeId() == TYPEID_PLAYER && me->IsWithinDistInMap(who, 10.0f))
             {
                 if (instance->GetData(TYPE_MEDIVH) == IN_PROGRESS || instance->GetData(TYPE_MEDIVH) == DONE)
@@ -139,17 +142,17 @@ public:
             }
         }
 
-        void AttackStart(Unit* /*who*/) OVERRIDE
+        void AttackStart(Unit* /*who*/) override
         {
-            //if (instance && instance->GetData(TYPE_MEDIVH) == IN_PROGRESS)
-            //return;
+            //if (instance->GetData(TYPE_MEDIVH) == IN_PROGRESS)
+            //    return;
 
             //ScriptedAI::AttackStart(who);
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE {}
+        void EnterCombat(Unit* /*who*/) override { }
 
-        void SpellHit(Unit* /*caster*/, const SpellInfo* spell) OVERRIDE
+        void SpellHit(Unit* /*caster*/, const SpellInfo* spell) override
         {
             if (SpellCorrupt_Timer)
                 return;
@@ -161,7 +164,7 @@ public:
                 SpellCorrupt_Timer = 3000;
         }
 
-        void JustDied(Unit* killer) OVERRIDE
+        void JustDied(Unit* killer) override
         {
             if (killer->GetEntry() == me->GetEntry())
                 return;
@@ -169,11 +172,8 @@ public:
             Talk(SAY_DEATH);
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
-            if (!instance)
-                return;
-
             if (SpellCorrupt_Timer)
             {
                 if (SpellCorrupt_Timer <= diff)
@@ -262,35 +262,37 @@ class npc_time_rift : public CreatureScript
 public:
     npc_time_rift() : CreatureScript("npc_time_rift") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new npc_time_riftAI(creature);
+        return GetInstanceAI<npc_time_riftAI>(creature);
     }
 
     struct npc_time_riftAI : public ScriptedAI
     {
         npc_time_riftAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             instance = creature->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            TimeRiftWave_Timer = 15000;
+            mRiftWaveCount = 0;
+            mWaveId = 0;
         }
 
         InstanceScript* instance;
 
         uint32 TimeRiftWave_Timer;
         uint8 mRiftWaveCount;
-        uint8 mPortalCount;
         uint8 mWaveId;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
+            Initialize();
 
-            TimeRiftWave_Timer = 15000;
-            mRiftWaveCount = 0;
-
-            if (!instance)
-                return;
-
-            mPortalCount = instance->GetData(DATA_PORTAL_COUNT);
+            uint8 mPortalCount = instance->GetData(DATA_PORTAL_COUNT);
 
             if (mPortalCount < 6)
                 mWaveId = 0;
@@ -299,28 +301,27 @@ public:
             else mWaveId = 1;
 
         }
-        void EnterCombat(Unit* /*who*/) OVERRIDE {}
+        void EnterCombat(Unit* /*who*/) override { }
 
         void DoSummonAtRift(uint32 creature_entry)
         {
             if (!creature_entry)
                 return;
 
-            if (instance && instance->GetData(TYPE_MEDIVH) != IN_PROGRESS)
+            if (instance->GetData(TYPE_MEDIVH) != IN_PROGRESS)
             {
                 me->InterruptNonMeleeSpells(true);
                 me->RemoveAllAuras();
                 return;
             }
 
-            Position pos;
-            me->GetRandomNearPosition(pos, 10.0f);
+            Position pos = me->GetRandomNearPosition(10.0f);
 
             //normalize Z-level if we can, if rift is not at ground level.
             pos.m_positionZ = std::max(me->GetMap()->GetHeight(pos.m_positionX, pos.m_positionY, MAX_HEIGHT), me->GetMap()->GetWaterLevel(pos.m_positionX, pos.m_positionY));
 
             if (Unit* Summon = DoSummon(creature_entry, pos, 30000, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT))
-                if (Unit* temp = Unit::GetUnit(*me, instance ? instance->GetData64(DATA_MEDIVH) : 0))
+                if (Unit* temp = ObjectAccessor::GetUnit(*me, instance->GetGuidData(DATA_MEDIVH)))
                     Summon->AddThreat(temp, 0.0f);
         }
 
@@ -332,7 +333,7 @@ public:
             uint32 entry = 0;
 
             entry = PortalWaves[mWaveId].PortalMob[mRiftWaveCount];
-            TC_LOG_DEBUG(LOG_FILTER_TSCR, "npc_time_rift: summoning wave Creature (Wave %u, Entry %u).", mRiftWaveCount, entry);
+            TC_LOG_DEBUG("scripts", "npc_time_rift: summoning wave Creature (Wave %u, Entry %u).", mRiftWaveCount, entry);
 
             ++mRiftWaveCount;
 
@@ -343,21 +344,18 @@ public:
             } else DoSummonAtRift(entry);
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
-            if (!instance)
-                return;
-
             if (TimeRiftWave_Timer <= diff)
             {
                 DoSelectSummon();
                 TimeRiftWave_Timer = 15000;
             } else TimeRiftWave_Timer -= diff;
 
-            if (me->IsNonMeleeSpellCasted(false))
+            if (me->IsNonMeleeSpellCast(false))
                 return;
 
-            TC_LOG_DEBUG(LOG_FILTER_TSCR, "npc_time_rift: not casting anylonger, i need to die.");
+            TC_LOG_DEBUG("scripts", "npc_time_rift: not casting anylonger, i need to die.");
             me->setDeathState(JUST_DIED);
 
             if (instance->GetData(TYPE_RIFT) == IN_PROGRESS)
@@ -380,36 +378,36 @@ class npc_saat : public CreatureScript
 public:
     npc_saat() : CreatureScript("npc_saat") { }
 
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) OVERRIDE
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override
     {
-        player->PlayerTalkClass->ClearMenus();
+        ClearGossipMenuFor(player);
         if (action == GOSSIP_ACTION_INFO_DEF+1)
         {
-            player->CLOSE_GOSSIP_MENU();
+            CloseGossipMenuFor(player);
             creature->CastSpell(player, SPELL_CHRONO_BEACON, false);
         }
         return true;
     }
 
-    bool OnGossipHello(Player* player, Creature* creature) OVERRIDE
+    bool OnGossipHello(Player* player, Creature* creature) override
     {
         if (creature->IsQuestGiver())
             player->PrepareQuestMenu(creature->GetGUID());
 
         if (player->GetQuestStatus(QUEST_OPENING_PORTAL) == QUEST_STATUS_INCOMPLETE && !player->HasItemCount(ITEM_CHRONO_BEACON))
         {
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_OBTAIN, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
-            player->SEND_GOSSIP_MENU(10000, creature->GetGUID());
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_OBTAIN, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+            SendGossipMenuFor(player, 10000, creature->GetGUID());
             return true;
         }
         else if (player->GetQuestRewardStatus(QUEST_OPENING_PORTAL) && !player->HasItemCount(ITEM_CHRONO_BEACON))
         {
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_OBTAIN, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
-            player->SEND_GOSSIP_MENU(10001, creature->GetGUID());
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_OBTAIN, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+            SendGossipMenuFor(player, 10001, creature->GetGUID());
             return true;
         }
 
-        player->SEND_GOSSIP_MENU(10002, creature->GetGUID());
+        SendGossipMenuFor(player, 10002, creature->GetGUID());
         return true;
     }
 

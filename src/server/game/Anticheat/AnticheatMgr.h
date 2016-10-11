@@ -1,98 +1,136 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+* Copyright (C) 2011-2016 TrinityCore <http://www.trinitycore.org/>
+*
+* This program is free software; you can redistribute it and/or modify it
+* under the terms of the GNU General Public License as published by the
+* Free Software Foundation; either version 2 of the License, or (at your
+* option) any later version.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+* more details.
+*
+* You should have received a copy of the GNU General Public License along
+* with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #ifndef SC_ACMGR_H
 #define SC_ACMGR_H
 
-#include <ace/Singleton.h>
+#include "AnticheatData.h"
 #include "Common.h"
 #include "SharedDefines.h"
-#include "ScriptPCH.h"
-#include "AnticheatData.h"
-#include "Chat.h"
+#include "ScriptMgr.h"
+#include "Player.h"
 
-class Player;
-class AnticheatData;
-
-enum ReportTypes
-{
-    SPEED_HACK_REPORT = 0,
-    FLY_HACK_REPORT,
-    WALK_WATER_HACK_REPORT,
-    JUMP_HACK_REPORT,
-    TELEPORT_PLANE_HACK_REPORT,
-    CLIMB_HACK_REPORT,
-
-   // MAX_REPORT_TYPES
-};
+class ChatHandler;
+class AnticheatCheck;
 
 enum DetectionTypes
 {
-    SPEED_HACK_DETECTION            = 1,
-    FLY_HACK_DETECTION              = 2,
-    WALK_WATER_HACK_DETECTION       = 4,
-    JUMP_HACK_DETECTION             = 8,
-    TELEPORT_PLANE_HACK_DETECTION   = 16,
-    CLIMB_HACK_DETECTION            = 32
+    SPEED_HACK_DETECTION            = 0x01,
+    FLY_HACK_DETECTION              = 0x02,
+    WALK_WATER_HACK_DETECTION       = 0x04,
+    JUMP_HACK_DETECTION             = 0x08,
+    TELEPORT_PLANE_HACK_DETECTION   = 0x10,
+    CLIMB_HACK_DETECTION            = 0x20
 };
 
-// GUIDLow is the key.
-typedef std::map<uint32, AnticheatData> AnticheatPlayersDataMap;
+typedef std::unordered_map<ObjectGuid, AnticheatData> AnticheatPlayersDataMap;
 
 class AnticheatMgr
 {
-    friend class ACE_Singleton<AnticheatMgr, ACE_Null_Mutex>;
+    friend class AnticheatCheck;
+
     AnticheatMgr();
     ~AnticheatMgr();
 
     public:
+        static AnticheatMgr* instance();
 
-        void StartHackDetection(Player* player, MovementInfo movementInfo, uint32 opcode);
-        void DeletePlayerReport(Player* player, bool login);
-        void DeletePlayerData(Player* player);
-        void CreatePlayerData(Player* player);
-        void SavePlayerData(Player* player);
+        void StartHackDetection(Player* player, MovementInfo const& movementInfo, uint16 opcode);
 
-        void StartScripts();
+        void HandlePlayerLogin(Player* player, PreparedQueryResult result);
+        void HandlePlayerLogout(ObjectGuid const& guid);
+        void SavePlayerData(ObjectGuid const& guid, SQLTransaction& trans);
 
-        void HandlePlayerLogin(Player* player);
-        void HandlePlayerLogout(Player* player);
+        inline uint32 GetTotalReports(ObjectGuid const& guid) { return m_playerMap[guid].GetTotalReports(); }
+        inline float GetAverage(ObjectGuid const& guid) { return m_playerMap[guid].GetAverage(); }
+        inline uint32 GetTypeReports(ObjectGuid const& guid, ReportTypes type) { return m_playerMap[guid].GetTypeReports(type); }
 
-        uint32 GetTotalReports(uint32 lowGUID);
-        float GetAverage(uint32 lowGUID);
-        uint32 GetTypeReports(uint32 lowGUID, uint8 type);
-
-        void AnticheatGlobalCommand(ChatHandler* handler);
-        void AnticheatDeleteCommand(uint32 guid);
+        // use sparingly, triggers a global anticheat save to DB, requires to lock player map and does some synchronous queries
+        bool AnticheatGlobalCommand(ChatHandler* handler);
 
         void ResetDailyReportStates();
+
+        void LoadSettings();
+
     private:
-        void SpeedHackDetection(Player* player, MovementInfo movementInfo);
-        void FlyHackDetection(Player* player, MovementInfo movementInfo);
-        void WalkOnWaterHackDetection(Player* player, MovementInfo movementInfo);
-        void JumpHackDetection(Player* player, MovementInfo movementInfo,uint32 opcode);
-        void TeleportPlaneHackDetection(Player* player, MovementInfo);
-        void ClimbHackDetection(Player* player,MovementInfo movementInfo,uint32 opcode);
+        AnticheatPlayersDataMap m_playerMap;
+        std::vector<AnticheatCheck*> m_checks;
 
-        void BuildReport(Player* player,uint8 reportType);
-
-        bool MustCheckTempReports(uint8 type);
-
-        AnticheatPlayersDataMap m_Players;                        ///< Player data
+        bool m_enabled;
 };
 
-#define sAnticheatMgr ACE_Singleton<AnticheatMgr, ACE_Null_Mutex>::instance()
+#define sAnticheatMgr AnticheatMgr::instance()
+
+class AnticheatCheck
+{
+    public:
+        virtual ~AnticheatCheck() { }
+        virtual bool OnCheck(Player* player, AnticheatData* playerData, MovementInfo const& movementInfo, uint16 opcode = 0) const = 0;
+
+        virtual void HackReport(Player* player, AnticheatData* playerData) const = 0;
+};
+
+template <ReportTypes type>
+class AnticheatCheckBase : public AnticheatCheck
+{
+    public:
+        bool OnCheck(Player* /*player*/, AnticheatData* /*playerData*/, MovementInfo const& /*movementInfo*/, uint16 /*opcode = 0*/) const override
+        {
+            ASSERT(false && "AnticheatCheckBase::OnCheck called directly");
+            return false; // prevent some compilers from warning
+        }
+
+        void HackReport(Player* player, AnticheatData* playerData) const final override;
+};
+
+class SpeedHackCheck : public AnticheatCheckBase<REPORT_TYPE_SPEED>
+{
+    public:
+        bool OnCheck(Player* player, AnticheatData* playerData, MovementInfo const& movementInfo, uint16 opcode = 0) const override;
+};
+
+class FlyHackCheck : public AnticheatCheckBase<REPORT_TYPE_FLY>
+{
+    public:
+        bool OnCheck(Player* player, AnticheatData* playerData, MovementInfo const& movementInfo, uint16 opcode = 0) const override;
+};
+
+class WalkOnWaterCheck : public AnticheatCheckBase<REPORT_TYPE_WATERWALK>
+{
+    public:
+        bool OnCheck(Player* player, AnticheatData* playerData, MovementInfo const& movementInfo, uint16 opcode = 0) const override;
+};
+
+class JumpHackCheck : public AnticheatCheckBase<REPORT_TYPE_JUMP>
+{
+    public:
+        bool OnCheck(Player* player, AnticheatData* playerData, MovementInfo const& movementInfo, uint16 opcode = 0) const override;
+};
+
+class TeleportPlaneCheck : public AnticheatCheckBase<REPORT_TYPE_TELEPORT_PLANE>
+{
+    public:
+        bool OnCheck(Player* player, AnticheatData* playerData, MovementInfo const& movementInfo, uint16 opcode = 0) const override;
+};
+
+class ClimbHackCheck : public AnticheatCheckBase<REPORT_TYPE_CLIMB>
+{
+    public:
+        bool OnCheck(Player* player, AnticheatData* playerData, MovementInfo const& movementInfo, uint16 opcode = 0) const override;
+};
 
 #endif

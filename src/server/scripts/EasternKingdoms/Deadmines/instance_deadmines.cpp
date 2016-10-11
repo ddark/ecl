@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2008 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -28,23 +28,18 @@ EndScriptData */
 #include "deadmines.h"
 #include "TemporarySummon.h"
 #include "WorldPacket.h"
-#include "Opcodes.h"
 
 enum Sounds
 {
     SOUND_CANNONFIRE                                     = 1400,
-    SOUND_DESTROYDOOR                                    = 3079,
-    SOUND_MR_SMITE_ALARM1                                = 5775,
-    SOUND_MR_SMITE_ALARM2                                = 5777
+    SOUND_DESTROYDOOR                                    = 3079
 };
-
-#define SAY_MR_SMITE_ALARM1 "You there, check out that noise!"
-#define SAY_MR_SMITE_ALARM2 "We're under attack! A vast, ye swabs! Repel the invaders!"
 
 enum Misc
 {
     DATA_CANNON_BLAST_TIMER                                = 3000,
-    DATA_PIRATES_DELAY_TIMER                               = 1000
+    DATA_PIRATES_DELAY_TIMER                               = 1000,
+    DATA_SMITE_ALARM_DELAY_TIMER                           = 5000
 };
 
 class instance_deadmines : public InstanceMapScript
@@ -57,36 +52,32 @@ class instance_deadmines : public InstanceMapScript
 
         struct instance_deadmines_InstanceMapScript : public InstanceScript
         {
-            instance_deadmines_InstanceMapScript(Map* map) : InstanceScript(map) {}
+            instance_deadmines_InstanceMapScript(Map* map) : InstanceScript(map)
+            {
+                SetHeaders(DataHeader);
 
-            uint64 FactoryDoorGUID;
-            uint64 IronCladDoorGUID;
-            uint64 DefiasCannonGUID;
-            uint64 DoorLeverGUID;
-            uint64 DefiasPirate1GUID;
-            uint64 DefiasPirate2GUID;
-            uint64 DefiasCompanionGUID;
+                State = CANNON_NOT_USED;
+                CannonBlast_Timer = 0;
+                PiratesDelay_Timer = 0;
+                SmiteAlarmDelay_Timer = 0;
+            }
+
+            ObjectGuid FactoryDoorGUID;
+            ObjectGuid IronCladDoorGUID;
+            ObjectGuid DefiasCannonGUID;
+            ObjectGuid DoorLeverGUID;
+            ObjectGuid DefiasPirate1GUID;
+            ObjectGuid DefiasPirate2GUID;
+            ObjectGuid DefiasCompanionGUID;
+            ObjectGuid MrSmiteGUID;
 
             uint32 State;
             uint32 CannonBlast_Timer;
             uint32 PiratesDelay_Timer;
-            uint64 uiSmiteChestGUID;
+            uint32 SmiteAlarmDelay_Timer;
+            ObjectGuid uiSmiteChestGUID;
 
-            void Initialize()
-            {
-                FactoryDoorGUID = 0;
-                IronCladDoorGUID = 0;
-                DefiasCannonGUID = 0;
-                DoorLeverGUID = 0;
-                DefiasPirate1GUID = 0;
-                DefiasPirate2GUID = 0;
-                DefiasCompanionGUID = 0;
-
-                State = CANNON_NOT_USED;
-                uiSmiteChestGUID = 0;
-            }
-
-            virtual void Update(uint32 diff)
+            virtual void Update(uint32 diff) override
             {
                 if (!IronCladDoorGUID || !DefiasCannonGUID || !DoorLeverGUID)
                     return;
@@ -99,22 +90,20 @@ class instance_deadmines : public InstanceMapScript
                 {
                     case CANNON_GUNPOWDER_USED:
                         CannonBlast_Timer = DATA_CANNON_BLAST_TIMER;
-                        // it's a hack - Mr. Smite should do that but his too far away
-                        pIronCladDoor->SetName("Mr. Smite");
-                        pIronCladDoor->MonsterYell(SAY_MR_SMITE_ALARM1, LANG_UNIVERSAL, 0);
-                        DoPlaySound(pIronCladDoor, SOUND_MR_SMITE_ALARM1);
                         State = CANNON_BLAST_INITIATED;
                         break;
                     case CANNON_BLAST_INITIATED:
                         PiratesDelay_Timer = DATA_PIRATES_DELAY_TIMER;
+                        SmiteAlarmDelay_Timer = DATA_SMITE_ALARM_DELAY_TIMER;
                         if (CannonBlast_Timer <= diff)
                         {
                             SummonCreatures();
                             ShootCannon();
                             BlastOutDoor();
                             LeverStucked();
-                            pIronCladDoor->MonsterYell(SAY_MR_SMITE_ALARM2, LANG_UNIVERSAL, 0);
-                            DoPlaySound(pIronCladDoor, SOUND_MR_SMITE_ALARM2);
+                            instance->LoadGrid(-22.8f, -797.24f); // Loads Mr. Smite's grid.
+                            if (Creature* smite = instance->GetCreature(MrSmiteGUID)) // goes off when door blows up
+                                smite->AI()->Talk(SAY_ALARM1);
                             State = PIRATES_ATTACK;
                         } else CannonBlast_Timer -= diff;
                         break;
@@ -122,8 +111,16 @@ class instance_deadmines : public InstanceMapScript
                         if (PiratesDelay_Timer <= diff)
                         {
                             MoveCreaturesInside();
-                            State = EVENT_DONE;
+                            State = SMITE_ALARMED;
                         } else PiratesDelay_Timer -= diff;
+                        break;
+                    case SMITE_ALARMED:
+                        if (SmiteAlarmDelay_Timer <= diff)
+                        {
+                            if (Creature* smite = instance->GetCreature(MrSmiteGUID))
+                                smite->AI()->Talk(SAY_ALARM2);
+                            State = EVENT_DONE;
+                        } else SmiteAlarmDelay_Timer -= diff;
                         break;
                 }
             }
@@ -169,7 +166,7 @@ class instance_deadmines : public InstanceMapScript
                 if (GameObject* pDefiasCannon = instance->GetGameObject(DefiasCannonGUID))
                 {
                     pDefiasCannon->SetGoState(GO_STATE_ACTIVE);
-                    DoPlaySound(pDefiasCannon, SOUND_CANNONFIRE);
+                    pDefiasCannon->PlayDirectSound(SOUND_CANNONFIRE);
                 }
             }
 
@@ -178,7 +175,7 @@ class instance_deadmines : public InstanceMapScript
                 if (GameObject* pIronCladDoor = instance->GetGameObject(IronCladDoorGUID))
                 {
                     pIronCladDoor->SetGoState(GO_STATE_ACTIVE_ALTERNATIVE);
-                    DoPlaySound(pIronCladDoor, SOUND_DESTROYDOOR);
+                    pIronCladDoor->PlayDirectSound(SOUND_DESTROYDOOR);
                 }
             }
 
@@ -188,7 +185,19 @@ class instance_deadmines : public InstanceMapScript
                     pDoorLever->SetUInt32Value(GAMEOBJECT_FLAGS, 4);
             }
 
-            void OnGameObjectCreate(GameObject* go)
+            void OnCreatureCreate(Creature* creature) override
+            {
+                switch (creature->GetEntry())
+                {
+                    case NPC_MR_SMITE:
+                        MrSmiteGUID = creature->GetGUID();
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            void OnGameObjectCreate(GameObject* go) override
             {
                 switch (go->GetEntry())
                 {
@@ -200,7 +209,7 @@ class instance_deadmines : public InstanceMapScript
                 }
             }
 
-            void SetData(uint32 type, uint32 data) OVERRIDE
+            void SetData(uint32 type, uint32 data) override
             {
                 switch (type)
                 {
@@ -216,7 +225,7 @@ class instance_deadmines : public InstanceMapScript
                 }
             }
 
-            uint32 GetData(uint32 type) const OVERRIDE
+            uint32 GetData(uint32 type) const override
             {
                 switch (type)
                 {
@@ -227,7 +236,7 @@ class instance_deadmines : public InstanceMapScript
                 return 0;
             }
 
-            uint64 GetData64(uint32 data) const OVERRIDE
+            ObjectGuid GetGuidData(uint32 data) const override
             {
                 switch (data)
                 {
@@ -235,18 +244,11 @@ class instance_deadmines : public InstanceMapScript
                         return uiSmiteChestGUID;
                 }
 
-                return 0;
-            }
-
-            void DoPlaySound(GameObject* unit, uint32 sound)
-            {
-                WorldPacket data(SMSG_PLAY_SOUND, 4);
-                data << uint32(sound);
-                unit->SendMessageToSet(&data, false);
+                return ObjectGuid::Empty;
             }
         };
 
-        InstanceScript* GetInstanceScript(InstanceMap* map) const OVERRIDE
+        InstanceScript* GetInstanceScript(InstanceMap* map) const override
         {
             return new instance_deadmines_InstanceMapScript(map);
         }

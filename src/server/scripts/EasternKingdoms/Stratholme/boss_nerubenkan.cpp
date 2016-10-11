@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -40,16 +40,25 @@ class boss_nerubenkan : public CreatureScript
 public:
     boss_nerubenkan() : CreatureScript("boss_nerubenkan") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new boss_nerubenkanAI(creature);
+        return GetInstanceAI<boss_nerubenkanAI>(creature);
     }
 
     struct boss_nerubenkanAI : public ScriptedAI
     {
         boss_nerubenkanAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             instance = me->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            CryptScarabs_Timer = 3000;
+            EncasingWebs_Timer = 7000;
+            PierceArmor_Timer = 19000;
+            RaiseUndeadScarab_Timer = 3000;
         }
 
         InstanceScript* instance;
@@ -59,22 +68,18 @@ public:
         uint32 CryptScarabs_Timer;
         uint32 RaiseUndeadScarab_Timer;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            CryptScarabs_Timer = 3000;
-            EncasingWebs_Timer = 7000;
-            PierceArmor_Timer = 19000;
-            RaiseUndeadScarab_Timer = 3000;
+            Initialize();
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         {
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/) override
         {
-            if (instance)
-                instance->SetData(TYPE_NERUB, IN_PROGRESS);
+            instance->SetData(TYPE_NERUB, IN_PROGRESS);
         }
 
         void RaiseUndeadScarab(Unit* victim)
@@ -84,7 +89,7 @@ public:
                     pUndeadScarab->AI()->AttackStart(victim);
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             if (!UpdateVictim())
                 return;

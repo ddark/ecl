@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,6 +17,7 @@
 
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
+#include "SpellScript.h"
 #include "vault_of_archavon.h"
 
 enum Emotes
@@ -27,9 +28,12 @@ enum Emotes
 
 enum Spells
 {
-
     // Spells Archavon
     SPELL_ROCK_SHARDS           = 58678,
+    SPELL_ROCK_SHARDS_VISUAL_L  = 58689,
+    SPELL_ROCK_SHARDS_VISUAL_R  = 58692,
+    SPELL_ROCK_SHARDS_DAMAGE_L  = 58695,
+    SPELL_ROCK_SHARDS_DAMAGE_R  = 58696,
     SPELL_CRUSHING_LEAP         = 58960,
     SPELL_STOMP                 = 58663,
     SPELL_IMPALE                = 58666,
@@ -72,7 +76,7 @@ class boss_archavon : public CreatureScript
             {
             }
 
-            void EnterCombat(Unit* /*who*/) OVERRIDE
+            void EnterCombat(Unit* /*who*/) override
             {
                 events.ScheduleEvent(EVENT_ROCK_SHARDS, 15000);
                 events.ScheduleEvent(EVENT_CHOKING_CLOUD, 30000);
@@ -83,7 +87,7 @@ class boss_archavon : public CreatureScript
             }
 
             // Below UpdateAI may need review/debug.
-            void UpdateAI(uint32 diff) OVERRIDE
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -111,6 +115,7 @@ class boss_archavon : public CreatureScript
                             DoCastVictim(SPELL_STOMP);
                             events.ScheduleEvent(EVENT_IMPALE, 3000);
                             events.ScheduleEvent(EVENT_STOMP, 45000);
+                            Talk(EMOTE_LEAP, me->GetVictim());
                             break;
                         case EVENT_IMPALE:
                             DoCastVictim(SPELL_IMPALE);
@@ -122,13 +127,16 @@ class boss_archavon : public CreatureScript
                         default:
                             break;
                     }
+
+                    if (me->HasUnitState(UNIT_STATE_CASTING))
+                        return;
                 }
 
                 DoMeleeAttackIfReady();
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const OVERRIDE
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_archavonAI(creature);
         }
@@ -150,7 +158,7 @@ class npc_archavon_warder : public CreatureScript
 
             EventMap events;
 
-            void Reset() OVERRIDE
+            void Reset() override
             {
                 events.Reset();
                 events.ScheduleEvent(EVENT_ROCK_SHOWER, 2000);
@@ -158,12 +166,12 @@ class npc_archavon_warder : public CreatureScript
                 events.ScheduleEvent(EVENT_WHIRL, 7500);
             }
 
-            void EnterCombat(Unit* /*who*/) OVERRIDE
+            void EnterCombat(Unit* /*who*/) override
             {
                 DoZoneInCombat();
             }
 
-            void UpdateAI(uint32 diff) OVERRIDE
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -193,15 +201,64 @@ class npc_archavon_warder : public CreatureScript
                         default:
                             break;
                     }
+
+                    if (me->HasUnitState(UNIT_STATE_CASTING))
+                        return;
                 }
 
                 DoMeleeAttackIfReady();
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const OVERRIDE
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_archavon_warderAI(creature);
+        }
+};
+
+// 58941 - Rock Shards
+class spell_archavon_rock_shards : public SpellScriptLoader
+{
+    public:
+        spell_archavon_rock_shards() : SpellScriptLoader("spell_archavon_rock_shards") { }
+
+        class spell_archavon_rock_shards_SpellScript : public SpellScript
+        {
+            PrepareSpellScript(spell_archavon_rock_shards_SpellScript);
+
+            bool Validate(SpellInfo const* /*spellInfo*/) override
+            {
+                if (!sSpellMgr->GetSpellInfo(SPELL_ROCK_SHARDS_VISUAL_L)
+                    || !sSpellMgr->GetSpellInfo(SPELL_ROCK_SHARDS_VISUAL_R)
+                    || !sSpellMgr->GetSpellInfo(SPELL_ROCK_SHARDS_DAMAGE_L)
+                    || !sSpellMgr->GetSpellInfo(SPELL_ROCK_SHARDS_DAMAGE_R))
+                    return false;
+                return true;
+            }
+
+            void HandleScript(SpellEffIndex /*effIndex*/)
+            {
+                Unit* caster = GetCaster();
+
+                for (uint8 i = 0; i < 3; ++i)
+                {
+                    caster->CastSpell((Unit*)NULL, SPELL_ROCK_SHARDS_VISUAL_L, true);
+                    caster->CastSpell((Unit*)NULL, SPELL_ROCK_SHARDS_VISUAL_R, true);
+                }
+
+                caster->CastSpell((Unit*)NULL, SPELL_ROCK_SHARDS_DAMAGE_L, true);
+                caster->CastSpell((Unit*)NULL, SPELL_ROCK_SHARDS_DAMAGE_R, true);
+            }
+
+            void Register() override
+            {
+                OnEffectHit += SpellEffectFn(spell_archavon_rock_shards_SpellScript::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+            }
+        };
+
+        SpellScript* GetSpellScript() const override
+        {
+            return new spell_archavon_rock_shards_SpellScript();
         }
 };
 
@@ -209,4 +266,5 @@ void AddSC_boss_archavon()
 {
     new boss_archavon();
     new npc_archavon_warder();
+    new spell_archavon_rock_shards();
 }

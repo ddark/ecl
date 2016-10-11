@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -31,37 +31,41 @@ EndScriptData */
 #include "onyxias_lair.h"
 #include "TemporarySummon.h"
 
+BossBoundaryData const boundaries =
+{
+    { DATA_ONYXIA, new CircleBoundary(Position(-34.3697f, -212.3296f), 100.0) }
+};
+
 class instance_onyxias_lair : public InstanceMapScript
 {
 public:
     instance_onyxias_lair() : InstanceMapScript("instance_onyxias_lair", 249) { }
 
-    InstanceScript* GetInstanceScript(InstanceMap* map) const OVERRIDE
+    InstanceScript* GetInstanceScript(InstanceMap* map) const override
     {
         return new instance_onyxias_lair_InstanceMapScript(map);
     }
 
     struct instance_onyxias_lair_InstanceMapScript : public InstanceScript
     {
-        instance_onyxias_lair_InstanceMapScript(Map* map) : InstanceScript(map) {}
+        instance_onyxias_lair_InstanceMapScript(Map* map) : InstanceScript(map)
+        {
+            SetHeaders(DataHeader);
+            SetBossNumber(EncounterCount);
+            LoadBossBoundaries(boundaries);
+
+            onyxiaLiftoffTimer = 0;
+            manyWhelpsCounter = 0;
+            eruptTimer = 0;
+
+            achievManyWhelpsHandleIt = false;
+            achievSheDeepBreathMore = true;
+        }
 
         //Eruption is a BFS graph problem
         //One map to remember all floor, one map to keep floor that still need to erupt and one queue to know what needs to be removed
 
-        void Initialize()
-        {
-            SetBossNumber(EncounterCount);
-
-            onyxiaGUID               = 0;
-            onyxiaLiftoffTimer       = 0;
-            manyWhelpsCounter        = 0;
-            eruptTimer               = 0;
-
-            achievManyWhelpsHandleIt = false;
-            achievSheDeepBreathMore  = true;
-        }
-
-        void OnCreatureCreate(Creature* creature)
+        void OnCreatureCreate(Creature* creature) override
         {
             switch (creature->GetEntry())
             {
@@ -71,7 +75,7 @@ public:
             }
         }
 
-        void OnGameObjectCreate(GameObject* go)
+        void OnGameObjectCreate(GameObject* go) override
         {
             if ((go->GetGOInfo()->displayId == 4392 || go->GetGOInfo()->displayId == 4472) && go->GetGOInfo()->trap.spellId == 17731)
             {
@@ -82,8 +86,7 @@ public:
             switch (go->GetEntry())
             {
                 case GO_WHELP_SPAWNER:
-                    Position goPos;
-                    go->GetPosition(&goPos);
+                    Position goPos = go->GetPosition();
                     if (Creature* temp = go->SummonCreature(NPC_WHELP, goPos, TEMPSUMMON_CORPSE_DESPAWN))
                     {
                         temp->SetInCombatWithZone();
@@ -93,7 +96,7 @@ public:
             }
         }
 
-        void OnGameObjectRemove(GameObject* go)
+        void OnGameObjectRemove(GameObject* go) override
         {
             if ((go->GetGOInfo()->displayId == 4392 || go->GetGOInfo()->displayId == 4472) && go->GetGOInfo()->trap.spellId == 17731)
             {
@@ -102,7 +105,7 @@ public:
             }
         }
 
-        void FloorEruption(uint64 floorEruptedGUID)
+        void FloorEruption(ObjectGuid floorEruptedGUID)
         {
             if (GameObject* floorEruption = instance->GetGameObject(floorEruptedGUID))
             {
@@ -121,7 +124,7 @@ public:
                 {
                     if (((*itr)->GetGOInfo()->displayId == 4392 || (*itr)->GetGOInfo()->displayId == 4472) && (*itr)->GetGOInfo()->trap.spellId == 17731)
                     {
-                        uint64 nearFloorGUID = (*itr)->GetGUID();
+                        ObjectGuid nearFloorGUID = (*itr)->GetGUID();
                         if (FloorEruptionGUID[1].find(nearFloorGUID) != FloorEruptionGUID[1].end() && (*FloorEruptionGUID[1].find(nearFloorGUID)).second == 0)
                         {
                             (*FloorEruptionGUID[1].find(nearFloorGUID)).second = (*FloorEruptionGUID[1].find(floorEruptedGUID)).second+1;
@@ -133,7 +136,7 @@ public:
             FloorEruptionGUID[1].erase(floorEruptedGUID);
         }
 
-        bool SetBossState(uint32 type, EncounterState state)
+        bool SetBossState(uint32 type, EncounterState state) override
         {
             if (!InstanceScript::SetBossState(type, state))
                 return false;
@@ -148,7 +151,7 @@ public:
             return true;
         }
 
-        void SetData(uint32 type, uint32 data) OVERRIDE
+        void SetData(uint32 type, uint32 data) override
         {
             switch (type)
             {
@@ -173,7 +176,7 @@ public:
             }
         }
 
-        void SetData64(uint32 type, uint64 data) OVERRIDE
+        void SetGuidData(uint32 type, ObjectGuid data) override
         {
             switch (type)
             {
@@ -185,7 +188,7 @@ public:
             }
         }
 
-        uint64 GetData64(uint32 data) const OVERRIDE
+        ObjectGuid GetGuidData(uint32 data) const override
         {
             switch (data)
             {
@@ -193,10 +196,10 @@ public:
                     return onyxiaGUID;
             }
 
-            return 0;
+            return ObjectGuid::Empty;
         }
 
-        void Update(uint32 diff)
+        void Update(uint32 diff) override
         {
             if (GetBossState(DATA_ONYXIA) == IN_PROGRESS)
             {
@@ -212,13 +215,24 @@ public:
             {
                 if (eruptTimer <= diff)
                 {
-                    uint32 treeHeight = 0;
-                    do
+                    ObjectGuid frontGuid = FloorEruptionGUIDQueue.front();
+                    std::map<ObjectGuid, uint32>::iterator itr = FloorEruptionGUID[1].find(frontGuid);
+                    if (itr != FloorEruptionGUID[1].end())
                     {
-                        treeHeight = (*FloorEruptionGUID[1].find(FloorEruptionGUIDQueue.front())).second;
-                        FloorEruption(FloorEruptionGUIDQueue.front());
-                        FloorEruptionGUIDQueue.pop();
-                    } while (!FloorEruptionGUIDQueue.empty() && (*FloorEruptionGUID[1].find(FloorEruptionGUIDQueue.front())).second == treeHeight);
+                        uint32 treeHeight = itr->second;
+
+                        do
+                        {
+                            FloorEruption(frontGuid);
+                            FloorEruptionGUIDQueue.pop();
+                            if (FloorEruptionGUIDQueue.empty())
+                                break;
+
+                            frontGuid = FloorEruptionGUIDQueue.front();
+                            itr = FloorEruptionGUID[1].find(frontGuid);
+                        } while (itr != FloorEruptionGUID[1].end() && itr->second == treeHeight);
+                    }
+
                     eruptTimer = 1000;
                 }
                 else
@@ -226,9 +240,9 @@ public:
             }
         }
 
-        bool CheckAchievementCriteriaMeet(uint32 criteria_id, Player const* /*source*/, Unit const* /*target*/ = NULL, uint32 /*miscvalue1*/ = 0)
+        bool CheckAchievementCriteriaMeet(uint32 criteriaId, Player const* /*source*/, Unit const* /*target = NULL*/, uint32 /*miscValue1 = 0*/) override
         {
-            switch (criteria_id)
+            switch (criteriaId)
             {
                 case ACHIEV_CRITERIA_MANY_WHELPS_10_PLAYER:  // Criteria for achievement 4403: Many Whelps! Handle It! (10 player) Hatch 50 eggs in 10s
                 case ACHIEV_CRITERIA_MANY_WHELPS_25_PLAYER:  // Criteria for achievement 4406: Many Whelps! Handle It! (25 player) Hatch 50 eggs in 10s
@@ -240,59 +254,15 @@ public:
             return false;
         }
 
-        std::string GetSaveData()
-        {
-            OUT_SAVE_INST_DATA;
-
-            std::ostringstream saveStream;
-            saveStream << "O L " << GetBossSaveData();
-
-            OUT_SAVE_INST_DATA_COMPLETE;
-            return saveStream.str();
-        }
-
-        void Load(const char* strIn)
-        {
-            if (!strIn)
-            {
-                OUT_LOAD_INST_DATA_FAIL;
-                return;
-            }
-
-            OUT_LOAD_INST_DATA(strIn);
-
-            char dataHead1, dataHead2;
-
-            std::istringstream loadStream(strIn);
-            loadStream >> dataHead1 >> dataHead2;
-
-            if (dataHead1 == 'O' && dataHead2 == 'L')
-            {
-                for (uint8 i = 0; i < EncounterCount; ++i)
-                {
-                    uint32 tmpState;
-                    loadStream >> tmpState;
-                    if (tmpState == IN_PROGRESS || tmpState > SPECIAL)
-                        tmpState = NOT_STARTED;
-
-                    SetBossState(i, EncounterState(tmpState));
-                }
-            }
-            else
-                OUT_LOAD_INST_DATA_FAIL;
-
-            OUT_LOAD_INST_DATA_COMPLETE;
-        }
-
-        protected:
-            std::map<uint64, uint32> FloorEruptionGUID[2];
-            std::queue<uint64> FloorEruptionGUIDQueue;
-            uint64 onyxiaGUID;
-            uint32 onyxiaLiftoffTimer;
-            uint32 manyWhelpsCounter;
-            uint32 eruptTimer;
-            bool   achievManyWhelpsHandleIt;
-            bool   achievSheDeepBreathMore;
+    protected:
+        std::map<ObjectGuid, uint32> FloorEruptionGUID[2];
+        std::queue<ObjectGuid> FloorEruptionGUIDQueue;
+        ObjectGuid onyxiaGUID;
+        uint32 onyxiaLiftoffTimer;
+        uint32 manyWhelpsCounter;
+        uint32 eruptTimer;
+        bool   achievManyWhelpsHandleIt;
+        bool   achievSheDeepBreathMore;
     };
 };
 

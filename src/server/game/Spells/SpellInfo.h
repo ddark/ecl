@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -176,8 +176,7 @@ enum SpellCustomAttributes
     SPELL_ATTR0_CU_CONE_LINE                     = 0x00000004,
     SPELL_ATTR0_CU_SHARE_DAMAGE                  = 0x00000008,
     SPELL_ATTR0_CU_NO_INITIAL_THREAT             = 0x00000010,
-    SPELL_ATTR0_CU_NONE2                         = 0x00000020,   // UNUSED
-    SPELL_ATTR0_CU_AURA_CC                       = 0x00000040,
+    SPELL_ATTR0_CU_DONT_BREAK_STEALTH            = 0x00000040,
     SPELL_ATTR0_CU_DIRECT_DAMAGE                 = 0x00000100,
     SPELL_ATTR0_CU_CHARGE                        = 0x00000200,
     SPELL_ATTR0_CU_PICKPOCKET                    = 0x00000400,
@@ -187,13 +186,15 @@ enum SpellCustomAttributes
     SPELL_ATTR0_CU_IGNORE_ARMOR                  = 0x00008000,
     SPELL_ATTR0_CU_REQ_TARGET_FACING_CASTER      = 0x00010000,
     SPELL_ATTR0_CU_REQ_CASTER_BEHIND_TARGET      = 0x00020000,
+    SPELL_ATTR0_CU_ALLOW_INFLIGHT_TARGET         = 0x00040000,
+    SPELL_ATTR0_CU_NEEDS_AMMO_DATA               = 0x00080000,
 
     SPELL_ATTR0_CU_NEGATIVE                      = SPELL_ATTR0_CU_NEGATIVE_EFF0 | SPELL_ATTR0_CU_NEGATIVE_EFF1 | SPELL_ATTR0_CU_NEGATIVE_EFF2
 };
 
 uint32 GetTargetFlagMask(SpellTargetObjectTypes objType);
 
-class SpellImplicitTargetInfo
+class TC_GAME_API SpellImplicitTargetInfo
 {
 private:
     Targets _target;
@@ -224,7 +225,7 @@ private:
     static StaticData _data[TOTAL_SPELL_TARGETS];
 };
 
-class SpellEffectInfo
+class TC_GAME_API SpellEffectInfo
 {
     SpellInfo const* _spellInfo;
     uint8 _effIndex;
@@ -249,9 +250,12 @@ public:
     uint32    ItemType;
     uint32    TriggerSpell;
     flag96    SpellClassMask;
-    std::list<Condition*>* ImplicitTargetConditions;
+    std::vector<Condition*>* ImplicitTargetConditions;
 
-    SpellEffectInfo() {}
+    SpellEffectInfo() : _spellInfo(NULL), _effIndex(0), Effect(0), ApplyAuraName(0), Amplitude(0), DieSides(0),
+                        RealPointsPerLevel(0), BasePoints(0), PointsPerComboPoint(0), ValueMultiplier(0), DamageMultiplier(0),
+                        BonusMultiplier(0), MiscValue(0), MiscValueB(0), Mechanic(MECHANIC_NONE), RadiusEntry(NULL), ChainTarget(0),
+                        ItemType(0), TriggerSpell(0), ImplicitTargetConditions(NULL) {}
     SpellEffectInfo(SpellEntry const* spellEntry, SpellInfo const* spellInfo, uint8 effIndex);
 
     bool IsEffect() const;
@@ -287,11 +291,11 @@ private:
     static StaticData _data[TOTAL_SPELL_EFFECTS];
 };
 
-class SpellInfo
+class TC_GAME_API SpellInfo
 {
 public:
     uint32 Id;
-    uint32 Category;
+    SpellCategoryEntry const* CategoryEntry;
     uint32 Dispel;
     uint32 Mechanic;
     uint32 Attributes;
@@ -303,8 +307,8 @@ public:
     uint32 AttributesEx6;
     uint32 AttributesEx7;
     uint32 AttributesCu;
-    uint32 Stances;
-    uint32 StancesNot;
+    uint64 Stances;
+    uint64 StancesNot;
     uint32 Targets;
     uint32 TargetCreatureType;
     uint32 RequiresSpellFocus;
@@ -369,9 +373,20 @@ public:
     SpellInfo(SpellEntry const* spellEntry);
     ~SpellInfo();
 
+    uint32 GetCategory() const;
     bool HasEffect(SpellEffects effect) const;
     bool HasAura(AuraType aura) const;
     bool HasAreaAuraEffect() const;
+
+    inline bool HasAttribute(SpellAttr0 attribute) const { return !!(Attributes & attribute); }
+    inline bool HasAttribute(SpellAttr1 attribute) const { return !!(AttributesEx & attribute); }
+    inline bool HasAttribute(SpellAttr2 attribute) const { return !!(AttributesEx2 & attribute); }
+    inline bool HasAttribute(SpellAttr3 attribute) const { return !!(AttributesEx3 & attribute); }
+    inline bool HasAttribute(SpellAttr4 attribute) const { return !!(AttributesEx4 & attribute); }
+    inline bool HasAttribute(SpellAttr5 attribute) const { return !!(AttributesEx5 & attribute); }
+    inline bool HasAttribute(SpellAttr6 attribute) const { return !!(AttributesEx6 & attribute); }
+    inline bool HasAttribute(SpellAttr7 attribute) const { return !!(AttributesEx7 & attribute); }
+    inline bool HasAttribute(SpellCustomAttributes customAttribute) const { return !!(AttributesCu & customAttribute); }
 
     bool IsExplicitDiscovery() const;
     bool IsLootCrafting() const;
@@ -386,7 +401,7 @@ public:
     bool IsAffectingArea() const;
     bool IsTargetingArea() const;
     bool NeedsExplicitUnitTarget() const;
-    bool NeedsToBeTriggeredByCaster() const;
+    bool NeedsToBeTriggeredByCaster(SpellInfo const* triggeringSpell) const;
 
     bool IsPassive() const;
     bool IsAutocastable() const;
@@ -394,9 +409,11 @@ public:
     bool IsPassiveStackableWithRanks() const;
     bool IsMultiSlotAura() const;
     bool IsStackableOnOneSlotWithDifferentCasters() const;
+    bool IsCooldownStartedOnEvent() const;
     bool IsDeathPersistent() const;
     bool IsRequiringDeadTarget() const;
     bool IsAllowingDeadTarget() const;
+    bool IsGroupBuff() const;
     bool CanBeUsedInCombat() const;
     bool IsPositive() const;
     bool IsPositiveEffect(uint8 effIndex) const;
@@ -405,6 +422,7 @@ public:
     bool IsBreakingStealth() const;
     bool IsRangedWeaponSpell() const;
     bool IsAutoRepeatRangedSpell() const;
+    bool HasInitialAggro() const;
 
     bool IsAffectedBySpellMods() const;
     bool IsAffectedBySpellMod(SpellModifier const* mod) const;
@@ -444,7 +462,7 @@ public:
 
     uint32 GetMaxTicks() const;
 
-    uint32 CalcCastTime(Unit* caster = NULL, Spell* spell = NULL, bool IsTriggered = false) const;
+    uint32 CalcCastTime(Spell* spell = NULL) const;
     uint32 GetRecoveryTime() const;
 
     int32 CalcPowerCost(Unit const* caster, SpellSchoolMask schoolMask) const;
@@ -465,9 +483,15 @@ public:
     bool _IsPositiveEffect(uint8 effIndex, bool deep) const;
     bool _IsPositiveSpell() const;
     static bool _IsPositiveTarget(uint32 targetA, uint32 targetB);
+    void _LoadSpellSpecific();
+    void _LoadAuraState();
 
     // unloading helpers
     void _UnloadImplicitTargetConditionLists();
+
+private:
+    SpellSpecificType _spellSpecific;
+    AuraStateType _auraState;
 };
 
 #endif // _SPELLINFO_H

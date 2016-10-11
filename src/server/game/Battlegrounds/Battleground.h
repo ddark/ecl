@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -19,30 +19,46 @@
 #ifndef __BATTLEGROUND_H
 #define __BATTLEGROUND_H
 
+#include "ArenaScore.h"
 #include "Common.h"
 #include "SharedDefines.h"
 #include "DBCEnums.h"
+#include "WorldPacket.h"
+#include "Object.h"
+#include "GameObject.h"
+#include "EventMap.h"
 
+class Battleground;
 class Creature;
 class GameObject;
 class Group;
 class Player;
+class Unit;
+class WorldObject;
 class WorldPacket;
 class BattlegroundMap;
-class BattlegroundAV;
-class BattlegroundWS;
-class BattlegroundAB;
-class BattlegroundNA;
-class BattlegroundBE;
-class BattlegroundEY;
-class BattlegroundRL;
-class BattlegroundSA;
-class BattlegroundDS;
-class BattlegroundRV;
-class BattlegroundIC;
 
 struct PvPDifficultyEntry;
 struct WorldSafeLocsEntry;
+
+enum BattlegroundDesertionType
+{
+    BG_DESERTION_TYPE_LEAVE_BG        = 0, // player leaves the BG
+    BG_DESERTION_TYPE_OFFLINE         = 1, // player is kicked from BG because offline
+    BG_DESERTION_TYPE_LEAVE_QUEUE     = 2, // player is invited to join and refuses to do it
+    BG_DESERTION_TYPE_NO_ENTER_BUTTON = 3, // player is invited to join and do nothing (time expires)
+    BG_DESERTION_TYPE_INVITE_LOGOUT   = 4, // player is invited to join and logs out
+};
+
+enum BattlegroundCriteriaId
+{
+    BG_CRITERIA_CHECK_RESILIENT_VICTORY,
+    BG_CRITERIA_CHECK_SAVE_THE_DAY,
+    BG_CRITERIA_CHECK_EVERYTHING_COUNTS,
+    BG_CRITERIA_CHECK_AV_PERFECTION,
+    BG_CRITERIA_CHECK_DEFENSE_OF_THE_ANCIENTS,
+    BG_CRITERIA_CHECK_NOT_EVEN_A_SCRATCH,
+};
 
 enum BattlegroundSounds
 {
@@ -100,17 +116,12 @@ enum BattlegroundSpells
     SPELL_SPIRIT_HEAL               = 22012,                // Spirit Heal
     SPELL_RESURRECTION_VISUAL       = 24171,                // Resurrection Impact Visual
     SPELL_ARENA_PREPARATION         = 32727,                // use this one, 32728 not correct
-    SPELL_ALLIANCE_GOLD_FLAG        = 32724,
-    SPELL_ALLIANCE_GREEN_FLAG       = 32725,
-    SPELL_HORDE_GOLD_FLAG           = 35774,
-    SPELL_HORDE_GREEN_FLAG          = 35775,
     SPELL_PREPARATION               = 44521,                // Preparation
     SPELL_SPIRIT_HEAL_MANA          = 44535,                // Spirit Heal
     SPELL_RECENTLY_DROPPED_FLAG     = 42792,                // Recently Dropped Flag
     SPELL_AURA_PLAYER_INACTIVE      = 43681,                // Inactive
     SPELL_HONORABLE_DEFENDER_25Y    = 68652,                // +50% honor when standing at a capture point that you control, 25yards radius (added in 3.2)
-    SPELL_HONORABLE_DEFENDER_60Y    = 66157,                // +50% honor when standing at a capture point that you control, 60yards radius (added in 3.2), probably for 40+ player battlegrounds
-    SPELL_THE_LAST_STANDING         = 26549                 // Arena achievement related
+    SPELL_HONORABLE_DEFENDER_60Y    = 66157                 // +50% honor when standing at a capture point that you control, 60yards radius (added in 3.2), probably for 40+ player battlegrounds
 };
 
 enum BattlegroundTimeIntervals
@@ -136,25 +147,6 @@ enum BattlegroundStartTimeIntervals
     BG_START_DELAY_NONE             = 0                     // ms
 };
 
-enum BattlegroundBuffObjects
-{
-    BG_OBJECTID_SPEEDBUFF_ENTRY     = 179871,
-    BG_OBJECTID_REGENBUFF_ENTRY     = 179904,
-    BG_OBJECTID_BERSERKERBUFF_ENTRY = 179905
-};
-
-enum BattlegroundRandomRewards
-{
-    BG_REWARD_WINNER_HONOR_FIRST    = 30,
-    BG_REWARD_WINNER_ARENA_FIRST    = 25,
-    BG_REWARD_WINNER_HONOR_LAST     = 15,
-    BG_REWARD_WINNER_ARENA_LAST     = 0,
-    BG_REWARD_LOSER_HONOR_FIRST     = 5,
-    BG_REWARD_LOSER_HONOR_LAST      = 5
-};
-
-const uint32 Buff_Entries[3] = { BG_OBJECTID_SPEEDBUFF_ENTRY, BG_OBJECTID_REGENBUFF_ENTRY, BG_OBJECTID_BERSERKERBUFF_ENTRY };
-
 enum BattlegroundStatus
 {
     STATUS_NONE         = 0,                                // first status, should mean bg is not instance
@@ -172,62 +164,19 @@ struct BattlegroundPlayer
 
 struct BattlegroundObjectInfo
 {
-    BattlegroundObjectInfo() : object(NULL), timer(0), spellid(0) {}
+    BattlegroundObjectInfo() : object(nullptr), timer(0), spellid(0) { }
 
     GameObject  *object;
     int32       timer;
     uint32      spellid;
 };
 
-enum ScoreType
-{
-    SCORE_KILLING_BLOWS         = 1,
-    SCORE_DEATHS                = 2,
-    SCORE_HONORABLE_KILLS       = 3,
-    SCORE_BONUS_HONOR           = 4,
-    //EY, but in MSG_PVP_LOG_DATA opcode!
-    SCORE_DAMAGE_DONE           = 5,
-    SCORE_HEALING_DONE          = 6,
-    //WS
-    SCORE_FLAG_CAPTURES         = 7,
-    SCORE_FLAG_RETURNS          = 8,
-    //AB and IC
-    SCORE_BASES_ASSAULTED       = 9,
-    SCORE_BASES_DEFENDED        = 10,
-    //AV
-    SCORE_GRAVEYARDS_ASSAULTED  = 11,
-    SCORE_GRAVEYARDS_DEFENDED   = 12,
-    SCORE_TOWERS_ASSAULTED      = 13,
-    SCORE_TOWERS_DEFENDED       = 14,
-    SCORE_MINES_CAPTURED        = 15,
-    SCORE_LEADERS_KILLED        = 16,
-    SCORE_SECONDARY_OBJECTIVES  = 17,
-    //SOTA
-    SCORE_DESTROYED_DEMOLISHER  = 18,
-    SCORE_DESTROYED_WALL        = 19
-};
-
 enum ArenaType
 {
     ARENA_TYPE_2v2          = 2,
     ARENA_TYPE_3v3          = 3,
-    ARENA_TYPE_5v5          = 5
+    ARENA_TYPE_5v5          = 1 // 1v1 Arena - 5v5 doesn't exist anymore
 };
-
-enum BattlegroundType
-{
-    TYPE_BATTLEGROUND     = 3,
-    TYPE_ARENA            = 4
-};
-
-enum BattlegroundWinner
-{
-    WINNER_HORDE            = 0,
-    WINNER_ALLIANCE         = 1,
-    WINNER_NONE             = 2
-};
-
-#define BG_TEAMS_COUNT  2
 
 enum BattlegroundStartingEvents
 {
@@ -245,23 +194,6 @@ enum BattlegroundStartingEventsIds
     BG_STARTING_EVENT_THIRD     = 2,
     BG_STARTING_EVENT_FOURTH    = 3
 };
-#define BG_STARTING_EVENT_COUNT 4
-
-struct BattlegroundScore
-{
-    BattlegroundScore() : KillingBlows(0), Deaths(0), HonorableKills(0), BonusHonor(0),
-        DamageDone(0), HealingDone(0)
-    { }
-
-    virtual ~BattlegroundScore() { }                        //virtual destructor is used when deleting score from scores map
-
-    uint32 KillingBlows;
-    uint32 Deaths;
-    uint32 HonorableKills;
-    uint32 BonusHonor;
-    uint32 DamageDone;
-    uint32 HealingDone;
-};
 
 enum BGHonorMode
 {
@@ -270,8 +202,48 @@ enum BGHonorMode
     BG_HONOR_MODE_NUM
 };
 
-#define BG_AWARD_ARENA_POINTS_MIN_LEVEL 71
-#define ARENA_TIMELIMIT_POINTS_LOSS    -16
+enum BattlegroudMisc
+{
+    BG_MAX_BUFFS                    =   3,
+
+    BG_STARTING_EVENT_COUNT         =   4,
+
+    BG_AWARD_ARENA_POINTS_MIN_LEVEL =  71,
+
+    ARENA_TIMELIMIT_POINTS_LOSS     = -16
+};
+
+// because hardcoding values is bad
+struct BattlegroundBuffEntries
+{
+    friend class Battleground;
+
+    BattlegroundBuffEntries(uint32 SpeedBuffEntry, uint32 RegenBuffEntry, uint32 BerserkBuffEntry)
+    {
+        _buffEntry[0] = SpeedBuffEntry;
+        _buffEntry[1] = RegenBuffEntry;
+        _buffEntry[2] = BerserkBuffEntry;
+    }
+
+    private:
+        uint32 _buffEntry[BG_MAX_BUFFS];
+};
+
+// data helpers
+struct BattlegroundSpawnPoint
+{
+    uint32 Entry;
+    Position Pos;
+    uint32 SpawnTime;
+};
+
+struct BattlegroundGOSpawnPoint
+{
+    uint32 Entry;
+    Position Pos;
+    G3D::Quat Rot;
+    uint32 SpawnTime;
+};
 
 /*
 This class is used to:
@@ -280,7 +252,7 @@ This class is used to:
 3. some certain cases, same for all battlegrounds
 4. It has properties same for all battlegrounds
 */
-class Battleground
+class TC_GAME_API Battleground
 {
     public:
         Battleground();
@@ -297,18 +269,16 @@ class Battleground
         virtual void StartingEventOpenDoors() { }
         virtual void ResetBGSubclass() { }                  // must be implemented in BG subclass
 
-        virtual void DestroyGate(Player* /*player*/, GameObject* /*go*/) {}
-
-        /* trinity_nya */
-        bool firstkill;
+        virtual void DestroyGate(Player* /*player*/, GameObject* /*go*/) { }
 
         /* achievement req. */
-        virtual bool IsAllNodesConrolledByTeam(uint32 /*team*/) const { return false; }
+        virtual bool IsAllNodesControlledByTeam(uint32 /*team*/) const { return false; }
         void StartTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry);
+        virtual bool CheckAchievementCriteriaMeet(uint32 /*criteriaId*/, Player const* /*player*/, Unit const* /*target*/ = nullptr, uint32 /*miscvalue1*/ = 0);
 
         /* Battleground */
         // Get methods:
-        char const* GetName() const         { return m_Name; }
+        std::string const& GetName() const  { return m_Name; }
         BattlegroundTypeId GetTypeID(bool GetRandom = false) const { return GetRandom ? m_RandomTypeID : m_TypeID; }
         BattlegroundBracketId GetBracketId() const { return m_BracketId; }
         uint32 GetInstanceID() const        { return m_InstanceID; }
@@ -328,13 +298,13 @@ class Battleground
 
         int32 GetStartDelayTime() const     { return m_StartDelayTime; }
         uint8 GetArenaType() const          { return m_ArenaType; }
-        uint8 GetWinner() const             { return m_Winner; }
+        BattlegroundTeamId GetWinner() const { return _winnerTeamId; }
         uint32 GetScriptId() const          { return ScriptId; }
         uint32 GetBonusHonorFromKill(uint32 kills) const;
         bool IsRandom() const { return m_IsRandom; }
 
         // Set methods:
-        void SetName(char const* Name)      { m_Name = Name; }
+        void SetName(std::string const& name) { m_Name = name; }
         void SetTypeID(BattlegroundTypeId TypeID) { m_TypeID = TypeID; }
         void SetRandomTypeID(BattlegroundTypeId TypeID) { m_RandomTypeID = TypeID; }
         //here we can count minlevel and maxlevel for players
@@ -351,7 +321,7 @@ class Battleground
         void SetRated(bool state)           { m_IsRated = state; }
         void SetArenaType(uint8 type)       { m_ArenaType = type; }
         void SetArenaorBGType(bool _isArena) { m_IsArena = _isArena; }
-        void SetWinner(uint8 winner)        { m_Winner = winner; }
+        void SetWinner(BattlegroundTeamId winnerTeamId) { _winnerTeamId = winnerTeamId; }
         void SetScriptId(uint32 scriptId)   { ScriptId = scriptId; }
 
         void ModifyStartDelayTime(int diff) { m_StartDelayTime -= diff; }
@@ -375,27 +345,25 @@ class Battleground
         bool isBattleground() const { return !m_IsArena; }
         bool isRated() const        { return m_IsRated; }
 
-        typedef std::map<uint64, BattlegroundPlayer> BattlegroundPlayerMap;
+        typedef std::map<ObjectGuid, BattlegroundPlayer> BattlegroundPlayerMap;
         BattlegroundPlayerMap const& GetPlayers() const { return m_Players; }
         uint32 GetPlayersSize() const { return m_Players.size(); }
 
-        typedef std::map<uint64, BattlegroundScore*> BattlegroundScoreMap;
-        BattlegroundScoreMap::const_iterator GetPlayerScoresBegin() const { return PlayerScores.begin(); }
-        BattlegroundScoreMap::const_iterator GetPlayerScoresEnd() const { return PlayerScores.end(); }
+        typedef std::map<uint32, BattlegroundScore*> BattlegroundScoreMap;
         uint32 GetPlayerScoresSize() const { return PlayerScores.size(); }
 
         uint32 GetReviveQueueSize() const { return m_ReviveQueue.size(); }
 
-        void AddPlayerToResurrectQueue(uint64 npc_guid, uint64 player_guid);
-        void RemovePlayerFromResurrectQueue(uint64 player_guid);
+        void AddPlayerToResurrectQueue(ObjectGuid npc_guid, ObjectGuid player_guid);
+        void RemovePlayerFromResurrectQueue(ObjectGuid player_guid);
 
         /// Relocate all players in ReviveQueue to the closest graveyard
-        void RelocateDeadPlayers(uint64 queueIndex);
+        void RelocateDeadPlayers(ObjectGuid guideGuid);
 
         void StartBattleground();
 
-        GameObject* GetBGObject(uint32 type);
-        Creature* GetBGCreature(uint32 type);
+        GameObject* GetBGObject(uint32 type, bool logError = true);
+        Creature* GetBGCreature(uint32 type, bool logError = true);
 
         // Location
         void SetMapId(uint32 MapID) { m_MapId = MapID; }
@@ -406,25 +374,19 @@ class Battleground
         BattlegroundMap* GetBgMap() const { ASSERT(m_Map); return m_Map; }
         BattlegroundMap* FindBgMap() const { return m_Map; }
 
-        void SetTeamStartLoc(uint32 TeamID, float X, float Y, float Z, float O);
-        void GetTeamStartLoc(uint32 TeamID, float &X, float &Y, float &Z, float &O) const
-        {
-            TeamId idx = GetTeamIndexByTeamId(TeamID);
-            X = m_TeamStartLocX[idx];
-            Y = m_TeamStartLocY[idx];
-            Z = m_TeamStartLocZ[idx];
-            O = m_TeamStartLocO[idx];
-        }
+        void SetTeamStartPosition(TeamId teamId, Position const& pos);
+        Position const* GetTeamStartPosition(TeamId teamId) const;
 
         void SetStartMaxDist(float startMaxDist) { m_StartMaxDist = startMaxDist; }
         float GetStartMaxDist() const { return m_StartMaxDist; }
 
         // Packet Transfer
         // method that should fill worldpacket with actual world states (not yet implemented for all battlegrounds!)
-        virtual void FillInitialWorldStates(WorldPacket& /*data*/) {}
-        void SendPacketToTeam(uint32 TeamID, WorldPacket* packet, Player* sender = NULL, bool self = true);
+        virtual void FillInitialWorldStates(WorldPacket& /*data*/) { }
+        void SendPacketToTeam(uint32 TeamID, WorldPacket* packet, Player* sender = nullptr, bool self = true);
         void SendPacketToAll(WorldPacket* packet);
-        void YellToAll(Creature* creature, const char* text, uint32 language);
+
+        void SendChatMessage(Creature* source, uint8 textId, WorldObject* target = nullptr);
 
         template<class Do>
         void BroadcastWorker(Do& _do);
@@ -434,24 +396,25 @@ class Battleground
         void CastSpellOnTeam(uint32 SpellID, uint32 TeamID);
         void RemoveAuraOnTeam(uint32 SpellID, uint32 TeamID);
         void RewardHonorToTeam(uint32 Honor, uint32 TeamID);
-        void RewardReputationToTeam(uint32 faction_id, uint32 Reputation, uint32 TeamID);
+        void RewardReputationToTeam(uint32 a_faction_id, uint32 h_faction_id, uint32 Reputation, uint32 TeamID);
         void UpdateWorldState(uint32 Field, uint32 Value);
-        void UpdateWorldStateForPlayer(uint32 Field, uint32 Value, Player* Source);
-        void EndBattleground(uint32 winner);
+        void UpdateWorldStateForPlayer(uint32 Field, uint32 Value, Player* player);
+        virtual void EndBattleground(uint32 winner);
         void BlockMovement(Player* player);
 
-        void SendWarningToAll(int32 entry, ...);
-        void SendMessageToAll(int32 entry, ChatMsg type, Player const* source = NULL);
-        void PSendMessageToAll(int32 entry, ChatMsg type, Player const* source, ...);
+        void SendWarningToAll(uint32 entry, ...);
+        void SendMessageToAll(uint32 entry, ChatMsg type, Player const* source = nullptr);
+        void PSendMessageToAll(uint32 entry, ChatMsg type, Player const* source, ...);
 
         // specialized version with 2 string id args
-        void SendMessage2ToAll(int32 entry, ChatMsg type, Player const* source, int32 strId1 = 0, int32 strId2 = 0);
+        void SendMessage2ToAll(uint32 entry, ChatMsg type, Player const* source, uint32 strId1 = 0, uint32 strId2 = 0);
 
         // Raid Group
         Group* GetBgRaid(uint32 TeamID) const { return TeamID == ALLIANCE ? m_BgRaids[TEAM_ALLIANCE] : m_BgRaids[TEAM_HORDE]; }
         void SetBgRaid(uint32 TeamID, Group* bg_raid);
 
-        virtual void UpdatePlayerScore(Player* Source, uint32 type, uint32 value, bool doAddHonor = true);
+        void BuildPvPLogDataPacket(WorldPacket& data);
+        virtual bool UpdatePlayerScore(Player* player, uint32 type, uint32 value, bool doAddHonor = true);
 
         static TeamId GetTeamIndexByTeamId(uint32 Team) { return Team == ALLIANCE ? TEAM_ALLIANCE : TEAM_HORDE; }
         uint32 GetPlayersCountByTeam(uint32 Team) const { return m_PlayersCount[GetTeamIndexByTeamId(Team)]; }
@@ -464,39 +427,33 @@ class Battleground
                 ++m_PlayersCount[GetTeamIndexByTeamId(Team)];
         }
 
+        virtual void CheckWinConditions() { }
+
         // used for rated arena battles
         void SetArenaTeamIdForTeam(uint32 Team, uint32 ArenaTeamId) { m_ArenaTeamIds[GetTeamIndexByTeamId(Team)] = ArenaTeamId; }
         uint32 GetArenaTeamIdForTeam(uint32 Team) const             { return m_ArenaTeamIds[GetTeamIndexByTeamId(Team)]; }
         uint32 GetArenaTeamIdByIndex(uint32 index) const { return m_ArenaTeamIds[index]; }
-        void SetArenaTeamRatingChangeForTeam(uint32 Team, int32 RatingChange) { m_ArenaTeamRatingChanges[GetTeamIndexByTeamId(Team)] = RatingChange; }
-        int32 GetArenaTeamRatingChangeForTeam(uint32 Team) const    { return m_ArenaTeamRatingChanges[GetTeamIndexByTeamId(Team)]; }
-        int32 GetArenaTeamRatingChangeByIndex(uint32 index) const   { return m_ArenaTeamRatingChanges[index]; }
         void SetArenaMatchmakerRating(uint32 Team, uint32 MMR){ m_ArenaTeamMMR[GetTeamIndexByTeamId(Team)] = MMR; }
         uint32 GetArenaMatchmakerRating(uint32 Team) const          { return m_ArenaTeamMMR[GetTeamIndexByTeamId(Team)]; }
-        uint32 GetArenaMatchmakerRatingByIndex(uint32 index) const  { return m_ArenaTeamMMR[index]; }
-        void CheckArenaAfterTimerConditions();
-        void CheckArenaWinConditions();
-        void UpdateArenaWorldState();
 
         // Triggers handle
         // must be implemented in BG subclass
-        virtual void HandleAreaTrigger(Player* /*Source*/, uint32 /*Trigger*/);
+        virtual void HandleAreaTrigger(Player* /*player*/, uint32 /*Trigger*/);
         // must be implemented in BG subclass if need AND call base class generic code
         virtual void HandleKillPlayer(Player* player, Player* killer);
-        virtual void HandleKillUnit(Creature* /*unit*/, Player* /*killer*/);
+        virtual void HandleKillUnit(Creature* /*creature*/, Player* /*killer*/) { }
 
         // Battleground events
-        virtual void EventPlayerDroppedFlag(Player* /*player*/) {}
-        virtual void EventPlayerClickedOnFlag(Player* /*player*/, GameObject* /*target_obj*/) {}
+        virtual void EventPlayerDroppedFlag(Player* /*player*/) { }
+        virtual void EventPlayerClickedOnFlag(Player* /*player*/, GameObject* /*target_obj*/) { }
         void EventPlayerLoggedIn(Player* player);
         void EventPlayerLoggedOut(Player* player);
-        virtual void EventPlayerDamagedGO(Player* /*player*/, GameObject* /*go*/, uint32 /*eventType*/) {}
-        virtual void EventPlayerUsedGO(Player* /*player*/, GameObject* /*go*/){}
+        virtual void ProcessEvent(WorldObject* /*obj*/, uint32 /*eventId*/, WorldObject* /*invoker*/ = nullptr) { }
 
         // this function can be used by spell to interact with the BG map
-        virtual void DoAction(uint32 /*action*/, uint64 /*var*/) {}
+        virtual void DoAction(uint32 /*action*/, ObjectGuid /*var*/) { }
 
-        virtual void HandlePlayerResurrect(Player* /*player*/) {}
+        virtual void HandlePlayerResurrect(Player* /*player*/) { }
 
         // Death related
         virtual WorldSafeLocsEntry const* GetClosestGraveYard(Player* player);
@@ -505,36 +462,29 @@ class Battleground
 
         void AddOrSetPlayerToCorrectBgGroup(Player* player, uint32 team);
 
-        virtual void RemovePlayerAtLeave(uint64 guid, bool Transport, bool SendPacket);
+        virtual void RemovePlayerAtLeave(ObjectGuid guid, bool Transport, bool SendPacket);
                                                             // can be extended in in BG subclass
 
-        void HandleTriggerBuff(uint64 go_guid);
+        void HandleTriggerBuff(ObjectGuid go_guid);
         void SetHoliday(bool is_holiday);
 
-        /// @todo make this protected:
-        typedef std::vector<uint64> BGObjects;
-        typedef std::vector<uint64> BGCreatures;
-        BGObjects BgObjects;
-        BGCreatures BgCreatures;
         void SpawnBGObject(uint32 type, uint32 respawntime);
-        bool AddObject(uint32 type, uint32 entry, float x, float y, float z, float o, float rotation0, float rotation1, float rotation2, float rotation3, uint32 respawnTime = 0);
-        Creature* AddCreature(uint32 entry, uint32 type, uint32 teamval, float x, float y, float z, float o, uint32 respawntime = 0);
+        GameObject* AddObject(uint32 type, uint32 entry, Position const& pos, G3D::Quat const& rot, uint32 respawnTime = 0, GOState goState = GO_STATE_READY);
+        Creature* AddCreature(uint32 entry, uint32 type, Position const& pos, uint32 respawntime = 0, Transport* transport = nullptr);
         bool DelCreature(uint32 type);
         bool DelObject(uint32 type);
-        bool AddSpiritGuide(uint32 type, float x, float y, float z, float o, uint32 team);
-        int32 GetObjectType(uint64 guid);
+        bool AddSpiritGuide(uint32 type, Position const& pos, TeamId teamId = TEAM_NEUTRAL);
+        int32 GetObjectType(ObjectGuid guid);
 
         void DoorOpen(uint32 type);
         void DoorClose(uint32 type);
-        //to be removed
-        const char* GetTrinityString(int32 entry);
 
         virtual bool HandlePlayerUnderMap(Player* /*player*/) { return false; }
 
         // since arenas can be AvA or Hvh, we have to get the "temporary" team of a player
-        uint32 GetPlayerTeam(uint64 guid) const;
+        uint32 GetPlayerTeam(ObjectGuid guid) const;
         uint32 GetOtherTeam(uint32 teamId) const;
-        bool IsPlayerInBattleground(uint64 guid) const;
+        bool IsPlayerInBattleground(ObjectGuid guid) const;
 
         bool ToBeDeleted() const { return m_SetDeleteThis; }
         void SetDeleteThis() { m_SetDeleteThis = true; }
@@ -542,59 +492,37 @@ class Battleground
         void RewardXPAtKill(Player* killer, Player* victim);
         bool CanAwardArenaPoints() const { return m_LevelMin >= BG_AWARD_ARENA_POINTS_MIN_LEVEL; }
 
-        virtual uint64 GetFlagPickerGUID(int32 /*team*/ = -1) const { return 0; }
-        virtual void SetDroppedFlagGUID(uint64 /*guid*/, int32 /*team*/ = -1) {}
-		uint32 GetTeamScore(uint32 TeamID) const;
+        virtual ObjectGuid GetFlagPickerGUID(int32 /*team*/ = -1) const { return ObjectGuid::Empty; }
+        virtual void SetDroppedFlagGUID(ObjectGuid /*guid*/, int32 /*team*/ = -1) { }
+        virtual void HandleQuestComplete(uint32 /*questid*/, Player* /*player*/) { }
+        virtual bool CanActivateGO(int32 /*entry*/, uint32 /*team*/) const { return true; }
+        virtual bool IsSpellAllowed(uint32 /*spellId*/, Player const* /*player*/) const { return true; }
+        uint32 GetTeamScore(uint32 TeamID) const;
+
+        virtual uint32 GetPrematureWinner();
+
 		uint8 ClickFastStart(Player *player, GameObject *go);
 		void DespawnCrystals();
 
-        virtual uint32 GetPrematureWinner();
-		
-		BattlegroundAV* ToBattlegroundAV() { if (GetTypeID() == BATTLEGROUND_AV) return reinterpret_cast<BattlegroundAV*>(this); else return NULL; }
-        BattlegroundAV const* ToBattlegroundAV() const { if (GetTypeID() == BATTLEGROUND_AV) return reinterpret_cast<const BattlegroundAV*>(this); else return NULL; }
-		
-		BattlegroundWS* ToBattlegroundWS() { if (GetTypeID() == BATTLEGROUND_WS) return reinterpret_cast<BattlegroundWS*>(this); else return NULL; }
-        BattlegroundWS const* ToBattlegroundWS() const { if (GetTypeID() == BATTLEGROUND_WS) return reinterpret_cast<const BattlegroundWS*>(this); else return NULL; }
-		
-		BattlegroundAB* ToBattlegroundAB() { if (GetTypeID() == BATTLEGROUND_AB) return reinterpret_cast<BattlegroundAB*>(this); else return NULL; }
-        BattlegroundAB const* ToBattlegroundAB() const { if (GetTypeID() == BATTLEGROUND_AB) return reinterpret_cast<const BattlegroundAB*>(this); else return NULL; }
-		
-		BattlegroundNA* ToBattlegroundNA() { if (GetTypeID() == BATTLEGROUND_NA) return reinterpret_cast<BattlegroundNA*>(this); else return NULL; }
-        BattlegroundNA const* ToBattlegroundNA() const { if (GetTypeID() == BATTLEGROUND_NA) return reinterpret_cast<const BattlegroundNA*>(this); else return NULL; }
-		
-		BattlegroundBE* ToBattlegroundBE() { if (GetTypeID() == BATTLEGROUND_BE) return reinterpret_cast<BattlegroundBE*>(this); else return NULL; }
-        BattlegroundBE const* ToBattlegroundBE() const { if (GetTypeID() == BATTLEGROUND_BE) return reinterpret_cast<const BattlegroundBE*>(this); else return NULL; }
-		
-		BattlegroundEY* ToBattlegroundEY() { if (GetTypeID() == BATTLEGROUND_EY) return reinterpret_cast<BattlegroundEY*>(this); else return NULL; }
-        BattlegroundEY const* ToBattlegroundEY() const { if (GetTypeID() == BATTLEGROUND_EY) return reinterpret_cast<const BattlegroundEY*>(this); else return NULL; }
-		
-		BattlegroundRL* ToBattlegroundRL() { if (GetTypeID() == BATTLEGROUND_RL) return reinterpret_cast<BattlegroundRL*>(this); else return NULL; }
-        BattlegroundRL const* ToBattlegroundRL() const { if (GetTypeID() == BATTLEGROUND_RL) return reinterpret_cast<const BattlegroundRL*>(this); else return NULL; }
-		
-		BattlegroundSA* ToBattlegroundSA() { if (GetTypeID() == BATTLEGROUND_SA) return reinterpret_cast<BattlegroundSA*>(this); else return NULL; }
-        BattlegroundSA const* ToBattlegroundSA() const { if (GetTypeID() == BATTLEGROUND_SA) return reinterpret_cast<const BattlegroundSA*>(this); else return NULL; }
-		
-		BattlegroundDS* ToBattlegroundDS() { if (GetTypeID() == BATTLEGROUND_DS) return reinterpret_cast<BattlegroundDS*>(this); else return NULL; }
-        BattlegroundDS const* ToBattlegroundDS() const { if (GetTypeID() == BATTLEGROUND_DS) return reinterpret_cast<const BattlegroundDS*>(this); else return NULL; }
-		
-		BattlegroundRV* ToBattlegroundRV() { if (GetTypeID() == BATTLEGROUND_RV) return reinterpret_cast<BattlegroundRV*>(this); else return NULL; }
-        BattlegroundRV const* ToBattlegroundRV() const { if (GetTypeID() == BATTLEGROUND_RV) return reinterpret_cast<const BattlegroundRV*>(this); else return NULL; }
-		
-		BattlegroundIC* ToBattlegroundIC() { if (GetTypeID() == BATTLEGROUND_IC) return reinterpret_cast<BattlegroundIC*>(this); else return NULL; }
-        BattlegroundIC const* ToBattlegroundIC() const { if (GetTypeID() == BATTLEGROUND_IC) return reinterpret_cast<const BattlegroundIC*>(this); else return NULL; }
-		
+        // because BattleGrounds with different types and same level range has different m_BracketId
+        uint8 GetUniqueBracketId() const;
+
     protected:
+        void SetCreaturesNumber(size_t count);
+        void SetGameObjectsNumber(size_t count);
+        void SetChangeBuffs(bool change, std::vector<BattlegroundBuffEntries> const* buffEntries);
+
         // this method is called, when BG cannot spawn its own spirit guide, or something is wrong, It correctly ends Battleground
         void EndNow();
         void PlayerAddedToBGCheckIfBGIsRunning(Player* player);
 
-        Player* _GetPlayer(uint64 guid, bool offlineRemove, const char* context) const;
-        Player* _GetPlayer(BattlegroundPlayerMap::iterator itr, const char* context);
-        Player* _GetPlayer(BattlegroundPlayerMap::const_iterator itr, const char* context) const;
+        Player* _GetPlayer(ObjectGuid guid, bool offlineRemove, const char* context) const;
+        Player* _GetPlayer(BattlegroundPlayerMap::iterator itr, const char* context) { return _GetPlayer(itr->first, itr->second.OfflineRemoveTime != 0, context); }
+        Player* _GetPlayer(BattlegroundPlayerMap::const_iterator itr, const char* context) const { return _GetPlayer(itr->first, itr->second.OfflineRemoveTime != 0, context); }
         Player* _GetPlayerForTeam(uint32 teamId, BattlegroundPlayerMap::const_iterator itr, const char* context) const;
 
         void _ProcessOfflineQueue();
-        void _ProcessRessurect(uint32 diff);
+        void _ProcessResurrect(uint32 diff);
         void _ProcessProgress(uint32 diff);
         void _ProcessLeave(uint32 diff);
         void _ProcessJoin(uint32 diff);
@@ -603,12 +531,12 @@ class Battleground
         // Scorekeeping
         BattlegroundScoreMap PlayerScores;                // Player scores
         // must be implemented in BG subclass
-        virtual void RemovePlayer(Player* /*player*/, uint64 /*guid*/, uint32 /*team*/) {}
+        virtual void RemovePlayer(Player* /*player*/, ObjectGuid /*guid*/, uint32 /*team*/) { }
 
         // Player lists, those need to be accessible by inherited classes
-        BattlegroundPlayerMap  m_Players;
+        BattlegroundPlayerMap m_Players;
         // Spirit Guide guid + Player list GUIDS
-        std::map<uint64, std::vector<uint64> >  m_ReviveQueue;
+        std::map<ObjectGuid, GuidVector> m_ReviveQueue;
 
         // these are important variables used for starting messages
         uint8 m_Events;
@@ -616,11 +544,12 @@ class Battleground
         // this must be filled in constructors!
         uint32 StartMessageIds[BG_STARTING_EVENT_COUNT];
 
-        bool   m_BuffChange;
         bool   m_IsRandom;
 
         BGHonorMode m_HonorMode;
         int32 m_TeamScores[BG_TEAMS_COUNT];
+
+        ArenaTeamScore _arenaTeamScores[BG_TEAMS_COUNT];
 
     private:
         // Battleground
@@ -639,15 +568,16 @@ class Battleground
         bool   m_InBGFreeSlotQueue;                         // used to make sure that BG is only once inserted into the BattlegroundMgr.BGFreeSlotQueue[bgTypeId] deque
         bool   m_SetDeleteThis;                             // used for safe deletion of the bg after end / all players leave
         bool   m_IsArena;
-        uint8  m_Winner;                                    // 0=alliance, 1=horde, 2=none
+        BattlegroundTeamId _winnerTeamId;
         int32  m_StartDelayTime;
         bool   m_IsRated;                                   // is this battle rated?
         bool   m_PrematureCountDown;
         uint32 m_PrematureCountDownTimer;
-        char const* m_Name;
+        std::string m_Name;
+        bool   m_BuffChange;
 
 		std::set<uint64> m_playersWantsFastStart;
-        std::set<GameObject*> m_crystals;
+		std::set<GameObject*> m_crystals;
 
         /* Pre- and post-update hooks */
 
@@ -679,9 +609,13 @@ class Battleground
          */
         virtual void PostUpdateImpl(uint32 /* diff */) { }
 
-        // Player lists
-        std::vector<uint64> m_ResurrectQueue;               // Player GUID
-        std::deque<uint64> m_OfflineQueue;                  // Player GUID
+        // Player containers
+        GuidVector m_ResurrectQueue;                        // Player GUID
+        GuidDeque m_OfflineQueue;                           // Player GUID
+
+        // Spawn containers
+        GuidVector BgObjects;
+        GuidVector BgCreatures;
 
         // Invited counters are useful for player invitation to BG - do not allow, if BG is started to one faction to have 2 more players than another faction
         // Invited counters will be changed only when removing already invited player from queue, removing player from battleground and inviting player to BG
@@ -698,7 +632,6 @@ class Battleground
         // Arena team ids by team
         uint32 m_ArenaTeamIds[BG_TEAMS_COUNT];
 
-        int32 m_ArenaTeamRatingChanges[BG_TEAMS_COUNT];
         uint32 m_ArenaTeamMMR[BG_TEAMS_COUNT];
 
         // Limits
@@ -712,11 +645,10 @@ class Battleground
         // Start location
         uint32 m_MapId;
         BattlegroundMap* m_Map;
-        float m_TeamStartLocX[BG_TEAMS_COUNT];
-        float m_TeamStartLocY[BG_TEAMS_COUNT];
-        float m_TeamStartLocZ[BG_TEAMS_COUNT];
-        float m_TeamStartLocO[BG_TEAMS_COUNT];
+        Position StartPosition[BG_TEAMS_COUNT];
         float m_StartMaxDist;
         uint32 ScriptId;
+
+        std::vector<BattlegroundBuffEntries> const* m_BuffEntries;
 };
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -58,6 +58,8 @@ void OutdoorPvPSI::UpdateWorldState()
 
 bool OutdoorPvPSI::SetupOutdoorPvP()
 {
+    SetMapFromZone(OutdoorPvPSIBuffZones[0]);
+
     for (uint8 i = 0; i < OutdoorPvPSIBuffZonesNum; ++i)
         RegisterZone(OutdoorPvPSIBuffZones[i]);
     return true;
@@ -95,6 +97,7 @@ bool OutdoorPvPSI::HandleAreaTrigger(Player* player, uint32 trigger)
             if (m_Gathered_A >= SI_MAX_RESOURCES)
             {
                 TeamApplyBuff(TEAM_ALLIANCE, SI_CENARION_FAVOR);
+                /// @todo: confirm this text
                 sWorld->SendZoneText(OutdoorPvPSIBuffZones[0], sObjectMgr->GetTrinityStringForDBCLocale(LANG_OPVP_SI_CAPTURE_A));
                 m_LastController = ALLIANCE;
                 m_Gathered_A = 0;
@@ -108,7 +111,7 @@ bool OutdoorPvPSI::HandleAreaTrigger(Player* player, uint32 trigger)
             // add 20 cenarion circle repu
             player->GetReputationMgr().ModifyReputation(sFactionStore.LookupEntry(609), 20);
             // complete quest
-            player->KilledMonsterCredit(SI_TURNIN_QUEST_CM_A, 0);
+            player->KilledMonsterCredit(SI_TURNIN_QUEST_CM_A);
         }
         return true;
     case SI_AREATRIGGER_H:
@@ -120,6 +123,7 @@ bool OutdoorPvPSI::HandleAreaTrigger(Player* player, uint32 trigger)
             if (m_Gathered_H >= SI_MAX_RESOURCES)
             {
                 TeamApplyBuff(TEAM_HORDE, SI_CENARION_FAVOR);
+                /// @todo: confirm this text
                 sWorld->SendZoneText(OutdoorPvPSIBuffZones[0], sObjectMgr->GetTrinityStringForDBCLocale(LANG_OPVP_SI_CAPTURE_H));
                 m_LastController = HORDE;
                 m_Gathered_A = 0;
@@ -133,7 +137,7 @@ bool OutdoorPvPSI::HandleAreaTrigger(Player* player, uint32 trigger)
             // add 20 cenarion circle repu
             player->GetReputationMgr().ModifyReputation(sFactionStore.LookupEntry(609), 20);
             // complete quest
-            player->KilledMonsterCredit(SI_TURNIN_QUEST_CM_H, 0);
+            player->KilledMonsterCredit(SI_TURNIN_QUEST_CM_H);
         }
         return true;
     }
@@ -158,13 +162,8 @@ bool OutdoorPvPSI::HandleDropFlag(Player* player, uint32 spellId)
                         // he dropped it further, summon mound
                         GameObject* go = new GameObject;
                         Map* map = player->GetMap();
-                        if (!map)
-                        {
-                            delete go;
-                            return true;
-                        }
 
-                        if (!go->Create(sObjectMgr->GenerateLowGuid(HIGHGUID_GAMEOBJECT), SI_SILITHYST_MOUND, map, player->GetPhaseMask(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation(), 0, 0, 0, 0, 100, GO_STATE_READY))
+                        if (!go->Create(map->GenerateLowGuid<HighGuid::GameObject>(), SI_SILITHYST_MOUND, map, player->GetPhaseMask(), *player, G3D::Quat(), 255, GO_STATE_READY))
                         {
                             delete go;
                             return true;
@@ -192,13 +191,8 @@ bool OutdoorPvPSI::HandleDropFlag(Player* player, uint32 spellId)
                         // he dropped it further, summon mound
                         GameObject* go = new GameObject;
                         Map* map = player->GetMap();
-                        if (!map)
-                        {
-                            delete go;
-                            return true;
-                        }
 
-                        if (!go->Create(sObjectMgr->GenerateLowGuid(HIGHGUID_GAMEOBJECT), SI_SILITHYST_MOUND, map, player->GetPhaseMask(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation(), 0, 0, 0, 0, 100, GO_STATE_READY))
+                        if (!go->Create(map->GenerateLowGuid<HighGuid::GameObject>(), SI_SILITHYST_MOUND, map, player->GetPhaseMask(), *player, G3D::Quat(), 255, GO_STATE_READY))
                         {
                             delete go;
                             return true;
@@ -238,13 +232,9 @@ bool OutdoorPvPSI::HandleCustomSpell(Player* player, uint32 spellId, GameObject*
 class OutdoorPvP_silithus : public OutdoorPvPScript
 {
     public:
+        OutdoorPvP_silithus() : OutdoorPvPScript("outdoorpvp_si") { }
 
-        OutdoorPvP_silithus()
-            : OutdoorPvPScript("outdoorpvp_si")
-        {
-        }
-
-        OutdoorPvP* GetOutdoorPvP() const OVERRIDE
+        OutdoorPvP* GetOutdoorPvP() const override
         {
             return new OutdoorPvPSI();
         }

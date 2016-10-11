@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -50,15 +50,17 @@ enum Spells
     SPELL_HAMSTRING         = 26211
 };
 
+enum Misc
+{
+    EMOTE_SPOUT             = 0,     // "The Lurker Below takes a deep breath."
+    SPOUT_DIST              = 100
+};
+
 enum Creatures
 {
     NPC_COILFANG_GUARDIAN   = 21873,
     NPC_COILFANG_AMBUSHER   = 21865
 };
-
-#define EMOTE_SPOUT "The Lurker Below takes a deep breath."
-
-#define SPOUT_DIST  100
 
 float AddPos[9][3] =
 {
@@ -79,17 +81,37 @@ class boss_the_lurker_below : public CreatureScript
 public:
     boss_the_lurker_below() : CreatureScript("boss_the_lurker_below") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new boss_the_lurker_belowAI(creature);
+        return GetInstanceAI<boss_the_lurker_belowAI>(creature);
     }
 
     struct boss_the_lurker_belowAI : public ScriptedAI
     {
         boss_the_lurker_belowAI(Creature* creature) : ScriptedAI(creature), Summons(me)
         {
+            Initialize();
             SetCombatMovement(false);
             instance = creature->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            SpoutAnimTimer = 1000;
+            RotTimer = 0;
+            WaterboltTimer = 15000; // give time to get in range when fight starts
+            SpoutTimer = 45000;
+            WhirlTimer = 18000; // after avery spout
+            PhaseTimer = 120000;
+            GeyserTimer = rand32() % 5000 + 15000;
+            CheckTimer = 15000; // give time to get in range when fight starts
+            WaitTimer = 60000; // never reached
+            WaitTimer2 = 60000; // never reached
+
+            Submerged = true; // will be false at combat start
+            Spawned = false;
+            InRange = false;
+            CanStartEvent = false;
         }
 
         InstanceScript* instance;
@@ -112,61 +134,41 @@ public:
 
         bool CheckCanStart()//check if players fished
         {
-            if (instance && instance->GetData(DATA_STRANGE_POOL) == NOT_STARTED)
+            if (instance->GetData(DATA_STRANGE_POOL) == NOT_STARTED)
                 return false;
             return true;
         }
-        void Reset() OVERRIDE
+
+        void Reset() override
         {
             me->SetSwim(true);
             me->SetDisableGravity(true);
-            SpoutAnimTimer = 1000;
-            RotTimer = 0;
-            WaterboltTimer = 15000; // give time to get in range when fight starts
-            SpoutTimer = 45000;
-            WhirlTimer = 18000; // after avery spout
-            PhaseTimer = 120000;
-            GeyserTimer = rand()%5000 + 15000;
-            CheckTimer = 15000; // give time to get in range when fight starts
-            WaitTimer = 60000; // never reached
-            WaitTimer2 = 60000; // never reached
-
-            Submerged = true; // will be false at combat start
-            Spawned = false;
-            InRange = false;
-            CanStartEvent = false;
+            Initialize();
 
             Summons.DespawnAll();
 
-            if (instance)
-            {
-                instance->SetData(DATA_THELURKERBELOWEVENT, NOT_STARTED);
-                instance->SetData(DATA_STRANGE_POOL, NOT_STARTED);
-            }
+            instance->SetData(DATA_THELURKERBELOWEVENT, NOT_STARTED);
+            instance->SetData(DATA_STRANGE_POOL, NOT_STARTED);
             DoCast(me, SPELL_SUBMERGE); // submerge anim
             me->SetVisible(false); // we start invis under water, submerged
             me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/) override
         {
-            if (instance)
-            {
-                instance->SetData(DATA_THELURKERBELOWEVENT, DONE);
-                instance->SetData(DATA_STRANGE_POOL, IN_PROGRESS);
-            }
+            instance->SetData(DATA_THELURKERBELOWEVENT, DONE);
+            instance->SetData(DATA_STRANGE_POOL, IN_PROGRESS);
 
             Summons.DespawnAll();
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         {
-            if (instance)
-                instance->SetData(DATA_THELURKERBELOWEVENT, IN_PROGRESS);
+            instance->SetData(DATA_THELURKERBELOWEVENT, IN_PROGRESS);
         }
 
-        void MoveInLineOfSight(Unit* who) OVERRIDE
+        void MoveInLineOfSight(Unit* who) override
 
         {
             if (!CanStartEvent) // boss is invisible, don't attack
@@ -179,13 +181,13 @@ public:
             }
         }
 
-        void MovementInform(uint32 type, uint32 /*id*/) OVERRIDE
+        void MovementInform(uint32 type, uint32 /*id*/) override
         {
             if (type == ROTATE_MOTION_TYPE)
                 me->SetReactState(REACT_AGGRESSIVE);
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             if (!CanStartEvent) // boss is invisible, don't attack
             {
@@ -240,7 +242,7 @@ public:
 
                 if (SpoutTimer <= diff)
                 {
-                    me->MonsterTextEmote(EMOTE_SPOUT, 0, true);
+                    Talk(EMOTE_SPOUT);
                     me->SetReactState(REACT_PASSIVE);
                     me->GetMotionMaster()->MoveRotate(20000, urand(0, 1) ? ROTATE_DIRECTION_LEFT : ROTATE_DIRECTION_RIGHT);
                     SpoutTimer = 45000;
@@ -259,8 +261,7 @@ public:
                 if (CheckTimer <= diff)//check if there are players in melee range
                 {
                     InRange = false;
-                    Map* map = me->GetMap();
-                    Map::PlayerList const &PlayerList = map->GetPlayers();
+                    Map::PlayerList const &PlayerList = me->GetMap()->GetPlayers();
                     if (!PlayerList.isEmpty())
                     {
                         for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
@@ -274,15 +275,11 @@ public:
 
                 if (RotTimer)
                 {
-                    Map* map = me->GetMap();
-                    if (map->IsDungeon())
+                    Map::PlayerList const &PlayerList = me->GetMap()->GetPlayers();
+                    for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
                     {
-                        Map::PlayerList const &PlayerList = map->GetPlayers();
-                        for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                        {
-                            if (i->GetSource() && i->GetSource()->IsAlive() && me->HasInArc(float(diff/20000*M_PI*2), i->GetSource()) && me->IsWithinDist(i->GetSource(), SPOUT_DIST) && !i->GetSource()->IsInWater())
-                                DoCast(i->GetSource(), SPELL_SPOUT, true); // only knock back players in arc, in 100yards, not in water
-                        }
+                        if (i->GetSource() && i->GetSource()->IsAlive() && me->HasInArc(diff/20000.f*float(M_PI)*2.f, i->GetSource()) && me->IsWithinDist(i->GetSource(), SPOUT_DIST) && !i->GetSource()->IsInWater())
+                            DoCast(i->GetSource(), SPELL_SPOUT, true); // only knock back players in arc, in 100yards, not in water
                     }
 
                     if (SpoutAnimTimer <= diff)
@@ -305,7 +302,7 @@ public:
                         target = me->GetVictim();
                     if (target)
                         DoCast(target, SPELL_GEYSER, true);
-                    GeyserTimer = rand()%5000 + 15000;
+                    GeyserTimer = rand32() % 5000 + 15000;
                 } else GeyserTimer -= diff;
 
                 if (!InRange) // if on players in melee range cast Waterbolt
@@ -371,7 +368,7 @@ class npc_coilfang_ambusher : public CreatureScript
 public:
     npc_coilfang_ambusher() : CreatureScript("npc_coilfang_ambusher") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_coilfang_ambusherAI(creature);
     }
@@ -380,19 +377,25 @@ public:
     {
         npc_coilfang_ambusherAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             SetCombatMovement(false);
         }
 
-        uint32 MultiShotTimer;
-        uint32 ShootBowTimer;
-
-        void Reset() OVERRIDE
+        void Initialize()
         {
             MultiShotTimer = 10000;
             ShootBowTimer = 4000;
         }
 
-        void MoveInLineOfSight(Unit* who) OVERRIDE
+        uint32 MultiShotTimer;
+        uint32 ShootBowTimer;
+
+        void Reset() override
+        {
+            Initialize();
+        }
+
+        void MoveInLineOfSight(Unit* who) override
 
         {
             if (!who || me->GetVictim())
@@ -402,14 +405,14 @@ public:
                 AttackStart(who);
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             if (MultiShotTimer <= diff)
             {
                 if (me->GetVictim())
                     DoCastVictim(SPELL_SPREAD_SHOT, true);
 
-                MultiShotTimer = 10000+rand()%10000;
+                MultiShotTimer = 10000 + rand32() % 10000;
                 ShootBowTimer += 1500; // add global cooldown
             } else MultiShotTimer -= diff;
 
@@ -418,7 +421,7 @@ public:
                 int bp0 = 1100;
                 if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
                     me->CastCustomSpell(target, SPELL_SHOOT, &bp0, NULL, NULL, true);
-                ShootBowTimer = 4000+rand()%5000;
+                ShootBowTimer = 4000 + rand32() % 5000;
                 MultiShotTimer += 1500; // add global cooldown
             } else ShootBowTimer -= diff;
         }
@@ -429,9 +432,9 @@ public:
 class go_strange_pool : public GameObjectScript
 {
     public:
-        go_strange_pool() : GameObjectScript("go_strange_pool") {}
+        go_strange_pool() : GameObjectScript("go_strange_pool") { }
 
-        bool OnGossipHello(Player* player, GameObject* go) OVERRIDE
+        bool OnGossipHello(Player* player, GameObject* go) override
         {
             // 25%
             if (InstanceScript* instanceScript = go->GetInstanceScript())

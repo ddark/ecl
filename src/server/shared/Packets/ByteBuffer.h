@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -22,22 +22,18 @@
 #include "Define.h"
 #include "Errors.h"
 #include "ByteConverter.h"
-
-#include <exception>
-#include <list>
-#include <map>
-#include <string>
-#include <vector>
+#include "Util.h"
 #include <cstring>
-#include <time.h>
+
+class MessageBuffer;
 
 // Root of ByteBuffer exception hierarchy
-class ByteBufferException : public std::exception
+class TC_SHARED_API ByteBufferException : public std::exception
 {
 public:
     ~ByteBufferException() throw() { }
 
-    char const* what() const throw() { return msg_.c_str(); }
+    char const* what() const throw() override { return msg_.c_str(); }
 
 protected:
     std::string & message() throw() { return msg_; }
@@ -46,7 +42,7 @@ private:
     std::string msg_;
 };
 
-class ByteBufferPositionException : public ByteBufferException
+class TC_SHARED_API ByteBufferPositionException : public ByteBufferException
 {
 public:
     ByteBufferPositionException(bool add, size_t pos, size_t size, size_t valueSize);
@@ -54,7 +50,7 @@ public:
     ~ByteBufferPositionException() throw() { }
 };
 
-class ByteBufferSourceException : public ByteBufferException
+class TC_SHARED_API ByteBufferSourceException : public ByteBufferException
 {
 public:
     ByteBufferSourceException(size_t pos, size_t size, size_t valueSize);
@@ -62,7 +58,7 @@ public:
     ~ByteBufferSourceException() throw() { }
 };
 
-class ByteBuffer
+class TC_SHARED_API ByteBuffer
 {
     public:
         const static size_t DEFAULT_SIZE = 0x1000;
@@ -78,11 +74,27 @@ class ByteBuffer
             _storage.reserve(reserve);
         }
 
-        // copy constructor
-        ByteBuffer(const ByteBuffer &buf) : _rpos(buf._rpos), _wpos(buf._wpos),
-            _storage(buf._storage)
+        ByteBuffer(ByteBuffer&& buf) : _rpos(buf._rpos), _wpos(buf._wpos),
+            _storage(std::move(buf._storage)) { }
+
+        ByteBuffer(ByteBuffer const& right) : _rpos(right._rpos), _wpos(right._wpos),
+            _storage(right._storage) { }
+
+        ByteBuffer(MessageBuffer&& buffer);
+
+        ByteBuffer& operator=(ByteBuffer const& right)
         {
+            if (this != &right)
+            {
+                _rpos = right._rpos;
+                _wpos = right._wpos;
+                _storage = right._storage;
+            }
+
+            return *this;
         }
+
+        virtual ~ByteBuffer() { }
 
         void clear()
         {
@@ -92,12 +104,14 @@ class ByteBuffer
 
         template <typename T> void append(T value)
         {
+            static_assert(std::is_fundamental<T>::value, "append(compound)");
             EndianConvert(value);
             append((uint8 *)&value, sizeof(value));
         }
 
         template <typename T> void put(size_t pos, T value)
         {
+            static_assert(std::is_fundamental<T>::value, "append(compound)");
             EndianConvert(value);
             put(pos, (uint8 *)&value, sizeof(value));
         }
@@ -238,12 +252,16 @@ class ByteBuffer
         ByteBuffer &operator>>(float &value)
         {
             value = read<float>();
+            if (!std::isfinite(value))
+                throw ByteBufferException();
             return *this;
         }
 
         ByteBuffer &operator>>(double &value)
         {
             value = read<double>();
+            if (!std::isfinite(value))
+                throw ByteBufferException();
             return *this;
         }
 
@@ -365,7 +383,7 @@ class ByteBuffer
             lt.tm_mon = (packedDate >> 20) & 0xF;
             lt.tm_year = ((packedDate >> 24) & 0x1F) + 100;
 
-            return uint32(mktime(&lt) + timezone);
+            return uint32(mktime(&lt));
         }
 
         ByteBuffer& ReadPackedTime(uint32& time)
@@ -374,9 +392,19 @@ class ByteBuffer
             return *this;
         }
 
-        uint8 * contents() { return &_storage[0]; }
+        uint8* contents()
+        {
+            if (_storage.empty())
+                throw ByteBufferException();
+            return _storage.data();
+        }
 
-        const uint8 *contents() const { return &_storage[0]; }
+        uint8 const* contents() const
+        {
+            if (_storage.empty())
+                throw ByteBufferException();
+            return _storage.data();
+        }
 
         size_t size() const { return _storage.size(); }
         bool empty() const { return _storage.empty(); }
@@ -457,8 +485,9 @@ class ByteBuffer
 
         void AppendPackedTime(time_t time)
         {
-            tm* lt = localtime(&time);
-            append<uint32>((lt->tm_year - 100) << 24 | lt->tm_mon  << 20 | (lt->tm_mday - 1) << 14 | lt->tm_wday << 11 | lt->tm_hour << 6 | lt->tm_min);
+            tm lt;
+            localtime_r(&time, &lt);
+            append<uint32>((lt.tm_year - 100) << 24 | lt.tm_mon  << 20 | (lt.tm_mday - 1) << 14 | lt.tm_wday << 11 | lt.tm_hour << 6 | lt.tm_min);
         }
 
         void put(size_t pos, const uint8 *src, size_t cnt)
@@ -590,4 +619,3 @@ inline void ByteBuffer::read_skip<std::string>()
 }
 
 #endif
-

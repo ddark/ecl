@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -50,35 +50,43 @@ class npc_calvin_montague : public CreatureScript
 public:
     npc_calvin_montague() : CreatureScript("npc_calvin_montague") { }
 
-    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) OVERRIDE
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
     {
         if (quest->GetQuestId() == QUEST_590)
         {
             creature->setFaction(FACTION_HOSTILE);
             creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
-            CAST_AI(npc_calvin_montague::npc_calvin_montagueAI, creature->AI())->AttackStart(player);
+            ENSURE_AI(npc_calvin_montague::npc_calvin_montagueAI, creature->AI())->AttackStart(player);
         }
         return true;
     }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_calvin_montagueAI(creature);
     }
 
     struct npc_calvin_montagueAI : public ScriptedAI
     {
-        npc_calvin_montagueAI(Creature* creature) : ScriptedAI(creature) { }
+        npc_calvin_montagueAI(Creature* creature) : ScriptedAI(creature)
+        {
+            Initialize();
+        }
 
-        uint32 m_uiPhase;
-        uint32 m_uiPhaseTimer;
-        uint64 m_uiPlayerGUID;
-
-        void Reset() OVERRIDE
+        void Initialize()
         {
             m_uiPhase = 0;
             m_uiPhaseTimer = 5000;
-            m_uiPlayerGUID = 0;
+            m_uiPlayerGUID.Clear();
+        }
+
+        uint32 m_uiPhase;
+        uint32 m_uiPhaseTimer;
+        ObjectGuid m_uiPlayerGUID;
+
+        void Reset() override
+        {
+            Initialize();
 
             me->RestoreFaction();
 
@@ -86,9 +94,9 @@ public:
                 me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE {}
+        void EnterCombat(Unit* /*who*/) override { }
 
-        void AttackedBy(Unit* pAttacker) OVERRIDE
+        void AttackedBy(Unit* pAttacker) override
         {
             if (me->GetVictim() || me->IsFriendlyTo(pAttacker))
                 return;
@@ -96,7 +104,7 @@ public:
             AttackStart(pAttacker);
         }
 
-        void DamageTaken(Unit* pDoneBy, uint32 &uiDamage) OVERRIDE
+        void DamageTaken(Unit* pDoneBy, uint32 &uiDamage) override
         {
             if (uiDamage > me->GetHealth() || me->HealthBelowPctDamaged(15, uiDamage))
             {
@@ -113,7 +121,7 @@ public:
             }
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             if (m_uiPhase)
             {
@@ -132,7 +140,7 @@ public:
                         ++m_uiPhase;
                         break;
                     case 2:
-                        if (Player* player = Unit::GetPlayer(*me, m_uiPlayerGUID))
+                        if (Player* player = ObjectAccessor::GetPlayer(*me, m_uiPlayerGUID))
                             player->AreaExploredOrEventHappens(QUEST_590);
 
                         DoCast(me, SPELL_DRINK, true);
@@ -172,17 +180,18 @@ class go_mausoleum_door : public GameObjectScript
 public:
     go_mausoleum_door() : GameObjectScript("go_mausoleum_door") { }
 
-    bool OnGossipHello(Player* player, GameObject* /*go*/) OVERRIDE
+    bool OnGossipHello(Player* player, GameObject* /*go*/) override
     {
         if (player->GetQuestStatus(QUEST_ULAG) != QUEST_STATUS_INCOMPLETE)
             return false;
 
-        if (GameObject* pTrigger = player->FindNearestGameObject(GO_TRIGGER, 30.0f))
-        {
-            pTrigger->SetGoState(GO_STATE_READY);
-            player->SummonCreature(NPC_ULAG, 2390.26f, 336.47f, 40.01f, 2.26f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 300000);
-            return false;
-        }
+        if (!player->FindNearestCreature(NPC_ULAG, 50.0f))
+            if (GameObject* pTrigger = player->FindNearestGameObject(GO_TRIGGER, 30.0f))
+            {
+                pTrigger->SetGoState(GO_STATE_READY);
+                player->SummonCreature(NPC_ULAG, 2390.26f, 336.47f, 40.01f, 2.26f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 300000);
+                return false;
+            }
 
         return false;
     }
@@ -193,7 +202,7 @@ class go_mausoleum_trigger : public GameObjectScript
 public:
     go_mausoleum_trigger() : GameObjectScript("go_mausoleum_trigger") { }
 
-    bool OnGossipHello(Player* player, GameObject* go) OVERRIDE
+    bool OnGossipHello(Player* player, GameObject* go) override
     {
         if (player->GetQuestStatus(QUEST_ULAG) != QUEST_STATUS_INCOMPLETE)
             return false;

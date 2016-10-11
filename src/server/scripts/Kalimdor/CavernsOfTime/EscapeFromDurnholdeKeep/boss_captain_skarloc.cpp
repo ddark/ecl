@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -52,16 +52,27 @@ class boss_captain_skarloc : public CreatureScript
 public:
     boss_captain_skarloc() : CreatureScript("boss_captain_skarloc") { }
 
-    CreatureAI* GetAI(Creature* creature) const OVERRIDE
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new boss_captain_skarlocAI(creature);
+        return GetInstanceAI<boss_captain_skarlocAI>(creature);
     }
 
     struct boss_captain_skarlocAI : public ScriptedAI
     {
         boss_captain_skarlocAI(Creature* creature) : ScriptedAI(creature)
         {
+            Initialize();
             instance = creature->GetInstanceScript();
+        }
+
+        void Initialize()
+        {
+            Holy_Light_Timer = urand(20000, 30000);
+            Cleanse_Timer = 10000;
+            HammerOfJustice_Timer = urand(20000, 35000);
+            HolyShield_Timer = 240000;
+            DevotionAura_Timer = 3000;
+            Consecration_Timer = 8000;
         }
 
         InstanceScript* instance;
@@ -73,37 +84,32 @@ public:
         uint32 DevotionAura_Timer;
         uint32 Consecration_Timer;
 
-        void Reset() OVERRIDE
+        void Reset() override
         {
-            Holy_Light_Timer = urand(20000, 30000);
-            Cleanse_Timer = 10000;
-            HammerOfJustice_Timer = urand(20000, 35000);
-            HolyShield_Timer = 240000;
-            DevotionAura_Timer = 3000;
-            Consecration_Timer = 8000;
+            Initialize();
         }
 
-        void EnterCombat(Unit* /*who*/) OVERRIDE
+        void EnterCombat(Unit* /*who*/) override
         {
             //This is not correct. Should taunt Thrall before engage in combat
             Talk(SAY_TAUNT1);
             Talk(SAY_TAUNT2);
         }
 
-        void KilledUnit(Unit* /*victim*/) OVERRIDE
+        void KilledUnit(Unit* /*victim*/) override
         {
             Talk(SAY_SLAY);
         }
 
-        void JustDied(Unit* /*killer*/) OVERRIDE
+        void JustDied(Unit* /*killer*/) override
         {
             Talk(SAY_DEATH);
 
-            if (instance && instance->GetData(TYPE_THRALL_EVENT) == IN_PROGRESS)
+            if (instance->GetData(TYPE_THRALL_EVENT) == IN_PROGRESS)
                 instance->SetData(TYPE_THRALL_PART1, DONE);
         }
 
-        void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) override
         {
             //Return since we have no target
             if (!UpdateVictim())
